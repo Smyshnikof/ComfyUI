@@ -39,6 +39,7 @@ function switchHFMethod(method) {
 let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 
 function togglePresetCard(presetId, event) {
+  console.log('togglePresetCard called with:', presetId, event);
   // Для пресетов с вариантами - разворачиваем/сворачиваем карточку
   const card = document.querySelector(`[data-preset="${presetId}"]`);
   if (!card) {
@@ -53,17 +54,20 @@ function togglePresetCard(presetId, event) {
     // Если клик был на варианте или видео-гайде, не раскрываем/сворачиваем
     if (clickedElement.closest('.preset-variant-item') || 
         clickedElement.closest('.video-guide-icon')) {
+      console.log('Click on variant or video guide, ignoring');
       return;
     }
     
     // Если клик был на иконке раскрытия, всегда раскрываем/сворачиваем
     if (clickedElement.closest('.preset-expand-icon')) {
+      console.log('Click on expand icon, toggling');
       card.classList.toggle('expanded');
       return;
     }
   }
   
   // Обычный клик на карточке - раскрываем/сворачиваем
+  console.log('Regular click on card, toggling expanded');
   card.classList.toggle('expanded');
 }
 
