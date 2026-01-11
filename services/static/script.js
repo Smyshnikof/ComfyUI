@@ -236,14 +236,24 @@ function pollStatus(taskId) {
 let currentCategory = 'all';
 let searchQuery = '';
 
-function filterByCategory(category) {
+function filterByCategory(category, event) {
   currentCategory = category;
   
   // Обновляем активный фильтр
   document.querySelectorAll('.category-filter').forEach(filter => {
     filter.classList.remove('active');
   });
-  event.target.closest('.category-filter').classList.add('active');
+  if (event && event.target) {
+    event.target.closest('.category-filter')?.classList.add('active');
+  } else {
+    // Если event не передан, ищем по data-category
+    document.querySelectorAll('.category-filter').forEach(filter => {
+      if (filter.getAttribute('data-category') === category || 
+          (category === 'all' && filter.textContent.includes('Все'))) {
+        filter.classList.add('active');
+      }
+    });
+  }
   
   // Применяем фильтры
   applyFilters();
