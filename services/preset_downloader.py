@@ -1097,8 +1097,6 @@ INDEX_HTML = """
     
     // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
-      updateLightningLoraInfo();
-      
       // Инициализируем фильтры
       applyFilters();
     });
