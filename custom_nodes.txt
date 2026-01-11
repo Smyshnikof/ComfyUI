@@ -50,3 +50,14 @@ https://github.com/kijai/ComfyUI-MMAudio
 https://github.com/kijai/ComfyUI-WanAnimatePreprocess
 https://github.com/kijai/ComfyUI-SCAIL-Pose
 https://github.com/LAOGOU-666/Comfyui-Memory_Cleanup
+https://github.com/BadCafeCode/masquerade-nodes-comfyui
+https://github.com/Jonseed/ComfyUI-Detail-Daemon
+https://github.com/WASasquatch/was-node-suite-comfyui
+https://github.com/digitaljohn/comfyui-propost
+https://github.com/kijai/ComfyUI-DepthAnythingV2
+https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch
+https://github.com/lrzjason/Comfyui-QwenEditUtils
+https://github.com/luguoli/ComfyUI-Qwen-Image-Integrated-KSampler
+https://github.com/mercu-lore/-Multiple-Angle-Camera-Control
+https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler
+https://github.com/vrgamegirl19/comfyui-vrgamedevgirl

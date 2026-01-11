@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Загрузчик пресетов и моделей - Preview</title>
+  <title>Загрузчик пресетов и моделей</title>
   <style>
     :root { --bg:#1e1e1e; --card:#282828; --text:#ffffff; --muted:#9ca3af; --accent:#ffffff; --accent-border:#000000; }
     html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; }
@@ -83,24 +83,43 @@
       transform: scale(1.15);
       box-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
     .tab { padding: 8px 16px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
     .tab.active { background: var(--accent); color: var(--bg); }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    select { width:100%; padding:12px 16px; background:#1a1a1a; border:1px solid #3a3a3a; color:var(--text); border-radius:8px; box-sizing: border-box; }
+    .search-container { margin-bottom: 20px; position: relative; }
+    .search-input { width: 100%; padding: 12px 16px 12px 44px; background: #1a1a1a; border: 1px solid #3a3a3a; color: var(--text); border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 18px; opacity: 0.7; }
+    .category-filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .category-filter { padding: 8px 16px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    .category-filter:hover { border-color: var(--accent); background: #222; }
+    .category-filter.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .category-filter.all { background: #2a2a2a; }
+    .category-filter.all.active { background: var(--accent); }
+    .preset-card.hidden { display: none; }
+    .preset-variants { margin-top: 12px; padding-top: 12px; border-top: 1px solid #3a3a3a; display: none; }
+    .preset-card.expanded .preset-variants { display: block; }
+    .preset-variant-group { margin-bottom: 16px; }
+    .preset-variant-group-title { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #2a2a2a; }
+    .preset-variant-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding: 8px; background: #0f0f0f; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .preset-variant-item:hover { background: #151515; }
+    .preset-variant-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    .preset-variant-label { flex: 1; font-size: 13px; color: var(--muted); }
+    .preset-variant-label strong { color: var(--text); }
+    .preset-variant-info { font-size: 11px; color: var(--muted); }
+    .preset-expand-icon { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); font-size: 18px; color: var(--muted); transition: transform 0.2s; cursor: pointer; z-index: 5; }
+    .preset-card.expanded .preset-expand-icon { transform: translateY(-50%) rotate(180deg); }
+    .preset-expand-icon:hover { color: var(--accent); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1 class="title">Загрузчик пресетов и моделей</h1>
-    <p class="subtitle">Скачивание пресетов Wan и моделей с HuggingFace</p>
-    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 20px; text-align: center; color: #22c55e;">
-      <strong>📋 Предпросмотр интерфейса</strong> — Иконки <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; background: white; border-radius: 50%; color: black; font-weight: bold; font-size: 14px; margin: 0 4px;">i</span> рядом с названиями пресетов открывают видео-гайды на YouTube
-    </div>
+    <p class="subtitle">Скачивание пресетов и моделей с HuggingFace</p>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('presets')">🎯 Пресеты Wan</div>
+      <div class="tab active" onclick="switchTab('presets')">🎯 Пресеты</div>
       <div class="tab" onclick="switchTab('huggingface')">🤗 HuggingFace</div>
     </div>
     
@@ -108,56 +127,376 @@
       <!-- Пресеты -->
       <div class="card tab-content active" id="presets-tab">
         <h3>Выберите пресеты для скачивания</h3>
+        
+        <!-- Поиск -->
+        <div class="search-container">
+          <div class="search-icon">🔍</div>
+          <input type="text" class="search-input" id="preset-search" placeholder="Поиск пресетов..." oninput="filterPresets()">
+        </div>
+        
+        <!-- Фильтры категорий -->
+        <div class="category-filters" id="category-filters">
+          <div class="category-filter all active" onclick="filterByCategory('all')">Все</div>
+        <div class="category-filter" onclick="filterByCategory('Wan')" data-category="Wan">
+          <span>🎬</span>
+          <span>Wan</span>
+        </div>
+        
+        <div class="category-filter" onclick="filterByCategory('Qwen')" data-category="Qwen">
+          <span>🤖</span>
+          <span>Qwen</span>
+        </div>
+        
+        <div class="category-filter" onclick="filterByCategory('Z-Image')" data-category="Z-Image">
+          <span>🖼️</span>
+          <span>Z-Image</span>
+        </div>
+        
+        <div class="category-filter" onclick="filterByCategory('Flux')" data-category="Flux">
+          <span>⚡</span>
+          <span>Flux</span>
+        </div>
+        
+        <div class="category-filter" onclick="filterByCategory('LTX')" data-category="LTX">
+          <span>🎨</span>
+          <span>LTX</span>
+        </div>
+        
+        </div>
+        
         <div class="preset-grid" id="preset-grid">
-          <div class="preset-card" data-preset="WAN_T2V" onclick="togglePreset('WAN_T2V')">
-            <a href="https://youtu.be/9Yg02eaFHJI?si=sJeT5NunkyzdDxqp" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
-            <div class="preset-name">Wan T2V (Text-to-Video)</div>
-            <div class="preset-desc">Генерация видео из текста</div>
-            <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_T2I" onclick="togglePreset('WAN_T2I')">
-            <a href="https://youtu.be/D032P5gl5Wg?si=VUSoWugV5VI7e_Q3" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
-            <div class="preset-name">Wan T2I (Text-to-Image)</div>
-            <div class="preset-desc">Генерация изображений из текста</div>
-            <div class="preset-info">Размер: ~18GB • Время: 8-12 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_I2V" onclick="togglePreset('WAN_I2V')">
-            <a href="https://youtu.be/SUh_25b4zeU?si=p8P-aXOYh5HIaIEW" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
-            <div class="preset-name">Wan I2V (Image-to-Video)</div>
-            <div class="preset-desc">Генерация видео из изображения</div>
-            <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_I2V_LOOP" onclick="togglePreset('WAN_I2V_LOOP')">
-            <div class="preset-name">Wan I2V Loop</div>
-            <div class="preset-desc">Генерация зацикленного видео из изображения</div>
-            <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_ANIMATE" onclick="togglePreset('WAN_ANIMATE')">
-            <a href="https://youtu.be/fUNbH3o_cE0?si=VTa-ljuPPaAngf3L" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
-            <div class="preset-name">Wan Animate</div>
-            <div class="preset-desc">Анимация изображений</div>
-            <div class="preset-info">Размер: ~30GB • Время: 10-15 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_FLF" onclick="togglePreset('WAN_FLF')">
-            <div class="preset-name">Wan FLF (First Last Frame)</div>
-            <div class="preset-desc">Генерация видео с помощью первого и последнего кадра</div>
-            <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_LIGHTX2V" onclick="togglePreset('WAN_LIGHTX2V')">
-            <div class="preset-name">Wan LightX2V</div>
-            <div class="preset-desc">LightX2V модели для генерации видео</div>
-            <div class="preset-info">Размер: ~70GB • Время: 12-18 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_I2I_REFINER" onclick="togglePreset('WAN_I2I_REFINER')">
-            <div class="preset-name">Wan I2I Refiner</div>
-            <div class="preset-desc">Модели для улучшения изображений (Image-to-Image Refiner)</div>
-            <div class="preset-info">Размер: ~15GB • Время: 8-12 мин</div>
-          </div>
-          <div class="preset-card" data-preset="WAN_CHRONOEDIT" onclick="togglePreset('WAN_CHRONOEDIT')">
-            <div class="preset-name">ChronoEdit</div>
-            <div class="preset-desc">Редактирование изображений через создание видео</div>
-            <div class="preset-info">Размер: ~25GB • Время: 10-15 мин</div>
-          </div>
+          
+            <div class="preset-card" data-preset="WAN_T2V" data-category="Wan" onclick="togglePreset('WAN_T2V')">
+              <a href="https://youtu.be/9Yg02eaFHJI?si=sJeT5NunkyzdDxqp" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
+              <div class="preset-name">Wan T2V (Text-to-Video)</div>
+              <div class="preset-desc">Генерация видео из текста</div>
+              <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_T2I" data-category="Wan" onclick="togglePreset('WAN_T2I')">
+              <a href="https://youtu.be/D032P5gl5Wg?si=VUSoWugV5VI7e_Q3" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
+              <div class="preset-name">Wan T2I (Text-to-Image)</div>
+              <div class="preset-desc">Генерация изображений из текста</div>
+              <div class="preset-info">Размер: ~18GB • Время: 8-12 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_I2V" data-category="Wan" onclick="togglePreset('WAN_I2V')">
+              <a href="https://youtu.be/SUh_25b4zeU?si=p8P-aXOYh5HIaIEW" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
+              <div class="preset-name">Wan I2V (Image-to-Video)</div>
+              <div class="preset-desc">Генерация видео из изображения</div>
+              <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_I2V_LOOP" data-category="Wan" onclick="togglePreset('WAN_I2V_LOOP')">
+              
+              <div class="preset-name">Wan I2V Loop</div>
+              <div class="preset-desc">Генерация зацикленного видео из изображения</div>
+              <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_ANIMATE" data-category="Wan" onclick="togglePresetCard('WAN_ANIMATE', event)">
+              <a href="https://youtu.be/fUNbH3o_cE0?si=VTa-ljuPPaAngf3L" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('WAN_ANIMATE', event)">▼</span>
+              <div class="preset-name">Wan Animate</div>
+              <div class="preset-desc">Анимация изображений</div>
+              <div class="preset-info">Размер: ~30-40GB • Время: 10-18 мин</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                <div class="preset-variant-group"><div class="preset-variant-group-title">Базовая версия</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-WAN_ANIMATE" data-variant="WAN_ANIMATE" data-parent="WAN_ANIMATE" onchange="toggleVariant('WAN_ANIMATE', 'WAN_ANIMATE')">
+                      <label for="variant-WAN_ANIMATE" class="preset-variant-label">
+                        <strong>Классический</strong>
+                        <span class="preset-variant-info"> • ~30GB • 10-15 мин</span>
+                      </label>
+                    </div>
+                    </div><div class="preset-variant-group"><div class="preset-variant-group-title">Специализированные версии</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-WAN_ANIMATE_STEADY_DANCER" data-variant="WAN_ANIMATE_STEADY_DANCER" data-parent="WAN_ANIMATE" onchange="toggleVariant('WAN_ANIMATE', 'WAN_ANIMATE_STEADY_DANCER')">
+                      <label for="variant-WAN_ANIMATE_STEADY_DANCER" class="preset-variant-label">
+                        <strong>Steady Dancer (танцевальная)</strong>
+                        <span class="preset-variant-info"> • ~30GB • 12-18 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-WAN_ANIMATE_ONETOALL" data-variant="WAN_ANIMATE_ONETOALL" data-parent="WAN_ANIMATE" onchange="toggleVariant('WAN_ANIMATE', 'WAN_ANIMATE_ONETOALL')">
+                      <label for="variant-WAN_ANIMATE_ONETOALL" class="preset-variant-label">
+                        <strong>OneToAll (согласованная)</strong>
+                        <span class="preset-variant-info"> • ~30GB • 12-18 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-WAN_ANIMATE_SCAIL" data-variant="WAN_ANIMATE_SCAIL" data-parent="WAN_ANIMATE" onchange="toggleVariant('WAN_ANIMATE', 'WAN_ANIMATE_SCAIL')">
+                      <label for="variant-WAN_ANIMATE_SCAIL" class="preset-variant-label">
+                        <strong>SCAIL (контроль позы)</strong>
+                        <span class="preset-variant-info"> • ~40GB • 12-18 мин</span>
+                      </label>
+                    </div>
+                    </div>
+              </div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_FLF" data-category="Wan" onclick="togglePreset('WAN_FLF')">
+              
+              <div class="preset-name">Wan FLF (First Last Frame)</div>
+              <div class="preset-desc">Генерация видео с помощью первого и последнего кадра</div>
+              <div class="preset-info">Размер: ~40GB • Время: 15-20 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_LIGHTX2V" data-category="Wan" onclick="togglePreset('WAN_LIGHTX2V')">
+              
+              <div class="preset-name">Wan LightX2V</div>
+              <div class="preset-desc">LightX2V модели для генерации видео</div>
+              <div class="preset-info">Размер: ~70GB • Время: 12-18 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_I2I_REFINER" data-category="Wan" onclick="togglePreset('WAN_I2I_REFINER')">
+              
+              <div class="preset-name">Wan I2I Refiner</div>
+              <div class="preset-desc">Модели для улучшения изображений (Image-to-Image Refiner)</div>
+              <div class="preset-info">Размер: ~15GB • Время: 8-12 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_CHRONOEDIT" data-category="Wan" onclick="togglePreset('WAN_CHRONOEDIT')">
+              
+              <div class="preset-name">ChronoEdit</div>
+              <div class="preset-desc">Редактирование изображений через создание видео</div>
+              <div class="preset-info">Размер: ~25GB • Время: 10-15 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_T2V_T2I_BATCH" data-category="Wan" onclick="togglePreset('WAN_T2V_T2I_BATCH')">
+              
+              <div class="preset-name">T2V&T2I Batch</div>
+              <div class="preset-desc">Параллельная генерация изображений и видео</div>
+              <div class="preset-info">Размер: ~20GB • Время: 8-12 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_INFINITETALK" data-category="Wan" onclick="togglePreset('WAN_INFINITETALK')">
+              
+              <div class="preset-name">Wan InfiniteTalk</div>
+              <div class="preset-desc">LipSync говорящие аватары</div>
+              <div class="preset-info">Размер: ~35GB • Время: 12-18 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_2_1_ALPHA" data-category="Wan" onclick="togglePreset('WAN_2_1_ALPHA')">
+              
+              <div class="preset-name">Wan 2.1 Alpha</div>
+              <div class="preset-desc">Генерация видео из текста с поддержкой альфа канала</div>
+              <div class="preset-info">Размер: ~25GB • Время: 10-15 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="WAN_REMIX_I2V" data-category="Wan" onclick="togglePreset('WAN_REMIX_I2V')">
+              
+              <div class="preset-name">Wan Remix I2V</div>
+              <div class="preset-desc">Креативная модель для генерации видео с реалистичными движениеми</div>
+              <div class="preset-info">Размер: ~30GB • Время: 12-18 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="QWEN_IMAGE" data-category="Qwen" onclick="togglePresetCard('QWEN_IMAGE', event)">
+              
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('QWEN_IMAGE', event)">▼</span>
+              <div class="preset-name">Qwen Image (Text-to-Image)</div>
+              <div class="preset-desc">Генерация изображений из текста</div>
+              <div class="preset-info">Размер: ~15-40GB • Время: 8-20 мин</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                <div class="preset-variant-group"><div class="preset-variant-group-title">Базовая версия</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_IMAGE" data-variant="QWEN_IMAGE" data-parent="QWEN_IMAGE" onchange="toggleVariant('QWEN_IMAGE', 'QWEN_IMAGE')">
+                      <label for="variant-QWEN_IMAGE" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~15GB • 8-12 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_IMAGE_BF16" data-variant="QWEN_IMAGE_BF16" data-parent="QWEN_IMAGE" onchange="toggleVariant('QWEN_IMAGE', 'QWEN_IMAGE_BF16')">
+                      <label for="variant-QWEN_IMAGE_BF16" class="preset-variant-label">
+                        <strong>BF16</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    </div><div class="preset-variant-group"><div class="preset-variant-group-title">Версия 2512</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_IMAGE_2512_FP8" data-variant="QWEN_IMAGE_2512_FP8" data-parent="QWEN_IMAGE" onchange="toggleVariant('QWEN_IMAGE', 'QWEN_IMAGE_2512_FP8')">
+                      <label for="variant-QWEN_IMAGE_2512_FP8" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~15GB • 8-12 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_IMAGE_2512_BF16" data-variant="QWEN_IMAGE_2512_BF16" data-parent="QWEN_IMAGE" onchange="toggleVariant('QWEN_IMAGE', 'QWEN_IMAGE_2512_BF16')">
+                      <label for="variant-QWEN_IMAGE_2512_BF16" class="preset-variant-label">
+                        <strong>BF16</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_IMAGE_2512_Q8_GGUF" data-variant="QWEN_IMAGE_2512_Q8_GGUF" data-parent="QWEN_IMAGE" onchange="toggleVariant('QWEN_IMAGE', 'QWEN_IMAGE_2512_Q8_GGUF')">
+                      <label for="variant-QWEN_IMAGE_2512_Q8_GGUF" class="preset-variant-label">
+                        <strong>Q8 GGUF</strong>
+                        <span class="preset-variant-info"> • ~20GB • 10-15 мин</span>
+                      </label>
+                    </div>
+                    </div>
+              </div>
+            </div>
+            
+            <div class="preset-card" data-preset="QWEN_EDIT" data-category="Qwen" onclick="togglePresetCard('QWEN_EDIT', event)">
+              
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('QWEN_EDIT', event)">▼</span>
+              <div class="preset-name">Qwen Edit (Image Edit)</div>
+              <div class="preset-desc">Редактирование изображений</div>
+              <div class="preset-info">Размер: ~15-40GB • Время: 8-20 мин</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                <div class="preset-variant-group"><div class="preset-variant-group-title">Базовая версия</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_EDIT" data-variant="QWEN_EDIT" data-parent="QWEN_EDIT" onchange="toggleVariant('QWEN_EDIT', 'QWEN_EDIT')">
+                      <label for="variant-QWEN_EDIT" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~15GB • 8-12 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_EDIT_BF16" data-variant="QWEN_EDIT_BF16" data-parent="QWEN_EDIT" onchange="toggleVariant('QWEN_EDIT', 'QWEN_EDIT_BF16')">
+                      <label for="variant-QWEN_EDIT_BF16" class="preset-variant-label">
+                        <strong>BF16</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    </div><div class="preset-variant-group"><div class="preset-variant-group-title">Версия 2509</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_EDIT_2509_FP8" data-variant="QWEN_EDIT_2509_FP8" data-parent="QWEN_EDIT" onchange="toggleVariant('QWEN_EDIT', 'QWEN_EDIT_2509_FP8')">
+                      <label for="variant-QWEN_EDIT_2509_FP8" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~15GB • 8-12 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_EDIT_2509_BF16" data-variant="QWEN_EDIT_2509_BF16" data-parent="QWEN_EDIT" onchange="toggleVariant('QWEN_EDIT', 'QWEN_EDIT_2509_BF16')">
+                      <label for="variant-QWEN_EDIT_2509_BF16" class="preset-variant-label">
+                        <strong>BF16</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    </div><div class="preset-variant-group"><div class="preset-variant-group-title">Версия 2511</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_EDIT_2511_FP8" data-variant="QWEN_EDIT_2511_FP8" data-parent="QWEN_EDIT" onchange="toggleVariant('QWEN_EDIT', 'QWEN_EDIT_2511_FP8')">
+                      <label for="variant-QWEN_EDIT_2511_FP8" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~15GB • 8-12 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_EDIT_2511_BF16" data-variant="QWEN_EDIT_2511_BF16" data-parent="QWEN_EDIT" onchange="toggleVariant('QWEN_EDIT', 'QWEN_EDIT_2511_BF16')">
+                      <label for="variant-QWEN_EDIT_2511_BF16" class="preset-variant-label">
+                        <strong>BF16</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    </div>
+              </div>
+            </div>
+            
+            <div class="preset-card" data-preset="QWEN_LAYERED" data-category="Qwen" onclick="togglePresetCard('QWEN_LAYERED', event)">
+              
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('QWEN_LAYERED', event)">▼</span>
+              <div class="preset-name">Qwen Layered</div>
+              <div class="preset-desc">Разложить изображение на слои</div>
+              <div class="preset-info">Размер: ~40GB • Время: 10-20 мин</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                <div class="preset-variant-group"><div class="preset-variant-group-title">Форматы</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_LAYERED_FP8" data-variant="QWEN_LAYERED_FP8" data-parent="QWEN_LAYERED" onchange="toggleVariant('QWEN_LAYERED', 'QWEN_LAYERED_FP8')">
+                      <label for="variant-QWEN_LAYERED_FP8" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-QWEN_LAYERED_BF16" data-variant="QWEN_LAYERED_BF16" data-parent="QWEN_LAYERED" onchange="toggleVariant('QWEN_LAYERED', 'QWEN_LAYERED_BF16')">
+                      <label for="variant-QWEN_LAYERED_BF16" class="preset-variant-label">
+                        <strong>BF16</strong>
+                        <span class="preset-variant-info"> • ~40GB • 10-20 мин</span>
+                      </label>
+                    </div>
+                    </div>
+              </div>
+            </div>
+            
+            <div class="preset-card" data-preset="Z_IMAGE_TURBO" data-category="Z-Image" onclick="togglePreset('Z_IMAGE_TURBO')">
+              
+              <div class="preset-name">Z Image Turbo</div>
+              <div class="preset-desc">Быстрая генерация изображений из текста</div>
+              <div class="preset-info">Размер: ~15-20GB • Время: 8-12 мин</div>
+            </div>
+            
+            <div class="preset-card" data-preset="LTX_2" data-category="LTX" onclick="togglePresetCard('LTX_2', event)">
+              
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('LTX_2', event)">▼</span>
+              <div class="preset-name">LTX-2</div>
+              <div class="preset-desc">Генерация изображений с расширенными возможностями</div>
+              <div class="preset-info">Размер: ~20-40GB • Время: 10-20 мин</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                <div class="preset-variant-group"><div class="preset-variant-group-title">Форматы</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-LTX_2_FP8" data-variant="LTX_2_FP8" data-parent="LTX_2" onchange="toggleVariant('LTX_2', 'LTX_2_FP8')">
+                      <label for="variant-LTX_2_FP8" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~20GB • 10-15 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-LTX_2_BF16" data-variant="LTX_2_BF16" data-parent="LTX_2" onchange="toggleVariant('LTX_2', 'LTX_2_BF16')">
+                      <label for="variant-LTX_2_BF16" class="preset-variant-label">
+                        <strong>BF16 (полная версия)</strong>
+                        <span class="preset-variant-info"> • ~40GB • 15-20 мин</span>
+                      </label>
+                    </div>
+                    </div>
+              </div>
+            </div>
+            
+            <div class="preset-card" data-preset="LTX_2_DISTILLED" data-category="LTX" onclick="togglePresetCard('LTX_2_DISTILLED', event)">
+              
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('LTX_2_DISTILLED', event)">▼</span>
+              <div class="preset-name">LTX-2 Distilled</div>
+              <div class="preset-desc">Дистиллированная версия LTX-2 для более быстрой генерации</div>
+              <div class="preset-info">Размер: ~20-40GB • Время: 10-20 мин</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                <div class="preset-variant-group"><div class="preset-variant-group-title">Форматы</div>
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-LTX_2_DISTILLED_FP8" data-variant="LTX_2_DISTILLED_FP8" data-parent="LTX_2_DISTILLED" onchange="toggleVariant('LTX_2_DISTILLED', 'LTX_2_DISTILLED_FP8')">
+                      <label for="variant-LTX_2_DISTILLED_FP8" class="preset-variant-label">
+                        <strong>FP8</strong>
+                        <span class="preset-variant-info"> • ~20GB • 10-15 мин</span>
+                      </label>
+                    </div>
+                    
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-LTX_2_DISTILLED_BF16" data-variant="LTX_2_DISTILLED_BF16" data-parent="LTX_2_DISTILLED" onchange="toggleVariant('LTX_2_DISTILLED', 'LTX_2_DISTILLED_BF16')">
+                      <label for="variant-LTX_2_DISTILLED_BF16" class="preset-variant-label">
+                        <strong>BF16 (полная версия)</strong>
+                        <span class="preset-variant-info"> • ~40GB • 15-20 мин</span>
+                      </label>
+                    </div>
+                    </div>
+              </div>
+            </div>
+            
         </div>
         <div class="row-full">
           <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer;">
@@ -195,19 +534,20 @@
         </div>
         
         <!-- Прямая ссылка метод (дефолтный) -->
-        <form id="hf-url-form" style="margin-top:12px;">
+        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;">
           <div class="row">
             <label for="hf_url">Прямая ссылка на файл</label>
-            <input id="hf_url" type="text" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" required />
+            <input id="hf_url" type="text" name="url" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" required />
           </div>
           <div class="row">
             <label for="hf_url_folder">Папка назначения</label>
-            <select id="hf_url_folder" style="width:100%; padding:12px 16px; background:#1a1a1a; border:1px solid #3a3a3a; color:var(--text); border-radius:8px;">
+            <select id="hf_url_folder" name="folder" style="width:100%; padding:12px 16px; background:#1a1a1a; border:1px solid #3a3a3a; color:var(--text); border-radius:8px;">
               <option value="diffusion_models">diffusion_models</option>
               <option value="loras">loras</option>
               <option value="vae">vae</option>
               <option value="text_encoders">text_encoders</option>
               <option value="upscale_models">upscale_models</option>
+              <option value="latent_upscale_models">latent_upscale_models</option>
               <option value="clip_vision">clip_vision</option>
               <option value="audio_encoders">audio_encoders</option>
               <option value="checkpoints">checkpoints</option>
@@ -227,6 +567,7 @@
               <option value="unet">unet</option>
               <option value="vae_approx">vae_approx</option>
               <option value="vibevoice">vibevoice</option>
+              <option value="detection">detection</option>
             </select>
           </div>
           <div class="row" style="grid-template-columns:1fr;">
@@ -235,22 +576,22 @@
         </form>
         
         <!-- HuggingFace Repo метод -->
-        <form id="hf-repo-form" style="margin-top:12px; display:none;">
+        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;">
           <div class="row">
             <label for="hf_repo">Репозиторий</label>
-            <input id="hf_repo" type="text" placeholder="username/model-name" value="stabilityai/stable-diffusion-2-1" />
+            <input id="hf_repo" type="text" name="repo" placeholder="username/model-name" value="" />
           </div>
           <div class="row">
             <label for="hf_file">Файл (опционально)</label>
-            <input id="hf_file" type="text" placeholder="model.safetensors" value="v2-1_768-ema-pruned.safetensors" />
+            <input id="hf_file" type="text" name="filename" placeholder="model.safetensors" value="" />
           </div>
           <div class="row">
             <label for="hf_token">API токен (опционально)</label>
-            <input id="hf_token" type="password" placeholder="hf_..." autocomplete="current-password" />
+            <input id="hf_token" type="password" name="token" placeholder="hf_..." value="" autocomplete="current-password" />
             <div style="margin-top: 8px; padding: 12px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; font-size: 12px; word-wrap: break-word;">
               <div style="color: #4a9eff; font-weight: 600; margin-bottom: 8px;">📋 Как создать токен:</div>
               <div style="color: #ccc; line-height: 1.4;">
-                1. Перейдите по ссылке: <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" style="color: #4a9eff; text-decoration: underline;">https://huggingface.co/settings/tokens</a><br>
+                1. Перейдите по ссылке: <a href="https://huggingface.co/settings/tokens" target="_blank" style="color: #4a9eff; text-decoration: underline;">https://huggingface.co/settings/tokens</a><br>
                 2. Нажмите "New token"<br>
                 3. Выберите "Read" (достаточно для скачивания)<br>
                 4. Введите название токена<br>
@@ -261,12 +602,13 @@
           </div>
           <div class="row">
             <label for="hf_folder">Папка назначения</label>
-            <select id="hf_folder">
-              <option value="diffusion_models" selected>diffusion_models</option>
+            <select id="hf_folder" name="folder" style="width:100%; padding:12px 16px; background:#1a1a1a; border:1px solid #3a3a3a; color:var(--text); border-radius:8px;">
+              <option value="diffusion_models">diffusion_models</option>
               <option value="loras">loras</option>
               <option value="vae">vae</option>
               <option value="text_encoders">text_encoders</option>
               <option value="upscale_models">upscale_models</option>
+              <option value="latent_upscale_models">latent_upscale_models</option>
               <option value="clip_vision">clip_vision</option>
               <option value="audio_encoders">audio_encoders</option>
               <option value="checkpoints">checkpoints</option>
@@ -286,50 +628,11 @@
               <option value="unet">unet</option>
               <option value="vae_approx">vae_approx</option>
               <option value="vibevoice">vibevoice</option>
+              <option value="detection">detection</option>
             </select>
           </div>
           <div class="row" style="grid-template-columns:1fr;">
-            <button class="btn btn-hf" type="button" onclick="downloadHF()">🤗 Скачать с HuggingFace</button>
-          </div>
-        </form>
-        
-        <!-- Прямая ссылка метод -->
-        <form id="hf-url-form" style="margin-top:12px; display:none;">
-          <div class="row">
-            <label for="hf_url">Прямая ссылка на файл</label>
-            <input id="hf_url" type="text" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" />
-          </div>
-          <div class="row">
-            <label for="hf_url_folder">Папка назначения</label>
-            <select id="hf_url_folder">
-              <option value="diffusion_models" selected>diffusion_models</option>
-              <option value="loras">loras</option>
-              <option value="vae">vae</option>
-              <option value="text_encoders">text_encoders</option>
-              <option value="upscale_models">upscale_models</option>
-              <option value="clip_vision">clip_vision</option>
-              <option value="audio_encoders">audio_encoders</option>
-              <option value="checkpoints">checkpoints</option>
-              <option value="clip">clip</option>
-              <option value="configs">configs</option>
-              <option value="controlnet">controlnet</option>
-              <option value="diffusers">diffusers</option>
-              <option value="embeddings">embeddings</option>
-              <option value="gligen">gligen</option>
-              <option value="hypernetworks">hypernetworks</option>
-              <option value="ipadapter">ipadapter</option>
-              <option value="model_patches">model_patches</option>
-              <option value="onnx">onnx</option>
-              <option value="photomaker">photomaker</option>
-              <option value="sams">sams</option>
-              <option value="style_models">style_models</option>
-              <option value="unet">unet</option>
-              <option value="vae_approx">vae_approx</option>
-              <option value="vibevoice">vibevoice</option>
-            </select>
-          </div>
-          <div class="row" style="grid-template-columns:1fr;">
-            <button class="btn btn-hf" type="button" onclick="downloadURL()">🔗 Скачать по ссылке</button>
+            <button class="btn btn-hf" type="submit">🤗 Скачать с HuggingFace</button>
           </div>
         </form>
         <div class="result" id="hf-result"></div>
@@ -343,111 +646,574 @@
     </div>
   </div>
   
-  <script>
-    let selectedPresets = [];
-    
-    function switchTab(tabName) {
-      // Убираем активный класс со всех табов и контента
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  <script>console.log('JavaScript loaded');
+let selectedPresets = [];
+let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
+console.log('selectedPresets initialized:', selectedPresets);
+
+function switchTab(tabName) {
+  // Убираем активный класс со всех табов и контента
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  
+  // Активируем выбранный таб
+  document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+  document.getElementById(`${tabName}-tab`).classList.add('active');
+  
+  // Если переключаемся на HuggingFace, активируем таб "Прямая ссылка"
+  if (tabName === 'huggingface') {
+    switchHFMethod('url');
+  }
+}
+
+function switchHFMethod(method) {
+  // Убираем активный класс со всех табов в HuggingFace разделе
+  document.querySelectorAll('#huggingface-tab .tabs .tab').forEach(tab => tab.classList.remove('active'));
+  
+  // Активируем выбранный таб
+  document.querySelector(`#huggingface-tab [onclick="switchHFMethod('${method}')"]`).classList.add('active');
+  
+  // Показываем/скрываем формы
+  if (method === 'url') {
+    document.getElementById('hf-url-form').style.display = 'block';
+    document.getElementById('hf-repo-form').style.display = 'none';
+  } else {
+    document.getElementById('hf-url-form').style.display = 'none';
+    document.getElementById('hf-repo-form').style.display = 'block';
+  }
+}
+
+// Глобальный объект для хранения выбранных вариантов
+let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
+
+function togglePresetCard(presetId, event) {
+  // Для пресетов с вариантами - разворачиваем/сворачиваем карточку
+  const card = document.querySelector(`[data-preset="${presetId}"]`);
+  if (card) {
+    // Проверяем, был ли клик на варианте или на иконке раскрытия
+    if (event) {
+      const clickedElement = event.target;
+      const isVariantClick = clickedElement.closest('.preset-variant-item') || 
+                            clickedElement.closest('.preset-variants') ||
+                            clickedElement.closest('.video-guide-icon');
       
-      // Активируем выбранный таб
-      document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-      document.getElementById(`${tabName}-tab`).classList.add('active');
-      
-      // Если переключаемся на HuggingFace, активируем таб "Прямая ссылка"
-      if (tabName === 'huggingface') {
-        switchHFMethod('url');
-      }
-    }
-    
-    function togglePreset(presetId) {
-      const card = document.querySelector(`[data-preset="${presetId}"]`);
-      if (selectedPresets.includes(presetId)) {
-        selectedPresets = selectedPresets.filter(p => p !== presetId);
-        card.classList.remove('selected');
-      } else {
-        selectedPresets.push(presetId);
-        card.classList.add('selected');
-      }
-      
-      const btn = document.getElementById('download-presets-btn');
-      btn.disabled = selectedPresets.length === 0;
-      btn.textContent = selectedPresets.length > 0 ? 
-        `📥 Скачать выбранные пресеты (${selectedPresets.length})` : 
-        '📥 Скачать выбранные пресеты';
-      
-      // Обновляем информацию о Lightning LoRA
-      updateLightningLoraInfo();
-    }
-    
-    function updateLightningLoraInfo() {
-      const lightningText = document.getElementById('lightning-lora-text');
-      const lightningDetails = document.getElementById('lightning-lora-details');
-      const lightningList = document.getElementById('lightning-lora-list');
-      
-      if (selectedPresets.length === 0) {
-        lightningText.textContent = '⚡ Дополнительно докачать экспериментальные Lightning LoRA';
-        lightningDetails.style.display = 'none';
-        // Отключаем чекбокс и делаем его полупрозрачным
-        document.getElementById('lightning-lora-checkbox').disabled = true;
-        document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '0.5';
+      // Если клик был на варианте или видео-гайде, не раскрываем/сворачиваем
+      if (isVariantClick) {
         return;
       }
+    }
+    
+    card.classList.toggle('expanded');
+  }
+}
+
+function togglePreset(presetId) {
+  // Для обычных пресетов без вариантов (Wan)
+  console.log('togglePreset called with:', presetId);
+  const card = document.querySelector(`[data-preset="${presetId}"]`);
+  console.log('Card found:', card);
+  
+  if (selectedPresets.includes(presetId)) {
+    selectedPresets = selectedPresets.filter(p => p !== presetId);
+    card.classList.remove('selected');
+    console.log('Removed preset:', presetId);
+  } else {
+    selectedPresets.push(presetId);
+    card.classList.add('selected');
+    console.log('Added preset:', presetId);
+  }
+  
+  updateDownloadButton();
+  updateLightningLoraInfo();
+}
+
+function toggleVariant(parentId, variantId) {
+  // Обработка выбора варианта внутри карточки
+  const checkbox = document.getElementById(`variant-${variantId}`);
+  const card = document.querySelector(`[data-preset="${parentId}"]`);
+  
+  if (!selectedVariants[parentId]) {
+    selectedVariants[parentId] = [];
+  }
+  
+  if (checkbox.checked) {
+    if (!selectedVariants[parentId].includes(variantId)) {
+      selectedVariants[parentId].push(variantId);
+    }
+    card.classList.add('selected');
+  } else {
+    selectedVariants[parentId] = selectedVariants[parentId].filter(v => v !== variantId);
+    // Если нет выбранных вариантов, убираем выделение карточки
+    if (selectedVariants[parentId].length === 0) {
+      card.classList.remove('selected');
+      delete selectedVariants[parentId];
+    }
+  }
+  
+  updateDownloadButton();
+  updateLightningLoraInfo();
+}
+
+function updateDownloadButton() {
+  // Подсчитываем общее количество выбранных пресетов (обычные + варианты)
+  let totalSelected = selectedPresets.length;
+  Object.values(selectedVariants).forEach(variants => {
+    totalSelected += variants.length;
+  });
+  
+  const btn = document.getElementById('download-presets-btn');
+  btn.disabled = totalSelected === 0;
+  btn.textContent = totalSelected > 0 ? 
+    `📥 Скачать выбранные пресеты (${totalSelected})` : 
+    '📥 Скачать выбранные пресеты';
+}
+
+function updateLightningLoraInfo() {
+  const lightningText = document.getElementById('lightning-lora-text');
+  const lightningDetails = document.getElementById('lightning-lora-details');
+  const lightningList = document.getElementById('lightning-lora-list');
+  
+  // Собираем все выбранные пресеты (обычные + варианты)
+  let allSelectedPresets = [...selectedPresets];
+  Object.values(selectedVariants).forEach(variants => {
+    allSelectedPresets.push(...variants);
+  });
+  
+  if (allSelectedPresets.length === 0) {
+    lightningText.textContent = '⚡ Дополнительно докачать экспериментальные Lightning LoRA';
+    lightningDetails.style.display = 'none';
+    // Отключаем чекбокс и делаем его полупрозрачным
+    document.getElementById('lightning-lora-checkbox').disabled = true;
+    document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '0.5';
+    return;
+  }
+  
+  const lightningModels = {
+    'WAN_T2V': [
+      'T2V-Lightning-250928-high_noise_model.safetensors',
+      'T2V-Lightning-250928-low_noise_model.safetensors'
+    ],
+    'WAN_I2V': [
+      'I2V-Lightning-Seko-V1-high_noise_model.safetensors',
+      'I2V-Lightning-Seko-V1-low_noise_model.safetensors'
+    ],
+    'WAN_FLF': [
+      'FLF-Lightning-Seko-V1-high_noise_model.safetensors',
+      'FLF-Lightning-Seko-V1-low_noise_model.safetensors'
+    ],
+    'QWEN_IMAGE': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_BF16': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_2512_FP8': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_2512_BF16': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_2512_Q8_GGUF': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_EDIT': [
+      'Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_EDIT_BF16': [
+      'Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_EDIT_2509_FP8': [
+      'Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors'
+    ],
+    'QWEN_EDIT_2509_BF16': [
+      'Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors'
+    ],
+    'QWEN_EDIT_2511_FP8': [
+      'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
+    ],
+    'QWEN_EDIT_2511_BF16': [
+      'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
+    ]
+  };
+  
+  // Собираем все выбранные пресеты (обычные + варианты)
+  let allSelectedPresets = [...selectedPresets];
+  Object.values(selectedVariants).forEach(variants => {
+    allSelectedPresets.push(...variants);
+  });
+  
+  const selectedLightningModels = [];
+  allSelectedPresets.forEach(preset => {
+    if (lightningModels[preset]) {
+      selectedLightningModels.push(...lightningModels[preset]);
+    }
+  });
+  
+  if (selectedLightningModels.length > 0) {
+    const count = selectedLightningModels.length;
+    const fileWord = count === 1 ? 'файл' : count < 5 ? 'файла' : 'файлов';
+    lightningText.textContent = `⚡ Дополнительно докачать экспериментальные Lightning LoRA (${count} ${fileWord})`;
+    
+    // Показываем чекбокс и делаем его активным
+    document.getElementById('lightning-lora-checkbox').disabled = false;
+    document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '1';
+    
+    // Показываем список файлов только если галочка поставлена
+    const checkbox = document.getElementById('lightning-lora-checkbox');
+    if (checkbox.checked) {
+      lightningDetails.style.display = 'block';
+      lightningList.innerHTML = selectedLightningModels.map(model => 
+        `• ${model}`
+      ).join('<br>');
+    } else {
+      lightningDetails.style.display = 'none';
+    }
+  } else {
+    lightningText.textContent = '⚡ Экспериментальные Lightning LoRA недоступны для выбранных пресетов';
+    lightningDetails.style.display = 'none';
+    // Отключаем чекбокс и делаем его полупрозрачным
+    document.getElementById('lightning-lora-checkbox').disabled = true;
+    document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '0.5';
+  }
+}
+
+function downloadPresets() {
+  if (selectedPresets.length === 0) return;
+  
+  const progress = document.getElementById('preset-progress');
+  const result = document.getElementById('preset-result');
+  const btn = document.getElementById('download-presets-btn');
+  const lightningCheckbox = document.getElementById('lightning-lora-checkbox');
+  
+  // Показываем прогресс
+  progress.style.display = 'block';
+  result.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Загрузка...';
+  
+  // Отправляем запрос
+  const formData = new FormData();
+  formData.append('presets', selectedPresets.join(','));
+  formData.append('lightning_lora', lightningCheckbox.checked ? 'true' : 'false');
+  
+  fetch('/download_presets', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.task_id) {
+      const lightningStatus = lightningCheckbox.checked ? ' (включая Lightning LoRA)' : '';
+      result.textContent = data.message + lightningStatus;
+      // Начинаем опрос статуса
+      pollStatus(data.task_id);
+    } else {
+      result.textContent = data.message;
+      progress.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = '📥 Скачать выбранные пресеты';
+    }
+  })
+  .catch(error => {
+    result.textContent = '❌ Ошибка: ' + error.message;
+    progress.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = '📥 Скачать выбранные пресеты';
+  });
+}
+
+function pollStatus(taskId) {
+  const progress = document.getElementById('preset-progress');
+  const progressFill = document.getElementById('preset-progress-fill');
+  const progressText = document.getElementById('preset-progress-text');
+  const result = document.getElementById('preset-result');
+  const btn = document.getElementById('download-presets-btn');
+  
+  fetch(`/status/${taskId}`)
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'completed' || data.status === 'error') {
+      let message = data.message;
+      const lightningCheckbox = document.getElementById('lightning-lora-checkbox');
+      if (lightningCheckbox && lightningCheckbox.checked && data.status === 'completed') {
+        message += '\n⚡ Lightning LoRA также скачаны (экспериментальные версии)';
+      }
+      result.textContent = message;
+      progress.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = '📥 Скачать выбранные пресеты';
+    } else if (data.status === 'running') {
+      // Обновляем прогресс-бар
+      const progressPercent = data.progress || 0;
+      progressFill.style.width = progressPercent + '%';
       
-      const lightningModels = {
-        'WAN_T2V': [
-          'T2V-Lightning-250928-high_noise_model.safetensors',
-          'T2V-Lightning-250928-low_noise_model.safetensors'
-        ],
-        'WAN_I2V': [
-          'I2V-Lightning-Seko-V1-high_noise_model.safetensors',
-          'I2V-Lightning-Seko-V1-low_noise_model.safetensors'
-        ],
-        'WAN_FLF': [
-          'FLF-Lightning-Seko-V1-high_noise_model.safetensors',
-          'FLF-Lightning-Seko-V1-low_noise_model.safetensors'
-        ]
-      };
+      // Формируем текст прогресса
+      let progressMessage = data.message || 'Загрузка...';
+      if (data.total_files && data.current_file !== undefined) {
+        progressMessage = `📥 Файл ${data.current_file} из ${data.total_files}`;
+        if (data.current_filename) {
+          const shortName = data.current_filename.length > 50 
+            ? data.current_filename.substring(0, 47) + '...' 
+            : data.current_filename;
+          progressMessage += `: ${shortName}`;
+        }
+        progressMessage += ` (${Math.round(progressPercent)}%)`;
+      }
       
-      const selectedLightningModels = [];
-      selectedPresets.forEach(preset => {
-        if (lightningModels[preset]) {
-          selectedLightningModels.push(...lightningModels[preset]);
+      progressText.textContent = progressMessage;
+      result.textContent = data.message || 'Загрузка...';
+      
+      // Повторяем через 500ms для более плавного обновления прогресса
+      setTimeout(() => pollStatus(taskId), 500);
+    } else {
+      result.textContent = '❌ Неизвестный статус: ' + data.message;
+      progress.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = '📥 Скачать выбранные пресеты';
+    }
+  })
+  .catch(error => {
+    result.textContent = '❌ Ошибка проверки статуса: ' + error.message;
+    progress.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = '📥 Скачать выбранные пресеты';
+  });
+}
+
+// Остальные функции для HuggingFace...
+
+// Фильтрация по категориям и поиск
+let currentCategory = 'all';
+let searchQuery = '';
+
+function filterByCategory(category) {
+  currentCategory = category;
+  
+  // Обновляем активный фильтр
+  document.querySelectorAll('.category-filter').forEach(filter => {
+    filter.classList.remove('active');
+  });
+  event.target.closest('.category-filter').classList.add('active');
+  
+  // Применяем фильтры
+  applyFilters();
+}
+
+function filterPresets() {
+  searchQuery = document.getElementById('preset-search').value.toLowerCase().trim();
+  applyFilters();
+}
+
+function applyFilters() {
+  const cards = document.querySelectorAll('.preset-card');
+  let visibleCount = 0;
+  
+  cards.forEach(card => {
+    const presetCategory = card.getAttribute('data-category');
+    const presetName = card.querySelector('.preset-name').textContent.toLowerCase();
+    const presetDesc = card.querySelector('.preset-desc').textContent.toLowerCase();
+    const presetInfo = card.querySelector('.preset-info').textContent.toLowerCase();
+    
+    // Проверяем категорию
+    const categoryMatch = currentCategory === 'all' || presetCategory === currentCategory;
+    
+    // Проверяем поисковый запрос
+    const searchMatch = !searchQuery || 
+      presetName.includes(searchQuery) || 
+      presetDesc.includes(searchQuery) || 
+      presetInfo.includes(searchQuery);
+    
+    // Показываем/скрываем карточку
+    if (categoryMatch && searchMatch) {
+      card.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+  
+  // Показываем сообщение, если ничего не найдено
+  const grid = document.getElementById('preset-grid');
+  let noResultsMsg = document.getElementById('no-results-message');
+  
+  if (visibleCount === 0) {
+    if (!noResultsMsg) {
+      noResultsMsg = document.createElement('div');
+      noResultsMsg.id = 'no-results-message';
+      noResultsMsg.style.cssText = 'text-align: center; padding: 40px; color: var(--muted); font-size: 16px;';
+      noResultsMsg.textContent = '😔 Пресеты не найдены';
+      grid.appendChild(noResultsMsg);
+    }
+  } else {
+    if (noResultsMsg) {
+      noResultsMsg.remove();
+    }
+  }
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+  // Инициализируем состояние Lightning LoRA при загрузке страницы
+  updateLightningLoraInfo();
+  
+  // Инициализируем фильтры
+  applyFilters();
+});
+</script>
+  <script>
+    // Дополнительный JavaScript код для HuggingFace функций
+    
+    function pollHFStatus(taskId) {
+      const progress = document.getElementById('hf-progress');
+      const progressFill = document.getElementById('hf-progress-fill');
+      const progressText = document.getElementById('hf-progress-text');
+      const result = document.getElementById('hf-result');
+      
+      // Находим активную кнопку (видимую форму)
+      const hfForm = document.getElementById('hf-repo-form');
+      const urlForm = document.getElementById('hf-url-form');
+      let btn = null;
+      
+      if (hfForm.style.display !== 'none') {
+        btn = hfForm.querySelector('button[type="submit"]');
+      } else if (urlForm.style.display !== 'none') {
+        btn = urlForm.querySelector('button[type="submit"]');
+      }
+      
+      if (!btn) {
+        // Fallback - ищем любую кнопку
+        btn = document.querySelector('form[action="/download_hf"] button[type="submit"]') || 
+              document.querySelector('form[action="/download_url"] button[type="submit"]');
+      }
+      
+      fetch('/status/' + taskId)
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'completed' || data.status === 'error') {
+          result.textContent = data.message;
+          progress.style.display = 'none';
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
+          }
+        } else if (data.status === 'running') {
+          // Обновляем прогресс-бар
+          const progressPercent = data.progress || 0;
+          progressFill.style.width = progressPercent + '%';
+          progressText.textContent = data.message || 'Загрузка...';
+          result.textContent = data.message || 'Загрузка...';
+          
+          // Повторяем через 500ms для более плавного обновления
+          setTimeout(() => pollHFStatus(taskId), 500);
+        } else {
+          result.textContent = '❌ Неизвестный статус: ' + data.message;
+          progress.style.display = 'none';
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
+          }
+        }
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка проверки статуса: ' + error.message;
+        progress.style.display = 'none';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
         }
       });
-      
-      // Отладка: показываем какие пресеты выбраны
-      console.log('Selected presets:', selectedPresets);
-      console.log('Lightning models for selected presets:', selectedLightningModels);
-      
-      if (selectedLightningModels.length > 0) {
-        const count = selectedLightningModels.length;
-        const fileWord = count === 1 ? 'файл' : count < 5 ? 'файла' : 'файлов';
-        lightningText.textContent = `⚡ Дополнительно докачать экспериментальные Lightning LoRA (${count} ${fileWord})`;
-        
-        // Показываем чекбокс и делаем его активным
-        document.getElementById('lightning-lora-checkbox').disabled = false;
-        document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '1';
-        
-        // Показываем список файлов только если галочка поставлена
-        const checkbox = document.getElementById('lightning-lora-checkbox');
-        if (checkbox.checked) {
-          lightningDetails.style.display = 'block';
-          lightningList.innerHTML = selectedLightningModels.map(model => 
-            `• ${model}`
-          ).join('<br>');
-        } else {
-          lightningDetails.style.display = 'none';
-        }
-      } else {
-        lightningText.textContent = '⚡ Экспериментальные Lightning LoRA недоступны для выбранных пресетов';
-        lightningDetails.style.display = 'none';
-        // Отключаем чекбокс и делаем его полупрозрачным
-        document.getElementById('lightning-lora-checkbox').disabled = true;
-        document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '0.5';
-      }
     }
+    
+    // Обработка формы HuggingFace (только для репозитория)
+    document.querySelector('form[action="/download_hf"]').addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
+      
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = document.querySelector('form[action="/download_hf"] button[type="submit"]');
+      
+      // Показываем прогресс
+      progress.style.display = 'block';
+      result.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
+      
+      // Отправляем форму через fetch
+      const formData = new FormData(this);
+      
+      fetch('/download_hf', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          result.textContent = data.message;
+          // Начинаем опрос статуса
+          pollHFStatus(data.task_id);
+        } else {
+          result.textContent = data.message;
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '🤗 Скачать с HuggingFace';
+        }
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка: ' + error.message;
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = '🤗 Скачать с HuggingFace';
+      });
+    });
+    
+    // Обработка формы прямой ссылки
+    document.querySelector('form[action="/download_url"]').addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
+      
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = document.querySelector('form[action="/download_url"] button[type="submit"]');
+      
+      // Показываем прогресс
+      progress.style.display = 'block';
+      result.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
+      
+      // Отправляем форму через fetch
+      const formData = new FormData(this);
+      
+      fetch('/download_url', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          result.textContent = data.message;
+          // Начинаем опрос статуса
+          pollHFStatus(data.task_id);
+        } else {
+          result.textContent = data.message;
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '🔗 Скачать по ссылке';
+        }
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка: ' + error.message;
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = '🔗 Скачать по ссылке';
+      });
+    });
     
     // Обработчик для чекбокса Lightning LoRA
     document.getElementById('lightning-lora-checkbox').addEventListener('change', function() {
@@ -455,135 +1221,82 @@
       updateLightningLoraInfo();
     });
     
-    function downloadPresets() {
-      if (selectedPresets.length === 0) return;
+    // Фильтрация по категориям и поиск
+    let currentCategory = 'all';
+    let searchQuery = '';
+    
+    function filterByCategory(category) {
+      currentCategory = category;
       
-      const progress = document.getElementById('preset-progress');
-      const result = document.getElementById('preset-result');
-      const btn = document.getElementById('download-presets-btn');
-      const lightningCheckbox = document.getElementById('lightning-lora-checkbox');
+      // Обновляем активный фильтр
+      document.querySelectorAll('.category-filter').forEach(filter => {
+        filter.classList.remove('active');
+      });
+      event.target.closest('.category-filter').classList.add('active');
       
-      // Показываем прогресс
-      progress.style.display = 'block';
-      result.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Загрузка...';
-      
-      // Симулируем асинхронную загрузку
-      const taskId = 'preview-' + Date.now();
-      const lightningStatus = lightningCheckbox.checked ? ' (включая Lightning LoRA)' : '';
-      result.textContent = `🚀 Скачивание начато! ID задачи: ${taskId}${lightningStatus}`;
-      
-      // Симулируем опрос статуса
-      setTimeout(() => {
-        result.textContent = `🚀 Начато скачивание пресетов: ${selectedPresets.join(', ')}${lightningStatus} (проверяем статус...)`;
-        setTimeout(() => {
-          let message = `✅ Успешно скачаны пресеты: ${selectedPresets.join(', ')}\n\n📁 Файлы сохранены в /workspace/ComfyUI/models/`;
-          if (lightningCheckbox.checked) {
-            message += `\n⚡ Lightning LoRA также скачаны (экспериментальные версии)`;
-          }
-          message += `\n🎉 Готово к использованию!`;
-          result.textContent = message;
-          progress.style.display = 'none';
-          btn.disabled = false;
-          btn.textContent = '📥 Скачать выбранные пресеты';
-        }, 3000);
-      }, 1000);
+      // Применяем фильтры
+      applyFilters();
     }
     
-    function switchHFMethod(method) {
-      // Убираем активный класс со всех табов в HuggingFace разделе
-      document.querySelectorAll('#huggingface-tab .tabs .tab').forEach(tab => tab.classList.remove('active'));
+    function filterPresets() {
+      searchQuery = document.getElementById('preset-search').value.toLowerCase().trim();
+      applyFilters();
+    }
+    
+    function applyFilters() {
+      const cards = document.querySelectorAll('.preset-card');
+      let visibleCount = 0;
       
-      // Активируем выбранный таб
-      document.querySelector(`#huggingface-tab [onclick="switchHFMethod('${method}')"]`).classList.add('active');
+      cards.forEach(card => {
+        const presetCategory = card.getAttribute('data-category');
+        const presetName = card.querySelector('.preset-name').textContent.toLowerCase();
+        const presetDesc = card.querySelector('.preset-desc').textContent.toLowerCase();
+        const presetInfo = card.querySelector('.preset-info').textContent.toLowerCase();
+        
+        // Проверяем категорию
+        const categoryMatch = currentCategory === 'all' || presetCategory === currentCategory;
+        
+        // Проверяем поисковый запрос
+        const searchMatch = !searchQuery || 
+          presetName.includes(searchQuery) || 
+          presetDesc.includes(searchQuery) || 
+          presetInfo.includes(searchQuery);
+        
+        // Показываем/скрываем карточку
+        if (categoryMatch && searchMatch) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
       
-      // Показываем/скрываем формы
-      if (method === 'url') {
-        document.getElementById('hf-url-form').style.display = 'block';
-        document.getElementById('hf-repo-form').style.display = 'none';
+      // Показываем сообщение, если ничего не найдено
+      const grid = document.getElementById('preset-grid');
+      let noResultsMsg = document.getElementById('no-results-message');
+      
+      if (visibleCount === 0) {
+        if (!noResultsMsg) {
+          noResultsMsg = document.createElement('div');
+          noResultsMsg.id = 'no-results-message';
+          noResultsMsg.style.cssText = 'text-align: center; padding: 40px; color: var(--muted); font-size: 16px; grid-column: 1 / -1;';
+          noResultsMsg.textContent = '😔 Пресеты не найдены';
+          grid.appendChild(noResultsMsg);
+        }
       } else {
-        document.getElementById('hf-url-form').style.display = 'none';
-        document.getElementById('hf-repo-form').style.display = 'block';
+        if (noResultsMsg) {
+          noResultsMsg.remove();
+        }
       }
     }
-    
-    function downloadHF() {
-      const progress = document.getElementById('hf-progress');
-      const result = document.getElementById('hf-result');
-      const btn = document.querySelector('#hf-repo-form .btn-hf');
-      
-      // Показываем прогресс
-      progress.style.display = 'block';
-      result.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Загрузка...';
-      
-      // Симулируем асинхронную загрузку
-      const taskId = 'preview-hf-' + Date.now();
-      result.textContent = `🚀 Скачивание начато! ID задачи: ${taskId}`;
-      
-      // Симулируем опрос статуса
-      setTimeout(() => {
-        const repo = document.getElementById('hf_repo').value;
-        result.textContent = `🚀 Начато скачивание с HuggingFace: ${repo} (проверяем статус...)`;
-        setTimeout(() => {
-          const file = document.getElementById('hf_file').value;
-          const folder = document.getElementById('hf_folder').value;
-          result.textContent = `✅ Успешно загружено!\n📁 Репозиторий: ${repo}\n📄 Файл: ${file || 'весь репозиторий'}\n📂 Папка: ${folder}\n💾 Размер: 2.1 GB\n🎉 Готово к использованию!`;
-          progress.style.display = 'none';
-          btn.disabled = false;
-          btn.textContent = '🤗 Скачать с HuggingFace';
-        }, 3000);
-      }, 1000);
-    }
-    
-    function downloadURL() {
-      const progress = document.getElementById('hf-progress');
-      const result = document.getElementById('hf-result');
-      const btn = document.querySelector('#hf-url-form .btn-hf');
-      
-      // Показываем прогресс
-      progress.style.display = 'block';
-      result.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Загрузка...';
-      
-      // Симулируем асинхронную загрузку
-      const taskId = 'preview-url-' + Date.now();
-      result.textContent = `🚀 Скачивание начато! ID задачи: ${taskId}`;
-      
-      // Симулируем опрос статуса
-      setTimeout(() => {
-        const url = document.getElementById('hf_url').value;
-        result.textContent = `🚀 Начато скачивание по ссылке: ${url} (проверяем статус...)`;
-        setTimeout(() => {
-          const folder = document.getElementById('hf_url_folder').value;
-          const filename = url.split('/').pop() || 'файл';
-          result.textContent = `✅ Успешно загружено!\n🔗 Ссылка: ${url}\n📄 Файл: ${filename}\n📂 Папка: ${folder}\n💾 Размер: 1.8 GB\n🎉 Готово к использованию!`;
-          progress.style.display = 'none';
-          btn.disabled = false;
-          btn.textContent = '🔗 Скачать по ссылке';
-        }, 3000);
-      }, 1000);
-    }
-    
-    // Обработка формы HuggingFace (только для репозитория)
-    document.querySelector('form[id="hf-repo-form"]').addEventListener('submit', function(e) {
-      e.preventDefault(); // Предотвращаем стандартную отправку формы
-      downloadHF(); // Вызываем существующую функцию
-    });
-    
-    // Обработка формы прямой ссылки
-    document.querySelector('form[id="hf-url-form"]').addEventListener('submit', function(e) {
-      e.preventDefault(); // Предотвращаем стандартную отправку формы
-      downloadURL(); // Вызываем существующую функцию
-    });
     
     // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
       // Инициализируем состояние Lightning LoRA при загрузке страницы
       updateLightningLoraInfo();
+      
+      // Инициализируем фильтры
+      applyFilters();
     });
   </script>
 </body>

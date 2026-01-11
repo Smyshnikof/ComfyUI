@@ -1,5 +1,6 @@
 console.log('JavaScript loaded');
 let selectedPresets = [];
+let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 console.log('selectedPresets initialized:', selectedPresets);
 
 function switchTab(tabName) {
@@ -34,7 +35,32 @@ function switchHFMethod(method) {
   }
 }
 
+// Глобальный объект для хранения выбранных вариантов
+let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
+
+function togglePresetCard(presetId, event) {
+  // Для пресетов с вариантами - разворачиваем/сворачиваем карточку
+  const card = document.querySelector(`[data-preset="${presetId}"]`);
+  if (card) {
+    // Проверяем, был ли клик на варианте или на иконке раскрытия
+    if (event) {
+      const clickedElement = event.target;
+      const isVariantClick = clickedElement.closest('.preset-variant-item') || 
+                            clickedElement.closest('.preset-variants') ||
+                            clickedElement.closest('.video-guide-icon');
+      
+      // Если клик был на варианте или видео-гайде, не раскрываем/сворачиваем
+      if (isVariantClick) {
+        return;
+      }
+    }
+    
+    card.classList.toggle('expanded');
+  }
+}
+
 function togglePreset(presetId) {
+  // Для обычных пресетов без вариантов (Wan)
   console.log('togglePreset called with:', presetId);
   const card = document.querySelector(`[data-preset="${presetId}"]`);
   console.log('Card found:', card);
@@ -49,16 +75,49 @@ function togglePreset(presetId) {
     console.log('Added preset:', presetId);
   }
   
-  const btn = document.getElementById('download-presets-btn');
-  btn.disabled = selectedPresets.length === 0;
-  btn.textContent = selectedPresets.length > 0 ? 
-    `📥 Скачать выбранные пресеты (${selectedPresets.length})` : 
-    '📥 Скачать выбранные пресеты';
-  
-  console.log('Selected presets:', selectedPresets);
-  
-  // Обновляем информацию о Lightning LoRA
+  updateDownloadButton();
   updateLightningLoraInfo();
+}
+
+function toggleVariant(parentId, variantId) {
+  // Обработка выбора варианта внутри карточки
+  const checkbox = document.getElementById(`variant-${variantId}`);
+  const card = document.querySelector(`[data-preset="${parentId}"]`);
+  
+  if (!selectedVariants[parentId]) {
+    selectedVariants[parentId] = [];
+  }
+  
+  if (checkbox.checked) {
+    if (!selectedVariants[parentId].includes(variantId)) {
+      selectedVariants[parentId].push(variantId);
+    }
+    card.classList.add('selected');
+  } else {
+    selectedVariants[parentId] = selectedVariants[parentId].filter(v => v !== variantId);
+    // Если нет выбранных вариантов, убираем выделение карточки
+    if (selectedVariants[parentId].length === 0) {
+      card.classList.remove('selected');
+      delete selectedVariants[parentId];
+    }
+  }
+  
+  updateDownloadButton();
+  updateLightningLoraInfo();
+}
+
+function updateDownloadButton() {
+  // Подсчитываем общее количество выбранных пресетов (обычные + варианты)
+  let totalSelected = selectedPresets.length;
+  Object.values(selectedVariants).forEach(variants => {
+    totalSelected += variants.length;
+  });
+  
+  const btn = document.getElementById('download-presets-btn');
+  btn.disabled = totalSelected === 0;
+  btn.textContent = totalSelected > 0 ? 
+    `📥 Скачать выбранные пресеты (${totalSelected})` : 
+    '📥 Скачать выбранные пресеты';
 }
 
 function updateLightningLoraInfo() {
@@ -66,7 +125,13 @@ function updateLightningLoraInfo() {
   const lightningDetails = document.getElementById('lightning-lora-details');
   const lightningList = document.getElementById('lightning-lora-list');
   
-  if (selectedPresets.length === 0) {
+  // Собираем все выбранные пресеты (обычные + варианты)
+  let allSelectedPresets = [...selectedPresets];
+  Object.values(selectedVariants).forEach(variants => {
+    allSelectedPresets.push(...variants);
+  });
+  
+  if (allSelectedPresets.length === 0) {
     lightningText.textContent = '⚡ Дополнительно докачать экспериментальные Lightning LoRA';
     lightningDetails.style.display = 'none';
     // Отключаем чекбокс и делаем его полупрозрачным
@@ -87,11 +152,57 @@ function updateLightningLoraInfo() {
     'WAN_FLF': [
       'FLF-Lightning-Seko-V1-high_noise_model.safetensors',
       'FLF-Lightning-Seko-V1-low_noise_model.safetensors'
+    ],
+    'QWEN_IMAGE': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_BF16': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_2512_FP8': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_2512_BF16': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_IMAGE_2512_Q8_GGUF': [
+      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_EDIT': [
+      'Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_EDIT_BF16': [
+      'Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors',
+      'Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors'
+    ],
+    'QWEN_EDIT_2509_FP8': [
+      'Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors'
+    ],
+    'QWEN_EDIT_2509_BF16': [
+      'Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors'
+    ],
+    'QWEN_EDIT_2511_FP8': [
+      'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
+    ],
+    'QWEN_EDIT_2511_BF16': [
+      'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
     ]
   };
   
+  // Собираем все выбранные пресеты (обычные + варианты)
+  let allSelectedPresets = [...selectedPresets];
+  Object.values(selectedVariants).forEach(variants => {
+    allSelectedPresets.push(...variants);
+  });
+  
   const selectedLightningModels = [];
-  selectedPresets.forEach(preset => {
+  allSelectedPresets.forEach(preset => {
     if (lightningModels[preset]) {
       selectedLightningModels.push(...lightningModels[preset]);
     }
@@ -230,8 +341,80 @@ function pollStatus(taskId) {
 
 // Остальные функции для HuggingFace...
 
+// Фильтрация по категориям и поиск
+let currentCategory = 'all';
+let searchQuery = '';
+
+function filterByCategory(category) {
+  currentCategory = category;
+  
+  // Обновляем активный фильтр
+  document.querySelectorAll('.category-filter').forEach(filter => {
+    filter.classList.remove('active');
+  });
+  event.target.closest('.category-filter').classList.add('active');
+  
+  // Применяем фильтры
+  applyFilters();
+}
+
+function filterPresets() {
+  searchQuery = document.getElementById('preset-search').value.toLowerCase().trim();
+  applyFilters();
+}
+
+function applyFilters() {
+  const cards = document.querySelectorAll('.preset-card');
+  let visibleCount = 0;
+  
+  cards.forEach(card => {
+    const presetCategory = card.getAttribute('data-category');
+    const presetName = card.querySelector('.preset-name').textContent.toLowerCase();
+    const presetDesc = card.querySelector('.preset-desc').textContent.toLowerCase();
+    const presetInfo = card.querySelector('.preset-info').textContent.toLowerCase();
+    
+    // Проверяем категорию
+    const categoryMatch = currentCategory === 'all' || presetCategory === currentCategory;
+    
+    // Проверяем поисковый запрос
+    const searchMatch = !searchQuery || 
+      presetName.includes(searchQuery) || 
+      presetDesc.includes(searchQuery) || 
+      presetInfo.includes(searchQuery);
+    
+    // Показываем/скрываем карточку
+    if (categoryMatch && searchMatch) {
+      card.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+  
+  // Показываем сообщение, если ничего не найдено
+  const grid = document.getElementById('preset-grid');
+  let noResultsMsg = document.getElementById('no-results-message');
+  
+  if (visibleCount === 0) {
+    if (!noResultsMsg) {
+      noResultsMsg = document.createElement('div');
+      noResultsMsg.id = 'no-results-message';
+      noResultsMsg.style.cssText = 'text-align: center; padding: 40px; color: var(--muted); font-size: 16px;';
+      noResultsMsg.textContent = '😔 Пресеты не найдены';
+      grid.appendChild(noResultsMsg);
+    }
+  } else {
+    if (noResultsMsg) {
+      noResultsMsg.remove();
+    }
+  }
+}
+
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
   // Инициализируем состояние Lightning LoRA при загрузке страницы
   updateLightningLoraInfo();
+  
+  // Инициализируем фильтры
+  applyFilters();
 });
