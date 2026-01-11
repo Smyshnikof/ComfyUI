@@ -1140,7 +1140,7 @@ def generate_presets_html():
         category = preset_info.get('category', 'Wan')
         video_guide_html = ""
         if preset_info.get('video_guide'):
-            video_guide_html = f'<a href="{preset_info["video_guide"]}" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>'
+            video_guide_html = f'<a href="{preset_info["video_guide"]}" target="_blank" rel="noopener noreferrer" class="video-guide-icon" title="Видео-гайд">i</a>'
         
         # Проверяем, есть ли варианты (для Qwen пресетов)
         if preset_info.get('has_variants') and preset_info.get('variant_groups'):
@@ -1149,8 +1149,8 @@ def generate_presets_html():
                 group_html = f'<div class="preset-variant-group-title">{group_name}</div>'
                 for variant_id, variant_info in variants.items():
                     group_html += f'''
-                    <div class="preset-variant-item" onclick="event.stopPropagation();">
-                      <input type="checkbox" id="variant-{variant_id}" data-variant="{variant_id}" data-parent="{preset_id}" onchange="toggleVariant('{preset_id}', '{variant_id}')">
+                    <div class="preset-variant-item">
+                      <input type="checkbox" id="variant-{variant_id}" data-variant="{variant_id}" data-parent="{preset_id}">
                       <label for="variant-{variant_id}" class="preset-variant-label">
                         <strong>{variant_info['name']}</strong>
                         <span class="preset-variant-info"> • {variant_info['size']} • {variant_info['time']}</span>
@@ -1160,9 +1160,9 @@ def generate_presets_html():
                 variants_html += f'<div class="preset-variant-group">{group_html}</div>'
             
             html += f'''
-            <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePresetCard('{preset_id}', event)">
+            <div class="preset-card" data-preset="{preset_id}" data-category="{category}" data-has-variants="true">
               {video_guide_html}
-              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('{preset_id}', event)">▼</span>
+              <span class="preset-expand-icon">▼</span>
               <div class="preset-name">{preset_info['name']}</div>
               <div class="preset-desc">{preset_info['description']}</div>
               <div class="preset-info">Размер: {preset_info['size']} • Время: {preset_info['time']}</div>
@@ -1175,7 +1175,7 @@ def generate_presets_html():
         else:
             # Обычная карточка без вариантов (Wan пресеты)
             html += f'''
-            <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePreset('{preset_id}')">
+            <div class="preset-card" data-preset="{preset_id}" data-category="{category}" data-has-variants="false">
               {video_guide_html}
               <div class="preset-name">{preset_info['name']}</div>
               <div class="preset-desc">{preset_info['description']}</div>

@@ -497,6 +497,64 @@ function initAllHandlers() {
     tab.style.cursor = 'pointer';
   });
   
+  // Привязываем обработчики для карточек пресетов
+  const presetCards = document.querySelectorAll('.preset-card');
+  console.log('Found preset cards:', presetCards.length);
+  presetCards.forEach(card => {
+    const presetId = card.getAttribute('data-preset');
+    const hasVariants = card.getAttribute('data-has-variants') === 'true';
+    
+    // Обработчик клика на карточке
+    card.addEventListener('click', function(e) {
+      // Пропускаем клики на вариантах, видео-гайде и иконке раскрытия
+      if (e.target.closest('.preset-variant-item') || 
+          e.target.closest('.video-guide-icon') ||
+          e.target.closest('.preset-expand-icon')) {
+        return;
+      }
+      
+      if (hasVariants) {
+        // Для пресетов с вариантами - раскрываем/сворачиваем
+        if (typeof togglePresetCard === 'function') {
+          togglePresetCard(presetId, e);
+        }
+      } else {
+        // Для обычных пресетов - выбираем/снимаем выбор
+        if (typeof togglePreset === 'function') {
+          togglePreset(presetId);
+        }
+      }
+    });
+    
+    // Обработчик клика на иконке раскрытия
+    const expandIcon = card.querySelector('.preset-expand-icon');
+    if (expandIcon && hasVariants) {
+      expandIcon.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (typeof togglePresetCard === 'function') {
+          togglePresetCard(presetId, e);
+        }
+      });
+      expandIcon.style.cursor = 'pointer';
+    }
+    
+    card.style.cursor = 'pointer';
+  });
+  
+  // Привязываем обработчики для чекбоксов вариантов
+  const variantCheckboxes = document.querySelectorAll('input[type="checkbox"][data-variant]');
+  console.log('Found variant checkboxes:', variantCheckboxes.length);
+  variantCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', function(e) {
+      e.stopPropagation();
+      const variantId = this.getAttribute('data-variant');
+      const parentId = this.getAttribute('data-parent');
+      if (variantId && parentId && typeof toggleVariant === 'function') {
+        toggleVariant(parentId, variantId);
+      }
+    });
+  });
+  
   // Инициализируем состояние Lightning LoRA при загрузке страницы
   if (typeof updateLightningLoraInfo === 'function') {
     updateLightningLoraInfo();
