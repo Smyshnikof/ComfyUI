@@ -4,62 +4,34 @@ let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 console.log('selectedPresets initialized:', selectedPresets);
 
 function switchTab(tabName) {
-  console.log('switchTab called with:', tabName);
-  // Убираем активный класс со всех основных табов (первый .tabs) и контента
-  const mainTabs = document.querySelectorAll('.tabs:first-of-type .tab');
-  mainTabs.forEach(tab => tab.classList.remove('active'));
-  
+  // Убираем активный класс со всех табов и контента
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
   
   // Активируем выбранный таб
-  mainTabs.forEach(tab => {
-    const tabData = tab.getAttribute('data-tab');
-    if (tabData === tabName) {
-      tab.classList.add('active');
-    }
-  });
-  
-  // Активируем соответствующий контент
-  const targetTab = document.getElementById(`${tabName}-tab`);
-  if (targetTab) {
-    targetTab.classList.add('active');
-    console.log('Tab activated:', tabName);
-  } else {
-    console.error('Tab not found:', `${tabName}-tab`);
-  }
+  document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+  document.getElementById(`${tabName}-tab`).classList.add('active');
   
   // Если переключаемся на HuggingFace, активируем таб "Прямая ссылка"
   if (tabName === 'huggingface') {
-    setTimeout(() => switchHFMethod('url'), 100);
+    switchHFMethod('url');
   }
 }
 
 function switchHFMethod(method) {
-  console.log('switchHFMethod called with:', method);
   // Убираем активный класс со всех табов в HuggingFace разделе
-  const hfTabs = document.querySelectorAll('#huggingface-tab .tabs .tab');
-  hfTabs.forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('#huggingface-tab .tabs .tab').forEach(tab => tab.classList.remove('active'));
   
   // Активируем выбранный таб
-  hfTabs.forEach(tab => {
-    const methodData = tab.getAttribute('data-hf-method');
-    if (methodData === method) {
-      tab.classList.add('active');
-    }
-  });
+  document.querySelector(`#huggingface-tab [onclick="switchHFMethod('${method}')"]`).classList.add('active');
   
   // Показываем/скрываем формы
-  const urlForm = document.getElementById('hf-url-form');
-  const repoForm = document.getElementById('hf-repo-form');
-  
   if (method === 'url') {
-    if (urlForm) urlForm.style.display = 'block';
-    if (repoForm) repoForm.style.display = 'none';
-    console.log('URL form shown');
+    document.getElementById('hf-url-form').style.display = 'block';
+    document.getElementById('hf-repo-form').style.display = 'none';
   } else {
-    if (urlForm) urlForm.style.display = 'none';
-    if (repoForm) repoForm.style.display = 'block';
-    console.log('Repo form shown');
+    document.getElementById('hf-url-form').style.display = 'none';
+    document.getElementById('hf-repo-form').style.display = 'block';
   }
 }
 
@@ -338,117 +310,10 @@ function applyFilters() {
 }
 
 // Инициализация
-function initAllHandlers() {
-  console.log('Initializing all handlers...');
-  
-  // Привязываем обработчики для переключения табов
-  const mainTabs = document.querySelectorAll('.tabs:first-of-type .tab');
-  console.log('Found main tabs:', mainTabs.length);
-  mainTabs.forEach(tab => {
-    tab.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const tabName = this.getAttribute('data-tab');
-      console.log('Main tab clicked:', tabName);
-      if (tabName && typeof switchTab === 'function') {
-        switchTab(tabName);
-      } else {
-        console.error('switchTab is not a function or tabName is missing');
-      }
-    });
-    // Добавляем курсор для визуальной обратной связи
-    tab.style.cursor = 'pointer';
-  });
-  
-  // Привязываем обработчики для переключения методов HuggingFace
-  const hfTabs = document.querySelectorAll('#huggingface-tab .tabs .tab');
-  console.log('Found HF tabs:', hfTabs.length);
-  hfTabs.forEach(tab => {
-    tab.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const method = this.getAttribute('data-hf-method');
-      console.log('HF tab clicked:', method);
-      if (method && typeof switchHFMethod === 'function') {
-        switchHFMethod(method);
-      } else {
-        console.error('switchHFMethod is not a function or method is missing');
-      }
-    });
-    // Добавляем курсор для визуальной обратной связи
-    tab.style.cursor = 'pointer';
-  });
-  
-  // Привязываем обработчики для карточек пресетов
-  const presetCards = document.querySelectorAll('.preset-card');
-  console.log('Found preset cards:', presetCards.length);
-  presetCards.forEach(card => {
-    const presetId = card.getAttribute('data-preset');
-    const hasVariants = card.getAttribute('data-has-variants') === 'true';
-    
-    // Обработчик клика на карточке
-    card.addEventListener('click', function(e) {
-      // Пропускаем клики на вариантах, видео-гайде и иконке раскрытия
-      if (e.target.closest('.preset-variant-item') || 
-          e.target.closest('.video-guide-icon') ||
-          e.target.closest('.preset-expand-icon')) {
-        return;
-      }
-      
-      if (hasVariants) {
-        // Для пресетов с вариантами - раскрываем/сворачиваем
-        if (typeof togglePresetCard === 'function') {
-          togglePresetCard(presetId, e);
-        }
-      } else {
-        // Для обычных пресетов - выбираем/снимаем выбор
-        if (typeof togglePreset === 'function') {
-          togglePreset(presetId);
-        }
-      }
-    });
-    
-    // Обработчик клика на иконке раскрытия
-    const expandIcon = card.querySelector('.preset-expand-icon');
-    if (expandIcon && hasVariants) {
-      expandIcon.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (typeof togglePresetCard === 'function') {
-          togglePresetCard(presetId, e);
-        }
-      });
-      expandIcon.style.cursor = 'pointer';
-    }
-    
-    card.style.cursor = 'pointer';
-  });
-  
-  // Привязываем обработчики для чекбоксов вариантов
-  const variantCheckboxes = document.querySelectorAll('input[type="checkbox"][data-variant]');
-  console.log('Found variant checkboxes:', variantCheckboxes.length);
-  variantCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function(e) {
-      e.stopPropagation();
-      const variantId = this.getAttribute('data-variant');
-      const parentId = this.getAttribute('data-parent');
-      if (variantId && parentId && typeof toggleVariant === 'function') {
-        toggleVariant(parentId, variantId);
-      }
-    });
-  });
-  
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
   // Инициализируем фильтры
   if (typeof applyFilters === 'function') {
     applyFilters();
   }
-  
-  console.log('All handlers initialized');
-}
-
-// Запускаем инициализацию
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAllHandlers);
-} else {
-  // DOM уже загружен, запускаем сразу
-  initAllHandlers();
-}
+});
