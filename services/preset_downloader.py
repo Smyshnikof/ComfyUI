@@ -716,8 +716,8 @@ INDEX_HTML = """
     <p class="subtitle">Скачивание пресетов и моделей с HuggingFace</p>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('presets')">🎯 Пресеты</div>
-      <div class="tab" onclick="switchTab('huggingface')">🤗 HuggingFace</div>
+      <div class="tab active" data-tab="presets">🎯 Пресеты</div>
+      <div class="tab" data-tab="huggingface">🤗 HuggingFace</div>
     </div>
     
     <div class="grid">
@@ -727,7 +727,6 @@ INDEX_HTML = """
         
         <!-- Поиск -->
         <div class="search-container">
-          <div class="search-icon">🔍</div>
           <input type="text" class="search-input" id="preset-search" placeholder="Поиск пресетов..." oninput="filterPresets()">
         </div>
         
@@ -770,8 +769,8 @@ INDEX_HTML = """
         </div>
         
         <div class="tabs" style="margin-bottom: 20px;">
-          <div class="tab active" onclick="switchHFMethod('url')">🔗 Прямая ссылка</div>
-          <div class="tab" onclick="switchHFMethod('repo')">🤗 HuggingFace Repo</div>
+          <div class="tab active" data-hf-method="url">🔗 Прямая ссылка</div>
+          <div class="tab" data-hf-method="repo">🤗 HuggingFace Repo</div>
         </div>
         
         <!-- Прямая ссылка метод (дефолтный) -->

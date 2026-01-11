@@ -4,34 +4,62 @@ let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 console.log('selectedPresets initialized:', selectedPresets);
 
 function switchTab(tabName) {
-  // Убираем активный класс со всех табов и контента
-  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+  console.log('switchTab called with:', tabName);
+  // Убираем активный класс со всех основных табов (первый .tabs) и контента
+  const mainTabs = document.querySelectorAll('.tabs:first-of-type .tab');
+  mainTabs.forEach(tab => tab.classList.remove('active'));
+  
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
   
   // Активируем выбранный таб
-  document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-  document.getElementById(`${tabName}-tab`).classList.add('active');
+  mainTabs.forEach(tab => {
+    const tabData = tab.getAttribute('data-tab');
+    if (tabData === tabName) {
+      tab.classList.add('active');
+    }
+  });
+  
+  // Активируем соответствующий контент
+  const targetTab = document.getElementById(`${tabName}-tab`);
+  if (targetTab) {
+    targetTab.classList.add('active');
+    console.log('Tab activated:', tabName);
+  } else {
+    console.error('Tab not found:', `${tabName}-tab`);
+  }
   
   // Если переключаемся на HuggingFace, активируем таб "Прямая ссылка"
   if (tabName === 'huggingface') {
-    switchHFMethod('url');
+    setTimeout(() => switchHFMethod('url'), 100);
   }
 }
 
 function switchHFMethod(method) {
+  console.log('switchHFMethod called with:', method);
   // Убираем активный класс со всех табов в HuggingFace разделе
-  document.querySelectorAll('#huggingface-tab .tabs .tab').forEach(tab => tab.classList.remove('active'));
+  const hfTabs = document.querySelectorAll('#huggingface-tab .tabs .tab');
+  hfTabs.forEach(tab => tab.classList.remove('active'));
   
   // Активируем выбранный таб
-  document.querySelector(`#huggingface-tab [onclick="switchHFMethod('${method}')"]`).classList.add('active');
+  hfTabs.forEach(tab => {
+    const methodData = tab.getAttribute('data-hf-method');
+    if (methodData === method) {
+      tab.classList.add('active');
+    }
+  });
   
   // Показываем/скрываем формы
+  const urlForm = document.getElementById('hf-url-form');
+  const repoForm = document.getElementById('hf-repo-form');
+  
   if (method === 'url') {
-    document.getElementById('hf-url-form').style.display = 'block';
-    document.getElementById('hf-repo-form').style.display = 'none';
+    if (urlForm) urlForm.style.display = 'block';
+    if (repoForm) repoForm.style.display = 'none';
+    console.log('URL form shown');
   } else {
-    document.getElementById('hf-url-form').style.display = 'none';
-    document.getElementById('hf-repo-form').style.display = 'block';
+    if (urlForm) urlForm.style.display = 'none';
+    if (repoForm) repoForm.style.display = 'block';
+    console.log('Repo form shown');
   }
 }
 
@@ -41,22 +69,30 @@ let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 function togglePresetCard(presetId, event) {
   // Для пресетов с вариантами - разворачиваем/сворачиваем карточку
   const card = document.querySelector(`[data-preset="${presetId}"]`);
-  if (card) {
-    // Проверяем, был ли клик на варианте или на иконке раскрытия
-    if (event) {
-      const clickedElement = event.target;
-      const isVariantClick = clickedElement.closest('.preset-variant-item') || 
-                            clickedElement.closest('.preset-variants') ||
-                            clickedElement.closest('.video-guide-icon');
-      
-      // Если клик был на варианте или видео-гайде, не раскрываем/сворачиваем
-      if (isVariantClick) {
-        return;
-      }
+  if (!card) {
+    console.error('Card not found for preset:', presetId);
+    return;
+  }
+  
+  // Проверяем, был ли клик на варианте или видео-гайде (но не на иконке раскрытия)
+  if (event && event.target) {
+    const clickedElement = event.target;
+    
+    // Если клик был на варианте или видео-гайде, не раскрываем/сворачиваем
+    if (clickedElement.closest('.preset-variant-item') || 
+        clickedElement.closest('.video-guide-icon')) {
+      return;
     }
     
-    card.classList.toggle('expanded');
+    // Если клик был на иконке раскрытия, всегда раскрываем/сворачиваем
+    if (clickedElement.closest('.preset-expand-icon')) {
+      card.classList.toggle('expanded');
+      return;
+    }
   }
+  
+  // Обычный клик на карточке - раскрываем/сворачиваем
+  card.classList.toggle('expanded');
 }
 
 function togglePreset(presetId) {
@@ -237,7 +273,16 @@ function updateLightningLoraInfo() {
 }
 
 function downloadPresets() {
-  if (selectedPresets.length === 0) return;
+  // Собираем все выбранные пресеты (обычные + варианты)
+  let allSelectedPresets = [...selectedPresets];
+  Object.values(selectedVariants).forEach(variants => {
+    allSelectedPresets.push(...variants);
+  });
+  
+  if (allSelectedPresets.length === 0) {
+    alert('Пожалуйста, выберите хотя бы один пресет для скачивания');
+    return;
+  }
   
   const progress = document.getElementById('preset-progress');
   const result = document.getElementById('preset-result');
@@ -252,7 +297,7 @@ function downloadPresets() {
   
   // Отправляем запрос
   const formData = new FormData();
-  formData.append('presets', selectedPresets.join(','));
+  formData.append('presets', allSelectedPresets.join(','));
   formData.append('lightning_lora', lightningCheckbox.checked ? 'true' : 'false');
   
   fetch('/download_presets', {
@@ -411,10 +456,64 @@ function applyFilters() {
 }
 
 // Инициализация
-document.addEventListener('DOMContentLoaded', function() {
+function initAllHandlers() {
+  console.log('Initializing all handlers...');
+  
+  // Привязываем обработчики для переключения табов
+  const mainTabs = document.querySelectorAll('.tabs:first-of-type .tab');
+  console.log('Found main tabs:', mainTabs.length);
+  mainTabs.forEach(tab => {
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const tabName = this.getAttribute('data-tab');
+      console.log('Main tab clicked:', tabName);
+      if (tabName && typeof switchTab === 'function') {
+        switchTab(tabName);
+      } else {
+        console.error('switchTab is not a function or tabName is missing');
+      }
+    });
+    // Добавляем курсор для визуальной обратной связи
+    tab.style.cursor = 'pointer';
+  });
+  
+  // Привязываем обработчики для переключения методов HuggingFace
+  const hfTabs = document.querySelectorAll('#huggingface-tab .tabs .tab');
+  console.log('Found HF tabs:', hfTabs.length);
+  hfTabs.forEach(tab => {
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const method = this.getAttribute('data-hf-method');
+      console.log('HF tab clicked:', method);
+      if (method && typeof switchHFMethod === 'function') {
+        switchHFMethod(method);
+      } else {
+        console.error('switchHFMethod is not a function or method is missing');
+      }
+    });
+    // Добавляем курсор для визуальной обратной связи
+    tab.style.cursor = 'pointer';
+  });
+  
   // Инициализируем состояние Lightning LoRA при загрузке страницы
-  updateLightningLoraInfo();
+  if (typeof updateLightningLoraInfo === 'function') {
+    updateLightningLoraInfo();
+  }
   
   // Инициализируем фильтры
-  applyFilters();
-});
+  if (typeof applyFilters === 'function') {
+    applyFilters();
+  }
+  
+  console.log('All handlers initialized');
+}
+
+// Запускаем инициализацию
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAllHandlers);
+} else {
+  // DOM уже загружен, запускаем сразу
+  initAllHandlers();
+}
