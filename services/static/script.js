@@ -47,7 +47,7 @@ function togglePresetCard(presetId, event) {
     return;
   }
   
-  // Проверяем, был ли клик на варианте или видео-гайде (но не на иконке раскрытия)
+  // Проверяем, был ли клик на варианте или видео-гайде
   if (event && event.target) {
     const clickedElement = event.target;
     
@@ -66,9 +66,20 @@ function togglePresetCard(presetId, event) {
     }
   }
   
-  // Обычный клик на карточке - раскрываем/сворачиваем
-  console.log('Regular click on card, toggling expanded');
-  card.classList.toggle('expanded');
+  // Обычный клик на карточке - если не раскрыта, раскрываем; если раскрыта, сворачиваем
+  // Но если карточка уже выделена (selected), то сворачиваем
+  if (card.classList.contains('expanded')) {
+    // Если раскрыта и выделена - сворачиваем
+    if (card.classList.contains('selected')) {
+      card.classList.remove('expanded');
+    } else {
+      // Если раскрыта но не выделена - просто сворачиваем
+      card.classList.remove('expanded');
+    }
+  } else {
+    // Если не раскрыта - всегда раскрываем при клике
+    card.classList.add('expanded');
+  }
 }
 
 function togglePreset(presetId) {
