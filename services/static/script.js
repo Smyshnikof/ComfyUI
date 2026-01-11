@@ -141,7 +141,6 @@ function downloadPresets() {
   const progress = document.getElementById('preset-progress');
   const result = document.getElementById('preset-result');
   const btn = document.getElementById('download-presets-btn');
-  const lightningCheckbox = document.getElementById('lightning-lora-checkbox');
   
   // Показываем прогресс
   progress.style.display = 'block';
@@ -152,7 +151,6 @@ function downloadPresets() {
   // Отправляем запрос
   const formData = new FormData();
   formData.append('presets', allSelectedPresets.join(','));
-  formData.append('lightning_lora', lightningCheckbox.checked ? 'true' : 'false');
   
   fetch('/download_presets', {
     method: 'POST',
@@ -161,8 +159,7 @@ function downloadPresets() {
   .then(response => response.json())
   .then(data => {
     if (data.task_id) {
-      const lightningStatus = lightningCheckbox.checked ? ' (включая Lightning LoRA)' : '';
-      result.textContent = data.message + lightningStatus;
+      result.textContent = data.message;
       // Начинаем опрос статуса
       pollStatus(data.task_id);
     } else {
@@ -191,12 +188,7 @@ function pollStatus(taskId) {
   .then(response => response.json())
   .then(data => {
     if (data.status === 'completed' || data.status === 'error') {
-      let message = data.message;
-      const lightningCheckbox = document.getElementById('lightning-lora-checkbox');
-      if (lightningCheckbox && lightningCheckbox.checked && data.status === 'completed') {
-        message += '\n⚡ Lightning LoRA также скачаны (экспериментальные версии)';
-      }
-      result.textContent = message;
+      result.textContent = data.message;
       progress.style.display = 'none';
       btn.disabled = false;
       btn.textContent = '📥 Скачать выбранные пресеты';
