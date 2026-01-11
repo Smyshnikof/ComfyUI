@@ -112,7 +112,6 @@ function togglePreset(presetId) {
   }
   
   updateDownloadButton();
-  updateLightningLoraInfo();
 }
 
 function toggleVariant(parentId, variantId) {
@@ -139,7 +138,6 @@ function toggleVariant(parentId, variantId) {
   }
   
   updateDownloadButton();
-  updateLightningLoraInfo();
 }
 
 function updateDownloadButton() {
@@ -154,122 +152,6 @@ function updateDownloadButton() {
   btn.textContent = totalSelected > 0 ? 
     `📥 Скачать выбранные пресеты (${totalSelected})` : 
     '📥 Скачать выбранные пресеты';
-}
-
-function updateLightningLoraInfo() {
-  const lightningText = document.getElementById('lightning-lora-text');
-  const lightningDetails = document.getElementById('lightning-lora-details');
-  const lightningList = document.getElementById('lightning-lora-list');
-  
-  // Собираем все выбранные пресеты (обычные + варианты)
-  let allSelectedPresets = [...selectedPresets];
-  Object.values(selectedVariants).forEach(variants => {
-    allSelectedPresets.push(...variants);
-  });
-  
-  if (allSelectedPresets.length === 0) {
-    lightningText.textContent = '⚡ Дополнительно докачать экспериментальные Lightning LoRA';
-    lightningDetails.style.display = 'none';
-    // Отключаем чекбокс и делаем его полупрозрачным
-    document.getElementById('lightning-lora-checkbox').disabled = true;
-    document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '0.5';
-    return;
-  }
-  
-  const lightningModels = {
-    'WAN_T2V': [
-      'T2V-Lightning-250928-high_noise_model.safetensors',
-      'T2V-Lightning-250928-low_noise_model.safetensors'
-    ],
-    'WAN_I2V': [
-      'I2V-Lightning-Seko-V1-high_noise_model.safetensors',
-      'I2V-Lightning-Seko-V1-low_noise_model.safetensors'
-    ],
-    'WAN_FLF': [
-      'FLF-Lightning-Seko-V1-high_noise_model.safetensors',
-      'FLF-Lightning-Seko-V1-low_noise_model.safetensors'
-    ],
-    'QWEN_IMAGE': [
-      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_IMAGE_BF16': [
-      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_IMAGE_2512_FP8': [
-      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_IMAGE_2512_BF16': [
-      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_IMAGE_2512_Q8_GGUF': [
-      'Qwen-Image-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_EDIT': [
-      'Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_EDIT_BF16': [
-      'Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors',
-      'Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors'
-    ],
-    'QWEN_EDIT_2509_FP8': [
-      'Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors'
-    ],
-    'QWEN_EDIT_2509_BF16': [
-      'Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors'
-    ],
-    'QWEN_EDIT_2511_FP8': [
-      'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
-    ],
-    'QWEN_EDIT_2511_BF16': [
-      'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
-    ]
-  };
-  
-  // Собираем все выбранные пресеты (обычные + варианты)
-  let allSelectedPresets = [...selectedPresets];
-  Object.values(selectedVariants).forEach(variants => {
-    allSelectedPresets.push(...variants);
-  });
-  
-  const selectedLightningModels = [];
-  allSelectedPresets.forEach(preset => {
-    if (lightningModels[preset]) {
-      selectedLightningModels.push(...lightningModels[preset]);
-    }
-  });
-  
-  if (selectedLightningModels.length > 0) {
-    const count = selectedLightningModels.length;
-    const fileWord = count === 1 ? 'файл' : count < 5 ? 'файла' : 'файлов';
-    lightningText.textContent = `⚡ Дополнительно докачать экспериментальные Lightning LoRA (${count} ${fileWord})`;
-    
-    // Показываем чекбокс и делаем его активным
-    document.getElementById('lightning-lora-checkbox').disabled = false;
-    document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '1';
-    
-    // Показываем список файлов только если галочка поставлена
-    const checkbox = document.getElementById('lightning-lora-checkbox');
-    if (checkbox.checked) {
-      lightningDetails.style.display = 'block';
-      lightningList.innerHTML = selectedLightningModels.map(model => 
-        `• ${model}`
-      ).join('<br>');
-    } else {
-      lightningDetails.style.display = 'none';
-    }
-  } else {
-    lightningText.textContent = '⚡ Экспериментальные Lightning LoRA недоступны для выбранных пресетов';
-    lightningDetails.style.display = 'none';
-    // Отключаем чекбокс и делаем его полупрозрачным
-    document.getElementById('lightning-lora-checkbox').disabled = true;
-    document.getElementById('lightning-lora-checkbox').parentElement.style.opacity = '0.5';
-  }
 }
 
 function downloadPresets() {

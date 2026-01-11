@@ -739,15 +739,6 @@ INDEX_HTML = """
           {{ presets_html }}
         </div>
         <div class="row-full">
-          <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer;">
-            <input type="checkbox" id="lightning-lora-checkbox" style="width: 16px; height: 16px;">
-            <span id="lightning-lora-text">⚡ Дополнительно докачать экспериментальные Lightning LoRA</span>
-          </label>
-          <div id="lightning-lora-details" style="margin-left: 24px; font-size: 12px; color: var(--muted); display: none;">
-            <div id="lightning-lora-list"></div>
-          </div>
-        </div>
-        <div class="row-full">
           <button class="btn btn-preset" onclick="downloadPresets()" id="download-presets-btn" disabled>
             📥 Скачать выбранные пресеты
           </button>
@@ -1036,10 +1027,6 @@ INDEX_HTML = """
     });
     
     // Обработчик для чекбокса Lightning LoRA
-    document.getElementById('lightning-lora-checkbox').addEventListener('change', function() {
-      // Обновляем информацию о Lightning LoRA при изменении чекбокса
-      updateLightningLoraInfo();
-    });
     
     // Фильтрация по категориям и поиск
     let currentCategory = 'all';
@@ -1207,7 +1194,7 @@ def get_status(task_id: str):
     return download_status[task_id]
 
 @app.post("/download_presets")
-def download_presets(presets: str = Form(...), lightning_lora: str = Form("false")):
+def download_presets(presets: str = Form(...)):
     try:
         # Парсим строку пресетов
         presets_list = [p.strip() for p in presets.split(',') if p.strip()]
@@ -1345,22 +1332,6 @@ def download_presets(presets: str = Form(...), lightning_lora: str = Form("false
                 for preset_id in presets_list:
                     if preset_id in PRESET_FILES:
                         all_files.extend(PRESET_FILES[preset_id])
-                    # Добавляем Lightning LoRA если нужно
-                    if lightning_lora.lower() == "true":
-                        # Wan Lightning LoRA
-                        if preset_id == "WAN_T2V" and "WAN_T2V_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["WAN_T2V_LIGHTNING"])
-                        elif preset_id in ["WAN_I2V", "WAN_I2V_LOOP"] and "WAN_I2V_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["WAN_I2V_LIGHTNING"])
-                        elif preset_id == "WAN_FLF" and "WAN_FLF_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["WAN_FLF_LIGHTNING"])
-                        # Qwen Lightning LoRA
-                        elif preset_id in ["QWEN_IMAGE", "QWEN_IMAGE_BF16", "QWEN_IMAGE_2512_FP8", "QWEN_IMAGE_2512_BF16", "QWEN_IMAGE_2512_Q8_GGUF"] and "QWEN_IMAGE_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["QWEN_IMAGE_LIGHTNING"])
-                        elif preset_id in ["QWEN_EDIT", "QWEN_EDIT_BF16", "QWEN_EDIT_2511_FP8", "QWEN_EDIT_2511_BF16"] and "QWEN_EDIT_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["QWEN_EDIT_LIGHTNING"])
-                        elif preset_id in ["QWEN_EDIT_2509_FP8", "QWEN_EDIT_2509_BF16"] and "QWEN_EDIT_2509_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["QWEN_EDIT_2509_LIGHTNING"])
                 
                 total_files = len(all_files)
                 
