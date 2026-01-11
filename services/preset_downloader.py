@@ -281,7 +281,6 @@ PRESET_FILES = {
         ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
         ("https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/vae/qwen_image_layered_vae.safetensors", "vae", None),
     ],
-    # Lightning LoRA для Qwen
     "QWEN_IMAGE_LIGHTNING": [
         ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
         ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
@@ -1026,7 +1025,6 @@ INDEX_HTML = """
       });
     });
     
-    // Обработчик для чекбокса Lightning LoRA
     
     // Фильтрация по категориям и поиск
     let currentCategory = 'all';
@@ -1099,7 +1097,6 @@ INDEX_HTML = """
     
     // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
-      // Инициализируем состояние Lightning LoRA при загрузке страницы
       updateLightningLoraInfo();
       
       // Инициализируем фильтры

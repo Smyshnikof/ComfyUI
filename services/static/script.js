@@ -437,11 +437,6 @@ function initAllHandlers() {
     });
   });
   
-  // Инициализируем состояние Lightning LoRA при загрузке страницы
-  if (typeof updateLightningLoraInfo === 'function') {
-    updateLightningLoraInfo();
-  }
-  
   // Инициализируем фильтры
   if (typeof applyFilters === 'function') {
     applyFilters();
