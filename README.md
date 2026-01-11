@@ -173,7 +173,7 @@ bash /download_presets.sh PRESET1,PRESET2,...
 
 ### Wan workflow
 
-При запуске workflow из `/presets/wan` копируются в `/workspace/ComfyUI/user/default/workflows/` для быстрого доступа.
+При запуске workflow из `/presets` (wan, qwen, snippets и другие) копируются в `/workspace/ComfyUI/user/default/workflows/` для быстрого доступа.
 
 ---
 

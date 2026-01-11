@@ -1,0 +1,470 @@
+{
+  "id": "0a807d56-ba77-4fb3-a382-f114d123e074",
+  "revision": 0,
+  "last_node_id": 9,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1909.3212826890751,
+        1293.9493315110353
+      ],
+      "size": [
+        590,
+        120
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        },
+        "Node name for S&R": "ShowText|pysssss",
+        "aux_id": "pythongosssss/ComfyUI-Custom-Scripts"
+      },
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 4,
+      "type": "JoinStrings",
+      "pos": [
+        2779.321282689075,
+        1293.9493315110353
+      ],
+      "size": [
+        280,
+        80
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 3
+        },
+        {
+          "name": "string2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "fbdb08f9d6b0e821919d2c9f9caf8972ed439690",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        },
+        "Node name for S&R": "JoinStrings",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 5,
+      "type": "easy string",
+      "pos": [
+        2399.321282689076,
+        1483.9493315110353
+      ],
+      "size": [
+        270.2117508054571,
+        81.06540459727142
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "title": "Trigger Word",
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "b6deb5f5155fd400b20cce7f8644a61efdcbe098",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.2"
+        },
+        "Node name for S&R": "easy string",
+        "aux_id": "yolain/ComfyUI-Easy-Use"
+      },
+      "widgets_values": [
+        "IGMODEL"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 6,
+      "type": "MarkdownNote",
+      "pos": [
+        1549.3212826890745,
+        943.9493315110321
+      ],
+      "size": [
+        360,
+        570
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "KSampler settings",
+      "properties": {
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        "Вы можете протестировать и выбрать оптимальную настройку самостоятельно. Следующая таблица предназначена для справки.\n\n| Параметр            | Диапазон / Значения       | Описание                                      |\n| ------------------- | ------------------------- | --------------------------------------------- |\n| **move_horizontal** | `left` / `right` / `none` | Сдвигает камеру влево или вправо (панорама)   |\n| **move_vertical**   | `up` / `down` / `none`    | Перемещает камеру вверх или вниз              |\n| **move_forward**    | `yes` / `no`              | Приближает или отдаляет камеру от сцены       |\n| **rotate**          | `-90` → `90`              | Поворот камеры по горизонтали вокруг сцены    |\n| **view_top_down**   | `true` / `false`          | Вид сверху (ортогональная перспектива)        |\n| **view_bottom_up**  | `true` / `false`          | Вид снизу вверх (героический ракурс)          |\n| **view_wide_angle** | `true` / `false`          | Широкий угол обзора, с искажением перспективы |\n| **view_close_up**   | `true` / `false`          | Крупный план, камера близко к объекту         |\n"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 7,
+      "type": "JoinStrings",
+      "pos": [
+        2499.321282689076,
+        1293.9493315110353
+      ],
+      "size": [
+        280,
+        80
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "string1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 5
+        },
+        {
+          "name": "string2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "fbdb08f9d6b0e821919d2c9f9caf8972ed439690",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        },
+        "Node name for S&R": "JoinStrings",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        ","
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 8,
+      "type": "easy string",
+      "pos": [
+        2669.321282689075,
+        1483.9493315110353
+      ],
+      "size": [
+        280,
+        80
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "title": "Prompt",
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "b6deb5f5155fd400b20cce7f8644a61efdcbe098",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.2"
+        },
+        "Node name for S&R": "easy string",
+        "aux_id": "yolain/ComfyUI-Easy-Use"
+      },
+      "widgets_values": [
+        "A photo-realistic shoot from the side, about a young woman sitting in a car with a thoughtful expression, wearing a light blue sweater and a heart-shaped necklace. on the middle of the image, a 20-year-old woman with light skin and long brown hair is sitting in the driver's seat, resting her chin on her hand. she appears to be looking directly at the camera with a neutral expression. the woman has a slim body and medium-sized breasts. her hair falls down her back, and her eyes are a striking shade of brown. she is wearing a blue long-sleeved top that shows off her cleavage, and a small silver heart pendant hangs from her neck. the car interior is visible, with the sun shining through the window behind her, creating a bright and airy atmosphere."
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 9,
+      "type": "CameraControlPromptNode",
+      "pos": [
+        1909.3212826890751,
+        943.9493315110321
+      ],
+      "size": [
+        310,
+        320
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "multiple-angle-camera-control",
+        "ver": "b98c0f8ca58e8460c81e3aca61ea166d0187da1e",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.4.1"
+        },
+        "Node name for S&R": "CameraControlPromptNode"
+      },
+      "widgets_values": [
+        "none",
+        "none",
+        "yes",
+        0,
+        false,
+        false,
+        false,
+        true
+      ],
+      "color": "#222",
+      "bgcolor": "#000",
+      "shape": 1
+    },
+    {
+      "id": 2,
+      "type": "MarkdownNote",
+      "pos": [
+        2219.321282689075,
+        943.9493315110321
+      ],
+      "size": [
+        950,
+        320
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "KSampler settings",
+      "properties": {
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {}
+        }
+      },
+      "widgets_values": [
+        "| тип сцены / задачи             | move_horizontal | move_vertical | move_forward | rotate     | view_top_down | view_bottom_up | view_wide_angle | view_close_up | комментарий                                                    |\n| ------------------------------ | --------------- | ------------- | ------------ | ---------- | ------------- | -------------- | --------------- | ------------- | -------------------------------------------------------------- |\n| **Изометрия / Диорама**        | `none`          | `none`        | `no`         | `30`–`45`  | `true`        | `false`        | `false`         | `false`       | Классический изометрический угол, без искажений                |\n| **Архитектура / Интерьер**     | `none`          | `up`          | `no`         | `0`–`15`   | `false`       | `false`        | `false`         | `false`       | Чистая фронтальная перспектива, подходит для симметричных сцен |\n| **Фэнтези-город / Панорама**   | `right`         | `up`          | `yes`        | `45`–`60`  | `false`       | `false`        | `true`          | `false`       | Широкий угол, даёт ощущение масштабности                       |\n| **Город с земли / Улица**      | `none`          | `down`        | `no`         | `0`–`10`   | `false`       | `true`         | `true`          | `false`       | Камера на уровне персонажа, лёгкое искажение                   |\n| **Крупный объект / Деталь**    | `none`          | `none`        | `yes`        | `0`        | `false`       | `false`        | `false`         | `true`        | Крупный план без искажений, фокус на объекте                   |\n| **Киношный кадр / Динамика**   | `right`         | `down`        | `yes`        | `-30`–`30` | `false`       | `false`        | `true`          | `true`        | Движение и перспектива, эффект присутствия                     |\n| **Плавающий остров / Фэнтези** | `left`          | `up`          | `yes`        | `45`–`60`  | `false`       | `false`        | `true`          | `false`       | Камера под углом сверху, чтобы показать всю композицию         |\n"
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000",
+      "shape": 1
+    },
+    {
+      "id": 1,
+      "type": "ShowText|pysssss",
+      "pos": [
+        3060,
+        1290
+      ],
+      "size": [
+        300,
+        190
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "f2838ed5e59de4d73cde5c98354b87a8d3200190",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.4.1"
+        },
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "color": "#222",
+      "bgcolor": "#000",
+      "shape": 1
+    }
+  ],
+  "links": [
+    [
+      1,
+      4,
+      0,
+      1,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      9,
+      0,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      7,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      4,
+      8,
+      0,
+      4,
+      1,
+      "STRING"
+    ],
+    [
+      5,
+      5,
+      0,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      6,
+      3,
+      0,
+      7,
+      1,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "ds": {
+      "scale": 0.6830134553650705,
+      "offset": [
+        -1287.274095218639,
+        -774.1187472013725
+      ]
+    },
+    "frontendVersion": "1.28.8",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

@@ -95,14 +95,21 @@ fi
 # Users can download presets through the convenient preset downloader service
 echo "**** Preset downloads available via web interface at port 8081 ****"
 
-# Copy Wan workflows into ComfyUI user dir if present
-echo "**** Copying Wan workflows (if any) ****"
-SRC_PRESETS_DIR="/presets/wan"
+# Copy all presets (wan, qwen, snippets, etc.) into ComfyUI user dir if present
+echo "**** Copying presets workflows (wan, qwen, snippets, etc.) ****"
+SRC_PRESETS_DIR="/presets"
 DST_WORKFLOWS_DIR="/workspace/ComfyUI/user/default/workflows"
 if [ -d "$SRC_PRESETS_DIR" ]; then
     mkdir -p "$DST_WORKFLOWS_DIR"
-    rsync -au "$SRC_PRESETS_DIR/" "$DST_WORKFLOWS_DIR/"
-    echo "**** Workflows copied to $DST_WORKFLOWS_DIR ****"
+    # Copy all subdirectories from /presets (wan, qwen, snippets, etc.)
+    for preset_subdir in "$SRC_PRESETS_DIR"/*/; do
+        if [ -d "$preset_subdir" ]; then
+            subdir_name=$(basename "$preset_subdir")
+            echo "**** Copying $subdir_name workflows... ****"
+            rsync -au "$preset_subdir" "$DST_WORKFLOWS_DIR/"
+        fi
+    done
+    echo "**** All presets workflows copied to $DST_WORKFLOWS_DIR ****"
 else
     echo "Skip: $SRC_PRESETS_DIR does not exist."
 fi

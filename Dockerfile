@@ -89,7 +89,12 @@ COPY custom_nodes.txt /custom_nodes.txt
 
 RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
         cd /ComfyUI/custom_nodes && \
-        xargs -n 1 git clone --recursive < /custom_nodes.txt && \
+        while IFS= read -r repo || [ -n "$repo" ]; do \
+            repo=$(echo "$repo" | xargs); \
+            [ -z "$repo" ] && continue; \
+            echo "Cloning $repo..." && \
+            git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
+        done < /custom_nodes.txt && \
         if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
             pip install --no-cache-dir "Pillow>=12.0.0" && \
             pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \
