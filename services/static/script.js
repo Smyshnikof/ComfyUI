@@ -122,7 +122,19 @@ function toggleVariant(parentId, variantId) {
     }
   }
   
-  updateDownloadButton();
+  const btn = document.getElementById('download-presets-btn');
+  if (btn) {
+    // Подсчитываем общее количество выбранных пресетов (обычные + варианты)
+    let totalSelected = selectedPresets.length;
+    Object.values(selectedVariants).forEach(variants => {
+      totalSelected += variants.length;
+    });
+    
+    btn.disabled = totalSelected === 0;
+    btn.textContent = totalSelected > 0 ? 
+      `📥 Скачать выбранные пресеты (${totalSelected})` : 
+      '📥 Скачать выбранные пресеты';
+  }
 }
 
 
