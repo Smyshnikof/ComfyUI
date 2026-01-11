@@ -1,6 +1,6 @@
-[![Build and Push Docker Images](https://github.com/Smyshnikof/ComfyUI-Wan-Docker/actions/workflows/build.yml/badge.svg)](https://github.com/Smyshnikof/ComfyUI-Wan-Docker/actions/workflows/build.yml)
+[![Build and Push Docker Images](https://github.com/Smyshnikof/ComfyUI/actions/workflows/build-docker.yml/badge.svg)](https://github.com/Smyshnikof/ComfyUI/actions/workflows/build-docker.yml)
 
-> 🎥 **Основан на серии роликов по Wan 2.2** от [Егор Смышников](https://www.youtube.com/playlist?list=PLUREBJZfEOoPztQiVSV7vYegAsOtwMiZi)
+> 🎥 **Основан на ComfyUI** - мощный и модульный стабильный диффузионный интерфейс
 
 > 🔄 **Автообновление каждые 8 часов** для включения последней версии.
 
@@ -33,7 +33,7 @@
 ## 🏷️ Формат тегов
 
 ```text
-smyshnikof/comfyui-wan:(A)-torch2.8.0-(B)
+smyshnikof/comfyui:(A)-torch2.8.0-(B)
 ```
 
 * **(A)**: `base` - основной образ
@@ -46,10 +46,10 @@ smyshnikof/comfyui-wan:(A)-torch2.8.0-(B)
 
 | Имя образа                                 | Кастомные ноды | Пресеты | CUDA |
 | ------------------------------------------ | ------------ | ---- | ---- |
-| `smyshnikof/comfyui-wan:base-torch2.8.0-cu124`| ✅ Да         | ✅ Да  | 12.4 |
-| `smyshnikof/comfyui-wan:base-torch2.8.0-cu126`| ✅ Да         | ✅ Да  | 12.6 |
-| `smyshnikof/comfyui-wan:base-torch2.8.0-cu128`| ✅ Да         | ✅ Да  | 12.8 |
-| `smyshnikof/comfyui-wan:base-torch2.8.0-cu129`| ✅ Да         | ✅ Да  | 12.9 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu124`| ✅ Да         | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu126`| ✅ Да         | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu128`| ✅ Да         | ✅ Да  | 12.8 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu129`| ✅ Да         | ✅ Да  | 12.9 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
 
@@ -59,14 +59,14 @@ smyshnikof/comfyui-wan:(A)-torch2.8.0-(B)
 
 | Видеокарта | Рекомендуемый образ | Примечание |
 |------------|-------------------|------------|
-| **RTX 5090** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
-| **RTX 5080** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
-| **Новые GPU с CUDA 12.9** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu129` | Для новых видеокарт с CUDA 12.9 |
-| **RTX 4090** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu126` | Оптимальная производительность |
-| **RTX 4080** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu126` | Отличная совместимость |
-| **RTX 4070** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu124` | Стабильная работа |
-| **RTX 3090** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu124` | Совместимость с Ampere |
-| **RTX 3080** | `smyshnikof/comfyui-wan:base-torch2.8.0-cu124` | Совместимость с Ampere |
+| **RTX 5090** | `smyshnikof/comfyui:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
+| **RTX 5080** | `smyshnikof/comfyui:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
+| **Новые GPU с CUDA 12.9** | `smyshnikof/comfyui:base-torch2.8.0-cu129` | Для новых видеокарт с CUDA 12.9 |
+| **RTX 4090** | `smyshnikof/comfyui:base-torch2.8.0-cu126` | Оптимальная производительность |
+| **RTX 4080** | `smyshnikof/comfyui:base-torch2.8.0-cu126` | Отличная совместимость |
+| **RTX 4070** | `smyshnikof/comfyui:base-torch2.8.0-cu124` | Стабильная работа |
+| **RTX 3090** | `smyshnikof/comfyui:base-torch2.8.0-cu124` | Совместимость с Ampere |
+| **RTX 3080** | `smyshnikof/comfyui:base-torch2.8.0-cu124` | Совместимость с Ampere |
 
 > ⚠️ **Важно**: RTX 5090/5080 требуют CUDA 12.8+ для корректной работы SageAttention2. При использовании CUDA 12.4/12.6 SageAttention2 не установится.
 
@@ -142,7 +142,7 @@ bash /download_presets.sh PRESET1,PRESET2,...
 #### Кастомные ноды (в образе **base**)
 
 * ComfyUI-KJNodes
-* ComfyUI-WanVideoWrapper
+* ComfyUI-WanVideoWrapper (опционально)
 * ComfyUI-GGUF
 * ComfyUI-Easy-Use
 * ComfyUI-Frame-Interpolation
@@ -163,7 +163,7 @@ bash /download_presets.sh PRESET1,PRESET2,...
 * ComfyUI-Image-Saver
 * comfy-ex-tagcomplete
 * ComfyUI-VideoHelperSuite
-* ComfyUI-wanBlockswap
+* ComfyUI-wanBlockswap (опционально)
 * ComfyUI-Chibi-Nodes
 * comfyui-dream-video-batches
 * CRT-Nodes

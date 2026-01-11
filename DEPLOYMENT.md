@@ -41,7 +41,7 @@ python runpod_deploy.py
 1. Перейдите в [RunPod Console](https://runpod.io/console/templates)
 2. Нажмите "New Template"
 3. Заполните поля:
-   - **Name**: `ComfyUI-Wan-2.2`
+   - **Name**: `ComfyUI`
    - **Container Image**: `smyshnikof/comfyui:base-torch2.8.0-cu128`
    - **Container Disk**: `50 GB`
    - **Ports**: `3000, 8081, 8082, 8083, 8888`

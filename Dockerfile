@@ -78,7 +78,7 @@ RUN pip install --no-cache-dir -U \
     torch==${TORCH_VERSION} torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/${CUDA_VERSION}
 
 # Install ComfyUI and ComfyUI Manager
-RUN git clone https://github.com/Comfy-Org/ComfyUI.git && \
+RUN git clone https://github.com/comfy-org/ComfyUI.git && \
     cd ComfyUI && \
     pip install --no-cache-dir -r requirements.txt && \
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git custom_nodes/ComfyUI-Manager && \

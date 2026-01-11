@@ -1,5 +1,5 @@
 variable "DOCKERHUB_REPO_NAME" {
-    default = "smyshnikof/comfyui-wan"
+    default = "smyshnikof/comfyui"
 }
 
 variable "PYTHON_VERSION" {
