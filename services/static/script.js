@@ -68,7 +68,6 @@ function togglePresetCard(presetId, event) {
 }
 
 function togglePreset(presetId) {
-  // Для обычных пресетов без вариантов (Wan)
   console.log('togglePreset called with:', presetId);
   const card = document.querySelector(`[data-preset="${presetId}"]`);
   console.log('Card found:', card);
@@ -83,7 +82,21 @@ function togglePreset(presetId) {
     console.log('Added preset:', presetId);
   }
   
-  updateDownloadButton();
+  const btn = document.getElementById('download-presets-btn');
+  if (btn) {
+    // Подсчитываем общее количество выбранных пресетов (обычные + варианты)
+    let totalSelected = selectedPresets.length;
+    Object.values(selectedVariants).forEach(variants => {
+      totalSelected += variants.length;
+    });
+    
+    btn.disabled = totalSelected === 0;
+    btn.textContent = totalSelected > 0 ? 
+      `📥 Скачать выбранные пресеты (${totalSelected})` : 
+      '📥 Скачать выбранные пресеты';
+  }
+  
+  console.log('Selected presets:', selectedPresets);
 }
 
 function toggleVariant(parentId, variantId) {
@@ -112,19 +125,6 @@ function toggleVariant(parentId, variantId) {
   updateDownloadButton();
 }
 
-function updateDownloadButton() {
-  // Подсчитываем общее количество выбранных пресетов (обычные + варианты)
-  let totalSelected = selectedPresets.length;
-  Object.values(selectedVariants).forEach(variants => {
-    totalSelected += variants.length;
-  });
-  
-  const btn = document.getElementById('download-presets-btn');
-  btn.disabled = totalSelected === 0;
-  btn.textContent = totalSelected > 0 ? 
-    `📥 Скачать выбранные пресеты (${totalSelected})` : 
-    '📥 Скачать выбранные пресеты';
-}
 
 function downloadPresets() {
   // Собираем все выбранные пресеты (обычные + варианты)
