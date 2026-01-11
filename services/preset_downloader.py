@@ -1106,10 +1106,10 @@ INDEX_HTML = """
 """
 
 def generate_category_filters_html():
-    html = '<div class="category-filter all active" onclick="filterByCategory(\'all\')">Все</div>'
+    html = '<div class="category-filter all active" onclick="filterByCategory(\'all\', event)">Все</div>'
     for category_id, category_info in PRESET_CATEGORIES.items():
         html += f'''
-        <div class="category-filter" onclick="filterByCategory('{category_id}')" data-category="{category_id}">
+        <div class="category-filter" onclick="filterByCategory('{category_id}', event)" data-category="{category_id}">
           <span>{category_info['icon']}</span>
           <span>{category_info['name']}</span>
         </div>
