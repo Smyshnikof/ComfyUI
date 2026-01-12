@@ -3,7 +3,8 @@ let selectedPresets = [];
 let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 console.log('selectedPresets initialized:', selectedPresets);
 
-function switchTab(tabName) {
+// Убеждаемся, что функции доступны глобально
+window.switchTab = function(tabName) {
   // Убираем активный класс со всех табов и контента
   document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -18,7 +19,7 @@ function switchTab(tabName) {
   }
 }
 
-function switchHFMethod(method) {
+window.switchHFMethod = function(method) {
   // Убираем активный класс со всех табов в HuggingFace разделе
   document.querySelectorAll('#huggingface-tab .tabs .tab').forEach(tab => tab.classList.remove('active'));
   
@@ -38,7 +39,7 @@ function switchHFMethod(method) {
 // Глобальный объект для хранения выбранных вариантов
 let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 
-function togglePresetCard(presetId, event) {
+window.togglePresetCard = function(presetId, event) {
   console.log('togglePresetCard called with:', presetId, event);
   // Для пресетов с вариантами - разворачиваем/сворачиваем карточку
   const card = document.querySelector(`[data-preset="${presetId}"]`);
@@ -82,7 +83,7 @@ function togglePresetCard(presetId, event) {
   }
 }
 
-function togglePreset(presetId) {
+window.togglePreset = function(presetId) {
   console.log('togglePreset called with:', presetId);
   const card = document.querySelector(`[data-preset="${presetId}"]`);
   console.log('Card found:', card);
@@ -114,7 +115,7 @@ function togglePreset(presetId) {
   console.log('Selected presets:', selectedPresets);
 }
 
-function toggleVariant(parentId, variantId) {
+window.toggleVariant = function(parentId, variantId) {
   // Обработка выбора варианта внутри карточки
   const checkbox = document.getElementById(`variant-${variantId}`);
   const card = document.querySelector(`[data-preset="${parentId}"]`);
@@ -153,7 +154,7 @@ function toggleVariant(parentId, variantId) {
 }
 
 
-function downloadPresets() {
+window.downloadPresets = function() {
   // Собираем все выбранные пресеты (обычные + варианты)
   let allSelectedPresets = [...selectedPresets];
   Object.values(selectedVariants).forEach(variants => {
@@ -204,7 +205,7 @@ function downloadPresets() {
   });
 }
 
-function pollStatus(taskId) {
+window.pollStatus = function(taskId) {
   const progress = document.getElementById('preset-progress');
   const progressFill = document.getElementById('preset-progress-fill');
   const progressText = document.getElementById('preset-progress-text');
@@ -263,7 +264,7 @@ function pollStatus(taskId) {
 let currentCategory = 'all';
 let searchQuery = '';
 
-function filterByCategory(category, event) {
+window.filterByCategory = function(category, event) {
   currentCategory = category;
   
   // Обновляем активный фильтр
@@ -286,12 +287,12 @@ function filterByCategory(category, event) {
   applyFilters();
 }
 
-function filterPresets() {
+window.filterPresets = function() {
   searchQuery = document.getElementById('preset-search').value.toLowerCase().trim();
   applyFilters();
 }
 
-function applyFilters() {
+window.applyFilters = function() {
   const cards = document.querySelectorAll('.preset-card');
   let visibleCount = 0;
   
