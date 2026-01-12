@@ -28,7 +28,7 @@ target "_common" {
 }
 
 # Vast.ai uses same nvidia/cuda base images as RunPod
-# For CUDA 12.4, 12.6, 12.8
+# For CUDA 12.4, 12.6, 12.8, 12.9
 target "_cu124" {
     inherits = ["_common"]
     args = {
@@ -53,6 +53,14 @@ target "_cu128" {
     }
 }
 
+target "_cu129" {
+    inherits = ["_common"]
+    args = {
+        BASE_IMAGE         = "nvidia/cuda:12.9.1-devel-ubuntu24.04"
+        CUDA_VERSION       = "cu129"
+    }
+}
+
 target "_no_custom_nodes" {
     args = {
         SKIP_CUSTOM_NODES = "1"
@@ -72,5 +80,10 @@ target "vast-12-6" {
 target "vast-12-8" {
     inherits = ["_cu128"]
     tags = tag("base", "cu128")
+}
+
+target "vast-12-9" {
+    inherits = ["_cu129"]
+    tags = tag("base", "cu129")
 }
 

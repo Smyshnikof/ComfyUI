@@ -25,7 +25,7 @@ smyshnikof/comfyui:vast-base-torch2.8.0-cu128
 * **vast**: Префикс для Vast.ai версий
 * **base**: ComfyUI + Manager + кастомные ноды + веб-загрузчик пресетов
 * **torch2.8.0**: PyTorch версия
-* **cu128**: CUDA версия (cu124, cu126, cu128)
+* **cu129**: CUDA версия (cu124, cu126, cu128, cu129)
 
 ---
 
@@ -36,6 +36,7 @@ smyshnikof/comfyui:vast-base-torch2.8.0-cu128
 | `smyshnikof/comfyui:vast-base-torch2.8.0-cu124` | ✅ Да          | ✅ Да         | 12.4 | nvidia/cuda:12.4.1-devel-ubuntu22.04 |
 | `smyshnikof/comfyui:vast-base-torch2.8.0-cu126` | ✅ Да          | ✅ Да         | 12.6 | nvidia/cuda:12.6.3-devel-ubuntu24.04 |
 | `smyshnikof/comfyui:vast-base-torch2.8.0-cu128` | ✅ Да          | ✅ Да         | 12.8 | nvidia/cuda:12.8.1-devel-ubuntu24.04 |
+| `smyshnikof/comfyui:vast-base-torch2.8.0-cu129` | ✅ Да          | ✅ Да         | 12.9 | nvidia/cuda:12.9.1-devel-ubuntu24.04 |
 
 > 👉 Для переключения: **Edit Template** → установите `Image Path:Tag`.
 
@@ -65,6 +66,7 @@ docker buildx bake -f docker-bake.vast.hcl
 docker buildx bake -f docker-bake.vast.hcl vast-12-4
 docker buildx bake -f docker-bake.vast.hcl vast-12-6
 docker buildx bake -f docker-bake.vast.hcl vast-12-8
+docker buildx bake -f docker-bake.vast.hcl vast-12-9
 ```
 
 ### Публикация на Docker Hub
@@ -89,6 +91,7 @@ docker buildx bake -f docker-bake.vast.hcl --push
    - `smyshnikof/comfyui:vast-base-torch2.8.0-cu124`
    - `smyshnikof/comfyui:vast-base-torch2.8.0-cu126`
    - `smyshnikof/comfyui:vast-base-torch2.8.0-cu128`
+   - `smyshnikof/comfyui:vast-base-torch2.8.0-cu129`
 
 ### 2. Настройка PORTAL_CONFIG
 
