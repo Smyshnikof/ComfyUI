@@ -82,8 +82,8 @@ start_jupyter() {
     # Activate venv if available
     if [ -f ${VAST_WORKSPACE}/venv/bin/activate ]; then
         source ${VAST_WORKSPACE}/venv/bin/activate
-    elif [ -f /venv/main/bin/activate ]; then
-        source /venv/main/bin/activate
+    elif [ -f /venv/bin/activate ]; then
+        source /venv/bin/activate
     fi
     
     mkdir -p ${VAST_WORKSPACE}/logs
@@ -135,8 +135,8 @@ start_comfyui() {
     # Activate venv if available
     if [ -f ${VAST_WORKSPACE}/venv/bin/activate ]; then
         source ${VAST_WORKSPACE}/venv/bin/activate
-    elif [ -f /venv/main/bin/activate ]; then
-        source /venv/main/bin/activate
+    elif [ -f /venv/bin/activate ]; then
+        source /venv/bin/activate
     fi
     
     cd ${VAST_WORKSPACE}/ComfyUI && \
@@ -166,8 +166,8 @@ if [ -d /services ]; then
     # Activate venv if available
     if [ -f ${VAST_WORKSPACE}/venv/bin/activate ]; then
         source ${VAST_WORKSPACE}/venv/bin/activate
-    elif [ -f /venv/main/bin/activate ]; then
-        source /venv/main/bin/activate
+    elif [ -f /venv/bin/activate ]; then
+        source /venv/bin/activate
     fi
     
     nohup uvicorn services.preset_downloader:app --host 0.0.0.0 --port 8081 &> ${VAST_WORKSPACE}/logs/preset_downloader.log &

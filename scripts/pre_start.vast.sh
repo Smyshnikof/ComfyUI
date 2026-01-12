@@ -17,11 +17,6 @@ update_venv_paths() {
     local bin_dir="${VAST_WORKSPACE}/venv/bin"
     echo "Updating '/venv' to '${VAST_WORKSPACE}/venv' in all text files under '$bin_dir'..."
 
-    if [ ! -d "$bin_dir" ]; then
-        echo "Skip: $bin_dir does not exist."
-        return
-    fi
-
     find "$bin_dir" -type f | while read -r file; do
         if file "$file" | grep -q "text"; then
             # VIRTUAL_ENV='/venv' → VIRTUAL_ENV='${VAST_WORKSPACE}/venv'
@@ -32,20 +27,16 @@ update_venv_paths() {
             
             # #!/venv/bin/python → #!${VAST_WORKSPACE}/venv/bin/python
             sed -i "s|#!/venv/bin/python|#!${VAST_WORKSPACE}/venv/bin/python|g" "$file"
+
+            # Uncomment to debug
+            # echo "Updated: $file"
         fi
     done
 }
 
 echo "**** syncing venv to workspace, please wait. This could take a while on first startup! ****"
-# Vast.ai uses /venv/main for the main virtual environment
-if [ -d /venv/main ]; then
-    mkdir -p "${VAST_WORKSPACE}/venv"
-    if rsync -au --remove-source-files /venv/main/ "${VAST_WORKSPACE}/venv/" && rm -rf /venv/main; then
-        update_venv_paths
-    fi
-elif [ -d /venv ]; then
-    mkdir -p "${VAST_WORKSPACE}/venv"
-    if rsync -au --remove-source-files /venv/ "${VAST_WORKSPACE}/venv/" && rm -rf /venv; then
+if [ -d /venv ]; then
+    if rsync -au --remove-source-files /venv/ ${VAST_WORKSPACE}/venv/ && rm -rf /venv; then
         update_venv_paths
     fi
 else
@@ -53,9 +44,9 @@ else
 fi
 
 echo "**** syncing ComfyUI to workspace, please wait ****"
-if [ -d "${VAST_WORKSPACE}/ComfyUI" ]; then
+if [ -d /ComfyUI ]; then
 
-    SRC_MODELS="${VAST_WORKSPACE}/ComfyUI/models"
+    SRC_MODELS="/ComfyUI/models"
     DST_MODELS="${VAST_WORKSPACE}/ComfyUI/models"
 
     EXCLUDE_MODELS=""
@@ -74,10 +65,10 @@ if [ -d "${VAST_WORKSPACE}/ComfyUI" ]; then
         echo "**** Excluding existing output folder ****"
     fi
 
-    # ComfyUI is already in workspace, just ensure structure is correct
-    echo "**** ComfyUI already in workspace ****"
+    rsync -au --remove-source-files $EXCLUDE_MODELS /ComfyUI/ ${VAST_WORKSPACE}/ComfyUI/ && rm -rf /ComfyUI
+
 else
-    echo "Skip: ComfyUI does not exist in workspace."
+    echo "Skip: /ComfyUI does not exist."
 fi
 
 
@@ -139,4 +130,3 @@ if [ -d "$USER_WORKFLOWS_DIR" ]; then
     # Copy top-level JSONs commonly used as workflows (e.g., T2V/T2I roots)
     find "$USER_WORKFLOWS_DIR" -maxdepth 2 -type f -name "*.json" -print0 | xargs -0 -I {} rsync -au {} "$DST_WORKFLOWS_DIR/"
 fi
-

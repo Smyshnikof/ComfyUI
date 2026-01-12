@@ -33,9 +33,9 @@ smyshnikof/comfyui:vast-base-torch2.8.0-cu128
 
 | Имя образа                                       | Кастомные ноды | Веб-загрузчик | CUDA | Базовый образ |
 | ------------------------------------------------ | -------------- | ------------- | ---- | ------------- |
-| `smyshnikof/comfyui:vast-base-torch2.8.0-cu124` | ✅ Да          | ✅ Да         | 12.4 | vastai/base-image:cuda-12.4.1-cudnn-devel-ubuntu22.04-py312 |
-| `smyshnikof/comfyui:vast-base-torch2.8.0-cu126` | ✅ Да          | ✅ Да         | 12.6 | vastai/base-image:cuda-12.6.3-cudnn-devel-ubuntu22.04-py312 |
-| `smyshnikof/comfyui:vast-base-torch2.8.0-cu128` | ✅ Да          | ✅ Да         | 12.8 | vastai/base-image:cuda-12.8.1-cudnn-devel-ubuntu24.04-py312 |
+| `smyshnikof/comfyui:vast-base-torch2.8.0-cu124` | ✅ Да          | ✅ Да         | 12.4 | nvidia/cuda:12.4.1-devel-ubuntu22.04 |
+| `smyshnikof/comfyui:vast-base-torch2.8.0-cu126` | ✅ Да          | ✅ Да         | 12.6 | nvidia/cuda:12.6.3-devel-ubuntu24.04 |
+| `smyshnikof/comfyui:vast-base-torch2.8.0-cu128` | ✅ Да          | ✅ Да         | 12.8 | nvidia/cuda:12.8.1-devel-ubuntu24.04 |
 
 > 👉 Для переключения: **Edit Template** → установите `Image Path:Tag`.
 

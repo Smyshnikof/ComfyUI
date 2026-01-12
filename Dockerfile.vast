@@ -1,5 +1,5 @@
 # Vast.ai Dockerfile for ComfyUI
-# Based on Vast.ai base images for built-in security and Instance Portal integration
+# Uses standard nvidia/cuda base images (same as RunPod)
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
@@ -41,7 +41,7 @@ ENV PIP_ROOT_USER_ACTION=ignore
 ENV TZ=Etc/UTC
 
 # Set working directory
-WORKDIR /opt/workspace-internal
+WORKDIR /
 
 # Update and upgrade
 RUN apt-get update --yes && \
@@ -62,97 +62,48 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 
 # Install Python and create virtual environment
-# Vast base images (vastai/pytorch) already have Python and venv in /venv/main
-# We'll use the existing venv if available, otherwise create our own
-RUN if [ -f /venv/main/bin/activate ]; then \
-        echo "Using existing Vast.ai venv at /venv/main"; \
-    else \
-        echo "Creating new venv"; \
-        uv python install ${PYTHON_VERSION} --default --preview && \
-        uv venv --seed /venv; \
-    fi
-ENV PATH="${VAST_WORKSPACE}/venv/bin:/venv/bin:/venv/main/bin:$PATH"
+RUN uv python install ${PYTHON_VERSION} --default --preview && \
+    uv venv --seed /venv
+ENV PATH="${VAST_WORKSPACE}/venv/bin:/venv/bin:$PATH"
 
 # Install essential Python packages and dependencies
-# Activate venv and install packages
-RUN if [ -f /venv/main/bin/activate ]; then \
-        . /venv/main/bin/activate && \
-        pip install --no-cache-dir -U pip setuptools wheel \
-            jupyterlab jupyterlab_widgets ipykernel ipywidgets \
-            huggingface_hub hf_transfer \
-            numpy scipy matplotlib pandas scikit-learn seaborn requests tqdm pillow pyyaml \
-            triton fastapi uvicorn aiofiles aiohttp python-multipart \
-            torch==${TORCH_VERSION} torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/${CUDA_VERSION}; \
-    else \
-        pip install --no-cache-dir -U pip setuptools wheel \
-            jupyterlab jupyterlab_widgets ipykernel ipywidgets \
-            huggingface_hub hf_transfer \
-            numpy scipy matplotlib pandas scikit-learn seaborn requests tqdm pillow pyyaml \
-            triton fastapi uvicorn aiofiles aiohttp python-multipart \
-            torch==${TORCH_VERSION} torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/${CUDA_VERSION}; \
-    fi
+RUN pip install --no-cache-dir -U \
+    pip setuptools wheel \
+    jupyterlab jupyterlab_widgets ipykernel ipywidgets \
+    huggingface_hub hf_transfer \
+    numpy scipy matplotlib pandas scikit-learn seaborn requests tqdm pillow pyyaml \
+    triton fastapi uvicorn aiofiles aiohttp python-multipart \
+    torch==${TORCH_VERSION} torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/${CUDA_VERSION}
 
 # Install ComfyUI and ComfyUI Manager
-RUN if [ -f /venv/main/bin/activate ]; then \
-        . /venv/main/bin/activate && \
-        git clone https://github.com/comfy-org/ComfyUI.git ${VAST_WORKSPACE}/ComfyUI && \
-        cd ${VAST_WORKSPACE}/ComfyUI && \
-        pip install --no-cache-dir -r requirements.txt && \
-        git clone https://github.com/ltdrdata/ComfyUI-Manager.git custom_nodes/ComfyUI-Manager && \
-        cd custom_nodes/ComfyUI-Manager && \
-        pip install --no-cache-dir -r requirements.txt; \
-    else \
-        git clone https://github.com/comfy-org/ComfyUI.git ${VAST_WORKSPACE}/ComfyUI && \
-        cd ${VAST_WORKSPACE}/ComfyUI && \
-        pip install --no-cache-dir -r requirements.txt && \
-        git clone https://github.com/ltdrdata/ComfyUI-Manager.git custom_nodes/ComfyUI-Manager && \
-        cd custom_nodes/ComfyUI-Manager && \
-        pip install --no-cache-dir -r requirements.txt; \
-    fi
+RUN git clone https://github.com/comfy-org/ComfyUI.git && \
+    cd ComfyUI && \
+    pip install --no-cache-dir -r requirements.txt && \
+    git clone https://github.com/ltdrdata/ComfyUI-Manager.git custom_nodes/ComfyUI-Manager && \
+    cd custom_nodes/ComfyUI-Manager && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY custom_nodes.txt /custom_nodes.txt
 
 RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
-        if [ -f /venv/main/bin/activate ]; then \
-            . /venv/main/bin/activate && \
-            cd ${VAST_WORKSPACE}/ComfyUI/custom_nodes && \
-            while IFS= read -r repo || [ -n "$repo" ]; do \
-                repo=$(echo "$repo" | xargs); \
-                [ -z "$repo" ] && continue; \
-                echo "Cloning $repo..." && \
-                git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
-            done < /custom_nodes.txt && \
-            if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
-                pip install --no-cache-dir "Pillow>=12.0.0" && \
-                pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \
-                find ${VAST_WORKSPACE}/ComfyUI/custom_nodes -name "requirements.txt" -exec sed -i 's/Pillow~=10\.3\.0/Pillow>=12.0.0/g; s/Pillow==10\.3\.0/Pillow>=12.0.0/g' {} \; ; \
-            fi && \
-            find ${VAST_WORKSPACE}/ComfyUI/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; && \
-            find ${VAST_WORKSPACE}/ComfyUI/custom_nodes -name "install.py" -exec python {} \; && \
-            if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
-                pip cache purge && \
-                rm -rf /tmp/pip-* /tmp/build /root/.cache/pip ; \
-            fi; \
-        else \
-            cd ${VAST_WORKSPACE}/ComfyUI/custom_nodes && \
-            while IFS= read -r repo || [ -n "$repo" ]; do \
-                repo=$(echo "$repo" | xargs); \
-                [ -z "$repo" ] && continue; \
-                echo "Cloning $repo..." && \
-                git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
-            done < /custom_nodes.txt && \
-            if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
-                pip install --no-cache-dir "Pillow>=12.0.0" && \
-                pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \
-                find ${VAST_WORKSPACE}/ComfyUI/custom_nodes -name "requirements.txt" -exec sed -i 's/Pillow~=10\.3\.0/Pillow>=12.0.0/g; s/Pillow==10\.3\.0/Pillow>=12.0.0/g' {} \; ; \
-            fi && \
-            find ${VAST_WORKSPACE}/ComfyUI/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; && \
-            find ${VAST_WORKSPACE}/ComfyUI/custom_nodes -name "install.py" -exec python {} \; && \
-            if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
-                pip cache purge && \
-                rm -rf /tmp/pip-* /tmp/build /root/.cache/pip ; \
-            fi; \
-        fi; \
+        cd /ComfyUI/custom_nodes && \
+        while IFS= read -r repo || [ -n "$repo" ]; do \
+            repo=$(echo "$repo" | xargs); \
+            [ -z "$repo" ] && continue; \
+            echo "Cloning $repo..." && \
+            git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
+        done < /custom_nodes.txt && \
+        if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
+            pip install --no-cache-dir "Pillow>=12.0.0" && \
+            pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \
+            find /ComfyUI/custom_nodes -name "requirements.txt" -exec sed -i 's/Pillow~=10\.3\.0/Pillow>=12.0.0/g; s/Pillow==10\.3\.0/Pillow>=12.0.0/g' {} \; ; \
+        fi && \
+        find /ComfyUI/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; && \
+        find /ComfyUI/custom_nodes -name "install.py" -exec python {} \; && \
+        if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
+            pip cache purge && \
+            rm -rf /tmp/pip-* /tmp/build /root/.cache/pip ; \
+        fi ; \
     else \
         echo "Skipping custom nodes installation because SKIP_CUSTOM_NODES is set"; \
     fi
@@ -194,4 +145,3 @@ ENV PORTAL_CONFIG="localhost:3000:3000:/:ComfyUI|localhost:8081:8081:/:Preset Do
 
 # Set entrypoint to the start script
 CMD ["/start.sh"]
-

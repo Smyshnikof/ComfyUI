@@ -27,13 +27,12 @@ target "_common" {
     }
 }
 
-# Vast.ai base images - using base-image with CUDA support
+# Vast.ai uses same nvidia/cuda base images as RunPod
 # For CUDA 12.4, 12.6, 12.8
-# Format: vastai/base-image:cuda-VERSION-cudnn-devel-ubuntuVERSION-pyVERSION
 target "_cu124" {
     inherits = ["_common"]
     args = {
-        BASE_IMAGE         = "vastai/base-image:cuda-12.4.1-cudnn-devel-ubuntu22.04-py312"
+        BASE_IMAGE         = "nvidia/cuda:12.4.1-devel-ubuntu22.04"
         CUDA_VERSION       = "cu124"
     }
 }
@@ -41,7 +40,7 @@ target "_cu124" {
 target "_cu126" {
     inherits = ["_common"]
     args = {
-        BASE_IMAGE         = "vastai/base-image:cuda-12.6.3-cudnn-devel-ubuntu22.04-py312"
+        BASE_IMAGE         = "nvidia/cuda:12.6.3-devel-ubuntu24.04"
         CUDA_VERSION       = "cu126"
     }
 }
@@ -49,7 +48,7 @@ target "_cu126" {
 target "_cu128" {
     inherits = ["_common"]
     args = {
-        BASE_IMAGE         = "vastai/base-image:cuda-12.8.1-cudnn-devel-ubuntu24.04-py312"
+        BASE_IMAGE         = "nvidia/cuda:12.8.1-devel-ubuntu24.04"
         CUDA_VERSION       = "cu128"
     }
 }
