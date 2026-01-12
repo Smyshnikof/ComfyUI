@@ -1,0 +1,651 @@
+{
+  "id": "f4c1b305-ba82-414a-9d66-5082417cf468",
+  "revision": 0,
+  "last_node_id": 39,
+  "last_link_id": 60,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [
+        190,
+        556.2679210269764
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.75",
+        "Node name for S&R": "VAELoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.1"
+        }
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 7,
+      "type": "VAEDecode",
+      "pos": [
+        1140,
+        240
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 53
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.75",
+        "Node name for S&R": "VAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.1"
+        }
+      },
+      "widgets_values": [],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 10,
+      "type": "Image Save",
+      "pos": [
+        1249.142,
+        259.387
+      ],
+      "size": [
+        1079.5800000000004,
+        1044.74
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "files",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "was-node-suite-comfyui",
+        "ver": "3ed45af34a14551dc28cb3127235cc7197d4633f",
+        "Node name for S&R": "Image Save",
+        "ue_properties": {
+          "version": "7.0.1",
+          "widget_ue_connectable": {
+            "output_path": true,
+            "filename_prefix": true,
+            "filename_delimiter": true,
+            "filename_number_padding": true,
+            "filename_number_start": true,
+            "extension": true,
+            "dpi": true,
+            "quality": true,
+            "optimize_image": true,
+            "lossless_webp": true,
+            "overwrite_mode": true,
+            "show_history": true,
+            "show_history_by_prefix": true,
+            "embed_workflow": true,
+            "show_previews": true
+          }
+        }
+      },
+      "widgets_values": [
+        "batch",
+        "ComfyUI",
+        "_",
+        5,
+        "false",
+        "png",
+        300,
+        100,
+        "true",
+        "false",
+        "false",
+        "false",
+        "true",
+        "true",
+        "true"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 37,
+      "type": "CRT_KSamplerBatch",
+      "pos": [
+        843.6099691265647,
+        290.2745082783265
+      ],
+      "size": [
+        320,
+        310
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 59
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 48
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 49
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            53
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "PGCRT/CRT-Nodes",
+        "ver": "e056fd9c62f7ba64c4ab3fe9543920d2c908d2ae",
+        "Node name for S&R": "CRT_KSamplerBatch",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.1"
+        },
+        "cnr_id": "crt-nodes"
+      },
+      "widgets_values": [
+        27,
+        "increment",
+        9,
+        1,
+        "euler",
+        "simple",
+        1,
+        "Batch (Parallel)",
+        false
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
+    },
+    {
+      "id": 36,
+      "type": "CRT_FileBatchPromptScheduler",
+      "pos": [
+        490.4379801627153,
+        301.6154734273229
+      ],
+      "size": [
+        330,
+        266
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 58
+        }
+      ],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "links": [
+            48
+          ]
+        },
+        {
+          "name": "batch_count",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "prompts_text",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "PGCRT/CRT-Nodes",
+        "ver": "e056fd9c62f7ba64c4ab3fe9543920d2c908d2ae",
+        "Node name for S&R": "CRT_FileBatchPromptScheduler",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.1"
+        },
+        "cnr_id": "crt-nodes"
+      },
+      "widgets_values": [
+        "/workspace/datasets/result/",
+        5,
+        0,
+        "fixed",
+        ".txt",
+        400,
+        false,
+        true
+      ],
+      "color": "#000000",
+      "bgcolor": "#000000"
+    },
+    {
+      "id": 35,
+      "type": "EmptyFlux2LatentImage",
+      "pos": [
+        516.5043339166501,
+        576.2055496181729
+      ],
+      "size": [
+        270,
+        110
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            49
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.73",
+        "Node name for S&R": "EmptyFlux2LatentImage",
+        "ue_properties": {
+          "widget_ue_connectable": {
+            "width": true,
+            "height": true
+          },
+          "version": "7.5.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        1536,
+        2048,
+        1
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [
+        190,
+        290
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            55
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.75",
+        "Node name for S&R": "UNETLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.1"
+        }
+      },
+      "widgets_values": [
+        "z_image_turbo_bf16.safetensors",
+        "default"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 39,
+      "type": "LoraLoader",
+      "pos": [
+        720,
+        120
+      ],
+      "size": [
+        300,
+        130
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 5,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 57
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 60
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            59
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            58
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.75",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "Node name for S&R": "LoraLoader"
+      },
+      "widgets_values": [
+        "lenovo_z.safetensors",
+        1,
+        1
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "pos": [
+        190,
+        410
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            60
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.75",
+        "Node name for S&R": "CLIPLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.1"
+        }
+      },
+      "widgets_values": [
+        "qwen_3_4b.safetensors",
+        "lumina2",
+        "default"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 38,
+      "type": "PathchSageAttentionKJ",
+      "pos": [
+        490,
+        120
+      ],
+      "size": [
+        210,
+        130
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            57
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "f37df472dfb325f1f72c90e2df56e72f40f850f0",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "Node name for S&R": "PathchSageAttentionKJ"
+      },
+      "widgets_values": [
+        "auto",
+        false
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      6,
+      3,
+      0,
+      7,
+      1,
+      "VAE"
+    ],
+    [
+      10,
+      7,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      48,
+      36,
+      0,
+      37,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      49,
+      35,
+      0,
+      37,
+      2,
+      "LATENT"
+    ],
+    [
+      53,
+      37,
+      0,
+      7,
+      0,
+      "LATENT"
+    ],
+    [
+      55,
+      1,
+      0,
+      38,
+      0,
+      "MODEL"
+    ],
+    [
+      57,
+      38,
+      0,
+      39,
+      0,
+      "MODEL"
+    ],
+    [
+      58,
+      39,
+      1,
+      36,
+      0,
+      "CLIP"
+    ],
+    [
+      59,
+      39,
+      0,
+      37,
+      0,
+      "MODEL"
+    ],
+    [
+      60,
+      2,
+      0,
+      39,
+      1,
+      "CLIP"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowRendererVersion": "LG",
+    "ue_links": [],
+    "ds": {
+      "scale": 0.9090909090909091,
+      "offset": [
+        141.39817867795716,
+        131.8929759421768
+      ]
+    },
+    "links_added_by_ue": [],
+    "frontendVersion": "1.32.9",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

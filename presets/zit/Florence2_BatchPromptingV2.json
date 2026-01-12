@@ -1,0 +1,723 @@
+{
+  "id": "123ed943-5846-4c6f-9b5f-280a56c9cf00",
+  "revision": 0,
+  "last_node_id": 72,
+  "last_link_id": 138,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "DownloadAndLoadFlorence2Model",
+      "pos": [
+        -420,
+        -140
+      ],
+      "size": [
+        320,
+        130
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "lora",
+          "shape": 7,
+          "type": "PEFTLORA",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "florence2_model",
+          "type": "FL2MODEL",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-florence2",
+        "ver": "1.0.6",
+        "Node name for S&R": "DownloadAndLoadFlorence2Model",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "MiaoshouAI/Florence-2-large-PromptGen-v2.0",
+        "bf16",
+        "sdpa",
+        false
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 58,
+      "type": "Note",
+      "pos": [
+        -666.5718383789062,
+        -300.83953857421875
+      ],
+      "size": [
+        210,
+        88
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Путь к папке: directory",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "C:\\Users\\Smysh\\Desktop\\"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 29,
+      "type": "ImpactListBridge",
+      "pos": [
+        770,
+        -380
+      ],
+      "size": [
+        147.064453125,
+        26
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "list_input",
+          "type": "*",
+          "link": 73
+        }
+      ],
+      "outputs": [
+        {
+          "name": "list_output",
+          "shape": 6,
+          "type": "*",
+          "links": [
+            128
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImpactListBridge",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.2.2"
+        }
+      },
+      "widgets_values": [],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 4,
+      "type": "ShowText|pysssss",
+      "pos": [
+        500,
+        -380
+      ],
+      "size": [
+        260,
+        526.0000000000001
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            73
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A woman in a wedding dress holding a lantern, shrouded in a veil",
+        "A woman wearing a black witch hat and holding a teacup filled with pink glitter, surrounded by sparkling stars",
+        "A young man sitting in a field of flowers holding a lantern, illuminated by soft light",
+        "A portrait of a woman wearing a fur coat and a beret, surrounded by snowflakes",
+        "A man drinking from a bottle while sitting in the back of a pickup truck at night",
+        "A woman with long silver hair sitting on a white bed wearing a black crop top and fishnet stockings"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 63,
+      "type": "ImpactImageBatchToImageList",
+      "pos": [
+        -90,
+        40
+      ],
+      "size": [
+        260,
+        26
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 126
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "shape": 6,
+          "type": "IMAGE",
+          "links": [
+            133,
+            134
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImpactImageBatchToImageList",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 59,
+      "type": "Note",
+      "pos": [
+        1080,
+        -170
+      ],
+      "size": [
+        370.62591552734375,
+        90.00782012939453
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Путь к папке на сохранение: directory",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "C:\\Users\\Smysh\\Desktop\\"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 18,
+      "type": "Image Save",
+      "pos": [
+        180,
+        -380
+      ],
+      "size": [
+        306.1015625,
+        626
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 137
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "files",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "was-node-suite-comfyui",
+        "ver": "ea935d1044ae5a26efa54ebeb18fe9020af49a45",
+        "Node name for S&R": "Image Save",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.2.2"
+        }
+      },
+      "widgets_values": [
+        "[time(%Y-%m-%d)]",
+        "ComfyUI",
+        "",
+        4,
+        "false",
+        "png",
+        300,
+        100,
+        "true",
+        "false",
+        "false",
+        "false",
+        "true",
+        "true",
+        "true"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 12,
+      "type": "LoadImagesFromDir //Inspire",
+      "pos": [
+        -420,
+        -380
+      ],
+      "size": [
+        320,
+        194
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            126,
+            137
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImagesFromDir //Inspire",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "C:\\Users\\Smysh\\Desktop\\InputImage\\dataset",
+        0,
+        0,
+        false,
+        "Alphabetical (ASC)"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 62,
+      "type": "Text List to Text",
+      "pos": [
+        770,
+        -300
+      ],
+      "size": [
+        280,
+        60
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text_list",
+          "type": "LIST",
+          "link": 128
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            129
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "was-node-suite-comfyui",
+        "ver": "ea935d1044ae5a26efa54ebeb18fe9020af49a45",
+        "Node name for S&R": "Text List to Text",
+        "ue_properties": {
+          "widget_ue_connectable": {
+            "delimiter": true
+          },
+          "version": "7.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        ""
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 67,
+      "type": "SaveImageKJ",
+      "pos": [
+        770,
+        -190
+      ],
+      "size": [
+        280,
+        130
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 133
+        },
+        {
+          "name": "caption",
+          "shape": 7,
+          "type": "STRING",
+          "link": 129
+        }
+      ],
+      "outputs": [
+        {
+          "name": "filename",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.1.7",
+        "Node name for S&R": "SaveImageKJ",
+        "ue_properties": {
+          "widget_ue_connectable": {
+            "filename_prefix": true,
+            "output_folder": true,
+            "caption_file_extension": true
+          },
+          "version": "7.1",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "prompts",
+        "C:\\Users\\Smysh\\Desktop\\InputImage\\dataset\\prompts",
+        ".txt"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 70,
+      "type": "Note",
+      "pos": [
+        770,
+        -10
+      ],
+      "size": [
+        280,
+        90
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "ОБЯЗАТЕЛЬНО",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Если вы не меняете настройки или удалили файлы с промптами, то для повторной генерации нужно воспользоваться \"пылесосами\" в правом верхнем меню ComfyUI: Unload Models, Free model and node cache"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 3,
+      "type": "Florence2Run",
+      "pos": [
+        -90,
+        -380
+      ],
+      "size": [
+        260,
+        364
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 134
+        },
+        {
+          "name": "florence2_model",
+          "type": "FL2MODEL",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "caption",
+          "type": "STRING",
+          "links": [
+            36
+          ]
+        },
+        {
+          "name": "data",
+          "type": "JSON",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-florence2",
+        "ver": "1.0.6",
+        "Node name for S&R": "Florence2Run",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "",
+        "detailed_caption",
+        true,
+        false,
+        512,
+        3,
+        true,
+        "",
+        1,
+        "fixed"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 72,
+      "type": "Note",
+      "pos": [
+        -90,
+        -560
+      ],
+      "size": [
+        259.8048095703125,
+        89.13593292236328
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Task",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.2.2",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Меняйте задачу в Florence2Run в зависимости от того, насколько длинным должен быть prompt: caption, detailed caption, more detailed caption"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "FL2MODEL"
+    ],
+    [
+      36,
+      3,
+      2,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      73,
+      4,
+      0,
+      29,
+      0,
+      "*"
+    ],
+    [
+      126,
+      12,
+      0,
+      63,
+      0,
+      "IMAGE"
+    ],
+    [
+      128,
+      29,
+      0,
+      62,
+      0,
+      "LIST"
+    ],
+    [
+      129,
+      62,
+      0,
+      67,
+      1,
+      "STRING"
+    ],
+    [
+      133,
+      63,
+      0,
+      67,
+      0,
+      "IMAGE"
+    ],
+    [
+      134,
+      63,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      137,
+      12,
+      0,
+      18,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Florence2 Batch Prompting",
+      "bounding": [
+        -440,
+        -460,
+        1510,
+        720
+      ],
+      "color": "#000000",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "ds": {
+      "scale": 0.9277525993068688,
+      "offset": [
+        839.9979533496191,
+        624.6768917437032
+      ]
+    },
+    "frontendVersion": "1.30.6",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
