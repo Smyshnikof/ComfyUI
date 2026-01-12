@@ -36,8 +36,7 @@ window.switchHFMethod = function(method) {
   }
 }
 
-// Глобальный объект для хранения выбранных вариантов
-let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
+// Глобальный объект для хранения выбранных вариантов (уже объявлен выше)
 
 window.togglePresetCard = function(presetId, event) {
   console.log('togglePresetCard called with:', presetId, event);
