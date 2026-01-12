@@ -1,8 +1,12 @@
 #!/bin/bash
-set -e  # Exit the script if any statement returns a non-true return value
+# Don't exit on error - we want the container to keep running even if some services fail
+set +e
 
 # Vast.ai workspace directory
 VAST_WORKSPACE=/opt/workspace-internal
+
+# Create logs directory early to help Vast.ai find it
+mkdir -p ${VAST_WORKSPACE}/logs 2>/dev/null || true
 
 # ---------------------------------------------------------------------------- #
 #                          Function Definitions                                #
@@ -11,7 +15,7 @@ VAST_WORKSPACE=/opt/workspace-internal
 # Start nginx service
 start_nginx() {
     echo "Starting Nginx service..."
-    service nginx start
+    service nginx start || echo "Warning: Nginx start failed, continuing..."
 }
 
 # Execute script if exists
@@ -182,5 +186,7 @@ start_code_server
 
 echo "Start script(s) finished, instance is ready to use."
 
-sleep infinity
+# Keep container running and output logs to help Vast.ai
+# This helps Vast.ai find the logs and prevents the container from exiting
+tail -f ${VAST_WORKSPACE}/logs/*.log 2>/dev/null || sleep infinity
 
