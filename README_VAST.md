@@ -115,12 +115,25 @@ localhost:8080:8080:/:Code Server
 - `INSTALL_CUSTOM_NODES=true` - для установки дополнительных кастомных нод
 - `PUBLIC_KEY` - ваш SSH публичный ключ
 
-### 4. Запуск Instance
+### 4. Настройка Launch Mode
+
+**ВАЖНО:** Выберите режим запуска **"Docker ENTRYPOINT"** (не "Jupyter-python notebook + SSH")!
+
+Наш образ использует собственный скрипт запуска `/start.sh`, который запускает все сервисы:
+- ComfyUI на порту 3000
+- Preset Downloader на порту 8081
+- CivitAI LoRA Downloader на порту 8082
+- Outputs Browser на порту 8083
+- JupyterLab на порту 8888
+- Code Server на порту 8080
+
+### 5. Запуск Instance
 
 1. Выберите созданный Template
 2. Выберите подходящий GPU
-3. Нажмите **Create Instance**
-4. После запуска откройте Instance Portal для доступа к сервисам
+3. **Убедитесь, что выбран режим "Docker ENTRYPOINT"**
+4. Нажмите **Create Instance**
+5. После запуска откройте Instance Portal для доступа к сервисам
 
 ---
 
@@ -216,6 +229,12 @@ Vast.ai использует `/opt/workspace-internal/` для постоянн�
 
 ## 🐛 Решение проблем
 
+### Ошибка: `cat: /var/lib/vastai_kaalia/data/instance_extra_logs/...: No such file or directory`
+
+**Решение:** Убедитесь, что выбран режим запуска **"Docker ENTRYPOINT"** вместо "Jupyter-python notebook + SSH".
+
+Наш образ использует собственный скрипт запуска, поэтому режим Jupyter не подходит.
+
 ### ComfyUI не запускается
 
 Проверьте логи:
@@ -223,16 +242,25 @@ Vast.ai использует `/opt/workspace-internal/` для постоянн�
 cat /opt/workspace-internal/logs/comfyui.log
 ```
 
+Или через SSH:
+```bash
+# Подключитесь по SSH и проверьте процессы
+ps aux | grep comfyui
+```
+
 ### Пресеты не копируются
 
 Убедитесь, что папка `/presets` существует в образе. Проверьте логи pre_start:
 ```bash
 # В логах должно быть сообщение о копировании пресетов
+tail -f /opt/workspace-internal/logs/*.log
 ```
 
 ### Проблемы с доступом через Instance Portal
 
 Проверьте, что `PORTAL_CONFIG` правильно настроен. Можно переопределить его через переменную окружения в Template.
+
+Если ссылки не появляются автоматически, добавьте переменную окружения `PORTAL_CONFIG` в Template с нужными портами.
 
 ---
 
