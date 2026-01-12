@@ -102,11 +102,13 @@ DST_WORKFLOWS_DIR="/workspace/ComfyUI/user/default/workflows"
 if [ -d "$SRC_PRESETS_DIR" ]; then
     mkdir -p "$DST_WORKFLOWS_DIR"
     # Copy all subdirectories from /presets (wan, qwen, snippets, etc.)
+    # Убираем / в конце пути, чтобы rsync копировал саму папку, а не её содержимое
     for preset_subdir in "$SRC_PRESETS_DIR"/*/; do
         if [ -d "$preset_subdir" ]; then
             subdir_name=$(basename "$preset_subdir")
             echo "**** Copying $subdir_name workflows... ****"
-            rsync -au "$preset_subdir" "$DST_WORKFLOWS_DIR/"
+            # Убираем завершающий / чтобы сохранить структуру папок
+            rsync -au "${preset_subdir%/}" "$DST_WORKFLOWS_DIR/"
         fi
     done
     echo "**** All presets workflows copied to $DST_WORKFLOWS_DIR ****"
