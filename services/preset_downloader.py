@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import subprocess
@@ -960,6 +960,10 @@ INDEX_HTML = """
       
       fetch('/download_hf', {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
         body: formData
       })
       .then(response => response.json())
@@ -1433,8 +1437,12 @@ def download_presets(presets: str = Form(...)):
         return {"message": f"❌ Ошибка: {str(e)}"}
 
 @app.post("/download_hf")
-def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Form(""), folder: str = Form("diffusion_models")):
+def download_hf(request: Request, repo: str = Form(...), filename: str = Form(""), token: str = Form(""), folder: str = Form("diffusion_models")):
     try:
+        # Проверяем, приходит ли запрос через fetch (AJAX)
+        is_ajax = request.headers.get("accept", "").startswith("application/json") or \
+                  request.headers.get("x-requested-with") == "XMLHttpRequest"
+        
         # Создаем уникальный ID для отслеживания
         task_id = str(uuid.uuid4())
         
@@ -1563,10 +1571,76 @@ def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Fo
             "progress": 0
         }
         
-        return {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
+        # Если запрос через fetch (AJAX), возвращаем JSON
+        if is_ajax:
+            return JSONResponse({"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id})
+        
+        # Иначе возвращаем HTML-страницу с автоматическим опросом статуса
+        presets_html = generate_presets_html()
+        category_filters_html = generate_category_filters_html()
+        result_msg = f"🚀 Скачивание начато! ID задачи: {task_id}\n\nОтслеживание прогресса..."
+        auto_poll_script = f"""
+        <script>
+          (function() {{
+            const taskId = '{task_id}';
+            const progress = document.getElementById('hf-progress');
+            const result = document.getElementById('hf-result');
+            const progressFill = document.getElementById('hf-progress-fill');
+            const progressText = document.getElementById('hf-progress-text');
+            
+            if (progress) progress.style.display = 'block';
+            
+            function pollStatus() {{
+              fetch('/status/' + taskId)
+                .then(response => response.json())
+                .then(data => {{
+                  if (data.status === 'completed' || data.status === 'error') {{
+                    if (result) result.textContent = data.message;
+                    if (progress) progress.style.display = 'none';
+                  }} else if (data.status === 'running') {{
+                    if (result) result.textContent = data.message || 'Загрузка...';
+                    if (progressFill) progressFill.style.width = (data.progress || 0) + '%';
+                    if (progressText) progressText.textContent = data.message || 'Загрузка...';
+                    setTimeout(pollStatus, 500);
+                  }}
+                }})
+                .catch(error => {{
+                  if (result) result.textContent = '❌ Ошибка опроса статуса: ' + error.message;
+                  if (progress) progress.style.display = 'none';
+                }});
+            }}
+            
+            // Запускаем опрос через небольшую задержку, чтобы страница успела загрузиться
+            setTimeout(pollStatus, 100);
+          }})();
+        </script>
+        """
+        
+        return HTMLResponse(INDEX_HTML.replace("{{ presets_html }}", presets_html)
+                           .replace("{{ category_filters_html }}", category_filters_html)
+                           .replace("{{ hf_repo_value }}", repo)
+                           .replace("{{ hf_file_value }}", filename)
+                           .replace("{{ hf_token_value }}", token)
+                           .replace("{{ hf_result }}", result_msg + auto_poll_script))
         
     except Exception as e:
-        return {"message": f"❌ Ошибка: {str(e)}"}
+        error_msg = f"❌ Ошибка: {str(e)}"
+        
+        # Если запрос через fetch (AJAX), возвращаем JSON
+        is_ajax = request.headers.get("accept", "").startswith("application/json") or \
+                  request.headers.get("x-requested-with") == "XMLHttpRequest"
+        if is_ajax:
+            return JSONResponse({"message": error_msg})
+        
+        # Иначе возвращаем HTML-страницу с ошибкой
+        presets_html = generate_presets_html()
+        category_filters_html = generate_category_filters_html()
+        return HTMLResponse(INDEX_HTML.replace("{{ presets_html }}", presets_html)
+                           .replace("{{ category_filters_html }}", category_filters_html)
+                           .replace("{{ hf_repo_value }}", repo)
+                           .replace("{{ hf_file_value }}", filename)
+                           .replace("{{ hf_token_value }}", token)
+                           .replace("{{ hf_result }}", error_msg))
 
 @app.post("/download_url")
 def download_url(url: str = Form(...), folder: str = Form("diffusion_models")):
