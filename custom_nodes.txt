@@ -25,7 +25,6 @@ https://github.com/chibiace/ComfyUI-Chibi-Nodes.git
 https://github.com/alt-key-project/comfyui-dream-video-batches.git
 https://github.com/PGCRT/CRT-Nodes.git
 https://github.com/gseth/ControlAltAI-Nodes.git
-https://github.com/Fannovel16/comfyui_controlnet_aux.git
 https://github.com/kijai/ComfyUI-Florence2.git
 https://github.com/kijai/ComfyUI-segment-anything-2
 https://github.com/GACLove/ComfyUI-VFI
@@ -61,3 +60,4 @@ https://github.com/luguoli/ComfyUI-Qwen-Image-Integrated-KSampler
 https://github.com/mercu-lore/-Multiple-Angle-Camera-Control
 https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler
 https://github.com/vrgamegirl19/comfyui-vrgamedevgirl
+https://github.com/ltdrdata/ComfyUI-Inspire-Pack
