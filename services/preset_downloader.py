@@ -941,10 +941,12 @@ INDEX_HTML = """
       });
     }
     
-    // Обработка формы HuggingFace (только для репозитория)
-    const hfFormEl = document.querySelector('form[action="/download_hf"]');
-    if (hfFormEl) {
-      hfFormEl.addEventListener('submit', function(e) {
+    // Обработка форм HuggingFace - прикрепляем после загрузки DOM
+    document.addEventListener('DOMContentLoaded', function() {
+      // Обработка формы HuggingFace (только для репозитория)
+      const hfFormEl = document.querySelector('form[action="/download_hf"]');
+      if (hfFormEl) {
+        hfFormEl.addEventListener('submit', function(e) {
       e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
@@ -1028,8 +1030,9 @@ INDEX_HTML = """
         btn.disabled = false;
         btn.textContent = '🔗 Скачать по ссылке';
       });
-    }
-    }
+      }
+      }
+    });
     
     
     // Фильтрация по категориям и поиск
