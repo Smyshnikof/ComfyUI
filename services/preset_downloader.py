@@ -942,10 +942,13 @@ INDEX_HTML = """
     }
     
     // Обработка форм HuggingFace - прикрепляем после загрузки DOM
-    document.addEventListener('DOMContentLoaded', function() {
+    function initHFHandlers() {
+      console.log('Инициализация обработчиков форм HuggingFace...');
+      
       // Обработка формы HuggingFace (только для репозитория)
       const hfForm = document.querySelector('form[action="/download_hf"]');
       if (hfForm) {
+        console.log('Найдена форма HuggingFace репозитория');
         hfForm.addEventListener('submit', function(e) {
           e.preventDefault(); // Предотвращаем стандартную отправку формы
           e.stopPropagation(); // Останавливаем всплытие
@@ -998,6 +1001,7 @@ INDEX_HTML = """
       // Обработка формы прямой ссылки
       const urlForm = document.querySelector('form[action="/download_url"]');
       if (urlForm) {
+        console.log('Найдена форма прямой ссылки');
         urlForm.addEventListener('submit', function(e) {
           e.preventDefault(); // Предотвращаем стандартную отправку формы
           e.stopPropagation(); // Останавливаем всплытие
