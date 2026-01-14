@@ -942,10 +942,12 @@ INDEX_HTML = """
     }
     
     // Обработка формы HuggingFace (только для репозитория)
-    const hfForm = document.querySelector('form[action="/download_hf"]');
-    if (hfForm) {
-      hfForm.addEventListener('submit', function(e) {
+    // Используем делегирование событий для надежности
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
+      if (form && form.action && form.action.includes('/download_hf')) {
         e.preventDefault(); // Предотвращаем стандартную отправку формы
+        e.stopPropagation(); // Останавливаем всплытие события
       
       const progress = document.getElementById('hf-progress');
       const result = document.getElementById('hf-result');
@@ -958,7 +960,7 @@ INDEX_HTML = """
       btn.textContent = 'Загрузка...';
       
       // Отправляем форму через fetch
-      const formData = new FormData(this);
+      const formData = new FormData(form);
       
       fetch('/download_hf', {
         method: 'POST',
@@ -968,7 +970,16 @@ INDEX_HTML = """
         },
         body: formData
       })
-      .then(response => response.json())
+      .then(response => {
+        // Проверяем Content-Type ответа
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return response.json();
+        } else {
+          // Если сервер вернул HTML вместо JSON, это ошибка
+          throw new Error('Сервер вернул HTML вместо JSON. Возможно, форма была отправлена напрямую.');
+        }
+      })
       .then(data => {
         if (data.task_id) {
           result.textContent = data.message;
@@ -986,15 +997,19 @@ INDEX_HTML = """
         progress.style.display = 'none';
         btn.disabled = false;
         btn.textContent = '🤗 Скачать с HuggingFace';
+        console.error('Ошибка при отправке формы HuggingFace:', error);
       });
-      });
-    }
+      }
+      return false; // Дополнительная защита
+    });
     
     // Обработка формы прямой ссылки
-    const urlForm = document.querySelector('form[action="/download_url"]');
-    if (urlForm) {
-      urlForm.addEventListener('submit', function(e) {
+    // Используем делегирование событий для надежности
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
+      if (form && form.action && form.action.includes('/download_url')) {
         e.preventDefault(); // Предотвращаем стандартную отправку формы
+        e.stopPropagation(); // Останавливаем всплытие события
         
         const progress = document.getElementById('hf-progress');
         const result = document.getElementById('hf-result');
@@ -1006,10 +1021,10 @@ INDEX_HTML = """
         btn.disabled = true;
         btn.textContent = 'Загрузка...';
         
-        // Отправляем форму через fetch
-        const formData = new FormData(this);
-        
-        fetch('/download_url', {
+      // Отправляем форму через fetch
+      const formData = new FormData(form);
+      
+      fetch('/download_url', {
           method: 'POST',
           headers: {
             'Accept': 'application/json',
@@ -1017,7 +1032,16 @@ INDEX_HTML = """
           },
           body: formData
         })
-      .then(response => response.json())
+      .then(response => {
+        // Проверяем Content-Type ответа
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return response.json();
+        } else {
+          // Если сервер вернул HTML вместо JSON, это ошибка
+          throw new Error('Сервер вернул HTML вместо JSON. Возможно, форма была отправлена напрямую.');
+        }
+      })
       .then(data => {
         if (data.task_id) {
           result.textContent = data.message;
@@ -1035,9 +1059,11 @@ INDEX_HTML = """
         progress.style.display = 'none';
         btn.disabled = false;
         btn.textContent = '🔗 Скачать по ссылке';
+        console.error('Ошибка при отправке формы прямой ссылки:', error);
       });
-      });
-    }
+      }
+      return false; // Дополнительная защита
+    });
     
     
     // Фильтрация по категориям и поиск
