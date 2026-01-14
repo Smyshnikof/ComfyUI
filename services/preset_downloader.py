@@ -985,14 +985,14 @@ INDEX_HTML = """
         btn.disabled = false;
         btn.textContent = '🤗 Скачать с HuggingFace';
       });
-    });
-    }
-    
-    // Обработка формы прямой ссылки
-    const urlFormEl = document.querySelector('form[action="/download_url"]');
-    if (urlFormEl) {
-      urlFormEl.addEventListener('submit', function(e) {
-      e.preventDefault(); // Предотвращаем стандартную отправку формы
+      }
+      }
+      
+      // Обработка формы прямой ссылки
+      const urlFormEl = document.querySelector('form[action="/download_url"]');
+      if (urlFormEl) {
+        urlFormEl.addEventListener('submit', function(e) {
+          e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
       const result = document.getElementById('hf-result');
