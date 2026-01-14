@@ -764,7 +764,7 @@ INDEX_HTML = """
         </div>
         
         <!-- Прямая ссылка метод (дефолтный) -->
-        <form id="hf-url-form" method="post" action="/download_url" onsubmit="event.preventDefault(); return false;" style="margin-top:12px;">
+        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;">
           <div class="row">
             <label for="hf_url">Прямая ссылка на файл</label>
             <input id="hf_url" type="text" name="url" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" required />
@@ -806,7 +806,7 @@ INDEX_HTML = """
         </form>
         
         <!-- HuggingFace Repo метод -->
-        <form id="hf-repo-form" method="post" action="/download_hf" onsubmit="event.preventDefault(); return false;" style="margin-top:12px; display:none;">
+        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;">
           <div class="row">
             <label for="hf_repo">Репозиторий</label>
             <input id="hf_repo" type="text" name="repo" placeholder="username/model-name" value="{{ hf_repo_value }}" />
