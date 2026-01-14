@@ -942,16 +942,12 @@ INDEX_HTML = """
     }
     
     // Обработка формы HuggingFace (только для репозитория)
-    // Используем делегирование событий для надежности
-    document.addEventListener('submit', function(e) {
-      const form = e.target;
-      if (form && form.action && form.action.includes('/download_hf')) {
-        e.preventDefault(); // Предотвращаем стандартную отправку формы
-        e.stopPropagation(); // Останавливаем всплытие события
+    document.querySelector('form[action="/download_hf"]').addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
       const result = document.getElementById('hf-result');
-      const btn = document.querySelector('form[action="/download_hf"] button[type="submit"]');
+      const btn = this.querySelector('button[type="submit"]');
       
       // Показываем прогресс
       progress.style.display = 'block';
@@ -960,7 +956,7 @@ INDEX_HTML = """
       btn.textContent = 'Загрузка...';
       
       // Отправляем форму через fetch
-      const formData = new FormData(form);
+      const formData = new FormData(this);
       
       fetch('/download_hf', {
         method: 'POST',
@@ -984,37 +980,30 @@ INDEX_HTML = """
         progress.style.display = 'none';
         btn.disabled = false;
         btn.textContent = '🤗 Скачать с HuggingFace';
-        console.error('Ошибка при отправке формы HuggingFace:', error);
       });
-      }
-      return false; // Дополнительная защита
     });
     
     // Обработка формы прямой ссылки
-    // Используем делегирование событий для надежности
-    document.addEventListener('submit', function(e) {
-      const form = e.target;
-      if (form && form.action && form.action.includes('/download_url')) {
-        e.preventDefault(); // Предотвращаем стандартную отправку формы
-        e.stopPropagation(); // Останавливаем всплытие события
-        
-        const progress = document.getElementById('hf-progress');
-        const result = document.getElementById('hf-result');
-        const btn = document.querySelector('form[action="/download_url"] button[type="submit"]');
-        
-        // Показываем прогресс
-        progress.style.display = 'block';
-        result.textContent = '';
-        btn.disabled = true;
-        btn.textContent = 'Загрузка...';
-        
+    document.querySelector('form[action="/download_url"]').addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
+      
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = this.querySelector('button[type="submit"]');
+      
+      // Показываем прогресс
+      progress.style.display = 'block';
+      result.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
+      
       // Отправляем форму через fetch
-      const formData = new FormData(form);
+      const formData = new FormData(this);
       
       fetch('/download_url', {
-          method: 'POST',
-          body: formData
-        })
+        method: 'POST',
+        body: formData
+      })
       .then(response => response.json())
       .then(data => {
         if (data.task_id) {
@@ -1033,10 +1022,7 @@ INDEX_HTML = """
         progress.style.display = 'none';
         btn.disabled = false;
         btn.textContent = '🔗 Скачать по ссылке';
-        console.error('Ошибка при отправке формы прямой ссылки:', error);
       });
-      }
-      return false; // Дополнительная защита
     });
     
     
