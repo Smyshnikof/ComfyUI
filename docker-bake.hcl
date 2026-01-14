@@ -111,4 +111,35 @@ target "base-13-0" {
     tags = tag("base", "cu130")
 }
 
+# Minimal targets without custom nodes
+target "base-minimal-12-4" {
+    inherits = ["_cu124", "_no_custom_nodes"]
+    tags = tag("base-minimal", "cu124")
+}
+
+target "base-minimal-12-5" {
+    inherits = ["_cu125", "_no_custom_nodes"]
+    tags = tag("base-minimal", "cu125")
+}
+
+target "base-minimal-12-6" {
+    inherits = ["_cu126", "_no_custom_nodes"]
+    tags = tag("base-minimal", "cu126")
+}
+
+target "base-minimal-12-8" {
+    inherits = ["_cu128", "_no_custom_nodes"]
+    tags = tag("base-minimal", "cu128")
+}
+
+target "base-minimal-12-9" {
+    inherits = ["_cu129", "_no_custom_nodes"]
+    tags = tag("base-minimal", "cu129")
+}
+
+target "base-minimal-13-0" {
+    inherits = ["_cu130", "_no_custom_nodes"]
+    tags = tag("base-minimal", "cu130")
+}
+
 # slim targets removed - only base with web preset downloader
