@@ -942,7 +942,9 @@ INDEX_HTML = """
     }
     
     // Обработка формы HuggingFace (только для репозитория)
-    document.querySelector('form[action="/download_hf"]').addEventListener('submit', function(e) {
+    const hfFormEl = document.querySelector('form[action="/download_hf"]');
+    if (hfFormEl) {
+      hfFormEl.addEventListener('submit', function(e) {
       e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
@@ -982,9 +984,12 @@ INDEX_HTML = """
         btn.textContent = '🤗 Скачать с HuggingFace';
       });
     });
+    }
     
     // Обработка формы прямой ссылки
-    document.querySelector('form[action="/download_url"]').addEventListener('submit', function(e) {
+    const urlFormEl = document.querySelector('form[action="/download_url"]');
+    if (urlFormEl) {
+      urlFormEl.addEventListener('submit', function(e) {
       e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
@@ -1023,7 +1028,8 @@ INDEX_HTML = """
         btn.disabled = false;
         btn.textContent = '🔗 Скачать по ссылке';
       });
-    });
+    }
+    }
     
     
     // Фильтрация по категориям и поиск
