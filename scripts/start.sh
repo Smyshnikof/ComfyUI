@@ -129,8 +129,14 @@ start_comfyui() {
     echo "Starting ComfyUI..."
     mkdir -p /workspace/logs
     
-    cd /ComfyUI && \
-    nohup python main.py --listen 0.0.0.0 --port 3000 \
+    # Activate venv if available
+    if [ -f /workspace/venv/bin/activate ]; then
+        source /workspace/venv/bin/activate
+    fi
+    
+    export PYTHONUNBUFFERED=1
+    cd /workspace/ComfyUI && \
+    nohup python main.py --listen 0.0.0.0 --port 3000 $COMFYUI_EXTRA_ARGS \
         &> /workspace/logs/comfyui.log &
     
     echo "ComfyUI started on port 3000"
@@ -159,6 +165,8 @@ if [ -d /services ]; then
 fi
 
 execute_script "/post_start.sh" "Running post-start script..."
+
+start_comfyui
 
 echo "Start script(s) finished, pod is ready to use."
 
