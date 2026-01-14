@@ -764,7 +764,7 @@ INDEX_HTML = """
         </div>
         
         <!-- Прямая ссылка метод (дефолтный) -->
-        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;">
+        <form id="hf-url-form" method="post" action="/download_url" onsubmit="event.preventDefault(); return false;" style="margin-top:12px;">
           <div class="row">
             <label for="hf_url">Прямая ссылка на файл</label>
             <input id="hf_url" type="text" name="url" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" required />
@@ -806,7 +806,7 @@ INDEX_HTML = """
         </form>
         
         <!-- HuggingFace Repo метод -->
-        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;">
+        <form id="hf-repo-form" method="post" action="/download_hf" onsubmit="event.preventDefault(); return false;" style="margin-top:12px; display:none;">
           <div class="row">
             <label for="hf_repo">Репозиторий</label>
             <input id="hf_repo" type="text" name="repo" placeholder="username/model-name" value="{{ hf_repo_value }}" />
@@ -943,12 +943,9 @@ INDEX_HTML = """
     
     // Обработка форм HuggingFace - прикрепляем после загрузки DOM
     function initHFHandlers() {
-      console.log('Инициализация обработчиков форм HuggingFace...');
-      
       // Обработка формы HuggingFace (только для репозитория)
       const hfForm = document.querySelector('form[action="/download_hf"]');
       if (hfForm) {
-        console.log('Найдена форма HuggingFace репозитория');
         hfForm.addEventListener('submit', function(e) {
           e.preventDefault(); // Предотвращаем стандартную отправку формы
           e.stopPropagation(); // Останавливаем всплытие
@@ -1001,7 +998,6 @@ INDEX_HTML = """
       // Обработка формы прямой ссылки
       const urlForm = document.querySelector('form[action="/download_url"]');
       if (urlForm) {
-        console.log('Найдена форма прямой ссылки');
         urlForm.addEventListener('submit', function(e) {
           e.preventDefault(); // Предотвращаем стандартную отправку формы
           e.stopPropagation(); // Останавливаем всплытие
@@ -1049,8 +1045,18 @@ INDEX_HTML = """
             }
           });
         });
+      } else {
+        console.error('Форма прямой ссылки не найдена!');
       }
-    });
+    }
+    
+    // Прикрепляем обработчики после загрузки DOM
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initHFHandlers);
+    } else {
+      // DOM уже загружен
+      initHFHandlers();
+    }
     
     
     // Фильтрация по категориям и поиск
