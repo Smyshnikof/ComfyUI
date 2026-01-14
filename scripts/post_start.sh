@@ -2,10 +2,16 @@
 
 export PYTHONUNBUFFERED=1
 
-source /workspace/venv/bin/activate
+# Определяем путь к Python (используем venv если доступен)
+if [ -f /workspace/venv/bin/python ]; then
+    PYTHON_CMD="/workspace/venv/bin/python"
+else
+    PYTHON_CMD="python"
+fi
+
 cd /workspace/ComfyUI
 
 echo "**** Displays the available arguments for running ComfyUI. ****" 
-python main.py --help
+$PYTHON_CMD main.py --help 2>&1 | head -20
 
 echo "**** ComfyUI will be started by start.sh script. ****"

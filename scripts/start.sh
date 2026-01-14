@@ -129,17 +129,31 @@ start_comfyui() {
     echo "Starting ComfyUI..."
     mkdir -p /workspace/logs
     
-    # Activate venv if available
-    if [ -f /workspace/venv/bin/activate ]; then
-        source /workspace/venv/bin/activate
+    # Определяем путь к Python (используем venv если доступен)
+    if [ -f /workspace/venv/bin/python ]; then
+        PYTHON_CMD="/workspace/venv/bin/python"
+    else
+        PYTHON_CMD="python"
     fi
     
     export PYTHONUNBUFFERED=1
     cd /workspace/ComfyUI && \
-    nohup python main.py --listen 0.0.0.0 --port 3000 $COMFYUI_EXTRA_ARGS \
+    nohup $PYTHON_CMD main.py --listen 0.0.0.0 --port 3000 $COMFYUI_EXTRA_ARGS \
         &> /workspace/logs/comfyui.log &
     
-    echo "ComfyUI started on port 3000"
+    # Сохраняем PID процесса
+    COMFYUI_PID=$!
+    echo "ComfyUI started on port 3000 (PID: $COMFYUI_PID)"
+    
+    # Даем процессу немного времени на запуск
+    sleep 2
+    
+    # Проверяем, что процесс все еще работает
+    if kill -0 $COMFYUI_PID 2>/dev/null; then
+        echo "ComfyUI process is running (PID: $COMFYUI_PID)"
+    else
+        echo "WARNING: ComfyUI process may have exited. Check /workspace/logs/comfyui.log for errors."
+    fi
 }
 
 # ---------------------------------------------------------------------------- #
