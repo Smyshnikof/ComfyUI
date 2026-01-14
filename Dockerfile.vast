@@ -141,7 +141,8 @@ COPY --chmod=755 scripts/install_custom_nodes.sh /
 # Configure PORTAL_CONFIG for Vast.ai Instance Portal
 # Format: hostname:external_port:local_port:url_path:Application Name
 # ComfyUI on port 3000, Preset Downloader on 8081, CivitAI on 8082, Outputs Browser on 8083, Jupyter on 8888
-ENV PORTAL_CONFIG="localhost:3000:3000:/:ComfyUI|localhost:8081:8081:/:Preset Downloader|localhost:8082:8082:/:CivitAI LoRA Downloader|localhost:8083:8083:/:Outputs Browser|localhost:8888:8888:/:JupyterLab|localhost:8080:8080:/:Code Server"
+# Disabled - not needed, everything works fine without it
+# ENV PORTAL_CONFIG="localhost:3000:3000:/:ComfyUI|localhost:8081:8081:/:Preset Downloader|localhost:8082:8082:/:CivitAI LoRA Downloader|localhost:8083:8083:/:Outputs Browser|localhost:8888:8888:/:JupyterLab|localhost:8080:8080:/:Code Server"
 
 # Set entrypoint to the start script
 CMD ["/start.sh"]
