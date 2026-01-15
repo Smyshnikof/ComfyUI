@@ -38,6 +38,9 @@ smyshnikof/comfyui:base-torch2.8.0-cu124
 smyshnikof/comfyui:base-torch2.8.0-cu121
 ```
 
+> Типы: `full` (все ноды), `base` (стабильные), `minimal` (без кастомных нод).  
+> Примеры выше для `base`.
+
 ### 2. Запустите POD
 - Дождитесь полной загрузки (~2-3 минуты)
 - Проверьте логи, если что-то пошло не так
@@ -88,21 +91,25 @@ https://your-pod-id-3000.proxy.runpod.net
 smyshnikof/comfyui:(A)-torch2.8.0-(B)
 ```
 
-- **(A)**: `slim` или `base`
-  - `slim`: ComfyUI + Manager + кастомные ноды (без автоскачивания пресетов)
-  - `base`: slim + автоскачивание пресетов при запуске
+- **(A)**: тип образа
+  - `full`: ComfyUI + Manager + все кастомные ноды + веб-загрузчик пресетов
+  - `base`: ComfyUI + Manager + стабильные кастомные ноды + веб-загрузчик пресетов
+  - `minimal`: ComfyUI + Manager без кастомных нод
 - **(B)**: версия CUDA → `cu124`, `cu126`, `cu128`
 
 ### 🧱 Варианты образов
 
-| Имя образа                                 | Кастомные ноды | Пресеты | CUDA | Рекомендуется для |
-| ------------------------------------------ | ------------ | ---- | ---- | ----------------- |
-| `smyshnikof/comfyui:base-torch2.8.0-cu124`| ✅ Да        | ✅ Да | 12.4 | RTX 4070, 3090, 3080 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu126`| ✅ Да        | ✅ Да | 12.6 | RTX 4090, 4080 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu128`| ✅ Да        | ✅ Да | 12.8 | RTX 5090, 5080 |
-| `smyshnikof/comfyui:slim-torch2.8.0-cu124`| ✅ Да         | ❌ Нет | 12.4 | Опытные пользователи |
-| `smyshnikof/comfyui:slim-torch2.8.0-cu126`| ✅ Да         | ❌ Нет | 12.6 | Опытные пользователи |
-| `smyshnikof/comfyui:slim-torch2.8.0-cu128`| ✅ Да         | ❌ Нет | 12.8 | Опытные пользователи |
+| Имя образа                                   | Кастомные ноды | Пресеты | CUDA | Рекомендуется для |
+| -------------------------------------------- | ------------ | ---- | ---- | ----------------- |
+| `smyshnikof/comfyui:full-torch2.8.0-cu124`   | ✅ Все        | ✅ Да | 12.4 | Максимум нод |
+| `smyshnikof/comfyui:full-torch2.8.0-cu126`   | ✅ Все        | ✅ Да | 12.6 | Максимум нод |
+| `smyshnikof/comfyui:full-torch2.8.0-cu128`   | ✅ Все        | ✅ Да | 12.8 | Максимум нод |
+| `smyshnikof/comfyui:base-torch2.8.0-cu124`   | ✅ Стабильные | ✅ Да | 12.4 | RTX 4070, 3090, 3080 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu126`   | ✅ Стабильные | ✅ Да | 12.6 | RTX 4090, 4080 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu128`   | ✅ Стабильные | ✅ Да | 12.8 | RTX 5090, 5080 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да | 12.4 | Минимальная среда |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да | 12.6 | Минимальная среда |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да | 12.8 | Минимальная среда |
 
 > 👉 **Для переключения**: Edit Pod/Template → установите `Container Image`
 
@@ -431,7 +438,7 @@ rm /workspace/ComfyUI/models/diffusion_models/unused_model.safetensors
 - **Фреймворк**: ComfyUI + ComfyUI Manager + JupyterLab + code-server
 - **Библиотеки**: PyTorch 2.8.0, CUDA (12.4–12.8), Triton, hf_hub, nvtop
 
-### Кастомные ноды (только в образах base и slim)
+### Кастомные ноды (только в образах base и full)
 
 Полный список: [custom_nodes.txt](https://github.com/Smyshnikof/ComfyUIDocker/blob/main/custom_nodes.txt)
 
@@ -452,7 +459,7 @@ rm /workspace/ComfyUI/models/diffusion_models/unused_model.safetensors
 ## 🎯 Рекомендации по использованию
 
 ### Для новичков
-1. Начните с образа `slim` для изучения процесса
+1. Начните с образа `minimal` для изучения процесса
 2. Устанавливайте пресеты через JupyterLab
 3. Изучите интерфейс ComfyUI через порт 3000
 4. Используйте готовые workflow из папки `/workspace/ComfyUI/user/workflows/Wan/`

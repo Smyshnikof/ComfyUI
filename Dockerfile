@@ -85,7 +85,8 @@ RUN git clone https://github.com/comfy-org/ComfyUI.git && \
     cd custom_nodes/ComfyUI-Manager && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY custom_nodes.txt /custom_nodes.txt
+ARG CUSTOM_NODES_FILE=custom_nodes.txt
+COPY custom_nodes*.txt /
 
 RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
         cd /ComfyUI/custom_nodes && \
@@ -94,7 +95,7 @@ RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
             [ -z "$repo" ] && continue; \
             echo "Cloning $repo..." && \
             git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
-        done < /custom_nodes.txt && \
+        done < "/${CUSTOM_NODES_FILE}" && \
         if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
             pip install --no-cache-dir "Pillow>=12.0.0" && \
             pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \

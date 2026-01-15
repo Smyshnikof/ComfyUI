@@ -16,10 +16,13 @@
 ## 🏷️ Формат тегов
 
 ```text
-smyshnikof/comfyui:base-torch2.8.0-cu128
+smyshnikof/comfyui:(A)-torch2.8.0-cu128
 ```
 
-* **base**: ComfyUI + Manager + кастомные ноды + веб-загрузчик пресетов
+* **(A)**: тип образа
+  * `full`: ComfyUI + Manager + все кастомные ноды + веб-загрузчик пресетов
+  * `base`: ComfyUI + Manager + стабильные кастомные ноды + веб-загрузчик пресетов
+  * `minimal`: ComfyUI + Manager без кастомных нод
 * **torch2.8.0**: PyTorch версия
 * **cu128**: CUDA версия (cu124, cu126, cu128)
 
@@ -27,11 +30,17 @@ smyshnikof/comfyui:base-torch2.8.0-cu128
 
 ## 🧱 Варианты образов
 
-| Имя образа                                 | Кастомные ноды | Веб-загрузчик | CUDA |
-| ------------------------------------------ | ------------ | ---- | ---- |
-| `smyshnikof/comfyui:base-torch2.8.0-cu124`| ✅ Да         | ✅ Да  | 12.4 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu126`| ✅ Да         | ✅ Да  | 12.6 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu128`| ✅ Да         | ✅ Да  | 12.8 |
+| Имя образа                                   | Кастомные ноды | Веб-загрузчик | CUDA |
+| -------------------------------------------- | ------------ | ---- | ---- |
+| `smyshnikof/comfyui:full-torch2.8.0-cu124`   | ✅ Все        | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu126`   | ✅ Все        | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu128`   | ✅ Все        | ✅ Да  | 12.8 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu124`   | ✅ Стабильные | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu126`   | ✅ Стабильные | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu128`   | ✅ Стабильные | ✅ Да  | 12.8 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да  | 12.8 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
 
@@ -57,6 +66,8 @@ smyshnikof/comfyui:base-torch2.8.0-cu128
 ## 🚀 Быстрый старт
 
 ### 1. Выберите образ
+> Типы: `full` (все ноды), `base` (стабильные), `minimal` (без кастомных нод).  
+> В примерах ниже используется `base`.
 ```
 # RTX 5090/5080
 smyshnikof/comfyui:base-torch2.8.0-cu128

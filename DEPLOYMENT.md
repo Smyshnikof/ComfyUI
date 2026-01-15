@@ -42,13 +42,13 @@ python runpod_deploy.py
 2. Нажмите "New Template"
 3. Заполните поля:
    - **Name**: `ComfyUI`
-   - **Container Image**: `smyshnikof/comfyui:base-torch2.8.0-cu128`
+   - **Container Image**: `smyshnikof/comfyui:base-torch2.8.0-cu128` (или `full-...` если нужны все ноды)
    - **Container Disk**: `50 GB`
    - **Ports**: `3000, 8081, 8082, 8083, 8888`
 
 ### 2. Настройка переменных окружения
 
-Для образа `base` (готовые пресеты) добавьте:
+Для образов `base`/`full` (готовые пресеты) добавьте:
 
 | Key | Value | Описание |
 |-----|-------|----------|
@@ -57,7 +57,7 @@ python runpod_deploy.py
 | `TIME_ZONE` | `Europe/Moscow` | Часовой пояс |
 | `INSTALL_SAGEATTENTION` | `True` | Установка SageAttention2 |
 
-Для образа `slim` (рекомендуется) переменные не обязательны.
+Для образа `minimal` переменные не обязательны.
 
 ### 3. Создание Pod
 

@@ -81,65 +81,103 @@ target "_no_custom_nodes" {
     }
 }
 
-target "base-12-4" {
+target "_base_nodes" {
+    args = {
+        CUSTOM_NODES_FILE = "custom_nodes_base.txt"
+    }
+}
+
+# Full targets (all custom nodes)
+target "full-12-4" {
     inherits = ["_cu124"]
+    tags = tag("full", "cu124")
+}
+
+target "full-12-5" {
+    inherits = ["_cu125"]
+    tags = tag("full", "cu125")
+}
+
+target "full-12-6" {
+    inherits = ["_cu126"]
+    tags = tag("full", "cu126")
+}
+
+target "full-12-8" {
+    inherits = ["_cu128"]
+    tags = tag("full", "cu128")
+}
+
+target "full-12-9" {
+    inherits = ["_cu129"]
+    tags = tag("full", "cu129")
+}
+
+target "full-13-0" {
+    inherits = ["_cu130"]
+    tags = tag("full", "cu130")
+}
+
+# Base targets (stable custom nodes)
+target "base-12-4" {
+    inherits = ["_cu124", "_base_nodes"]
     tags = tag("base", "cu124")
 }
 
 target "base-12-5" {
-    inherits = ["_cu125"]
+    inherits = ["_cu125", "_base_nodes"]
     tags = tag("base", "cu125")
 }
 
 target "base-12-6" {
-    inherits = ["_cu126"]
+    inherits = ["_cu126", "_base_nodes"]
     tags = tag("base", "cu126")
 }
 
 target "base-12-8" {
-    inherits = ["_cu128"]
+    inherits = ["_cu128", "_base_nodes"]
     tags = tag("base", "cu128")
 }
 
 target "base-12-9" {
-    inherits = ["_cu129"]
+    inherits = ["_cu129", "_base_nodes"]
     tags = tag("base", "cu129")
 }
 
 target "base-13-0" {
-    inherits = ["_cu130"]
+    inherits = ["_cu130", "_base_nodes"]
     tags = tag("base", "cu130")
 }
 
 # Minimal targets without custom nodes
-target "base-minimal-12-4" {
+target "minimal-12-4" {
     inherits = ["_cu124", "_no_custom_nodes"]
-    tags = tag("base-minimal", "cu124")
+    tags = tag("minimal", "cu124")
 }
 
-target "base-minimal-12-5" {
+target "minimal-12-5" {
     inherits = ["_cu125", "_no_custom_nodes"]
-    tags = tag("base-minimal", "cu125")
+    tags = tag("minimal", "cu125")
 }
 
-target "base-minimal-12-6" {
+target "minimal-12-6" {
     inherits = ["_cu126", "_no_custom_nodes"]
-    tags = tag("base-minimal", "cu126")
+    tags = tag("minimal", "cu126")
 }
 
-target "base-minimal-12-8" {
+target "minimal-12-8" {
     inherits = ["_cu128", "_no_custom_nodes"]
-    tags = tag("base-minimal", "cu128")
+    tags = tag("minimal", "cu128")
 }
 
-target "base-minimal-12-9" {
+target "minimal-12-9" {
     inherits = ["_cu129", "_no_custom_nodes"]
-    tags = tag("base-minimal", "cu129")
+    tags = tag("minimal", "cu129")
 }
 
-target "base-minimal-13-0" {
+target "minimal-13-0" {
     inherits = ["_cu130", "_no_custom_nodes"]
-    tags = tag("base-minimal", "cu130")
+    tags = tag("minimal", "cu130")
 }
 
-# slim targets removed - only base with web preset downloader
+# slim targets removed - only full/base/minimal

@@ -36,22 +36,41 @@
 smyshnikof/comfyui:(A)-torch2.8.0-(B)
 ```
 
-* **(A)**: `base` - основной образ
-  * `base`: ComfyUI + Manager + кастомные ноды + веб-загрузчик пресетов
+* **(A)**: тип образа
+  * `full`: ComfyUI + Manager + все кастомные ноды + веб-загрузчик пресетов
+  * `base`: ComfyUI + Manager + стабильные кастомные ноды + веб-загрузчик пресетов
+  * `minimal`: ComfyUI + Manager без кастомных нод
 * **(B)**: версия CUDA → `cu124`, `cu126`, `cu128`, `cu129`
 
 ---
 
 ## 🧱 Варианты образов
 
-| Имя образа                                 | Кастомные ноды | Пресеты | CUDA |
-| ------------------------------------------ | ------------ | ---- | ---- |
-| `smyshnikof/comfyui:base-torch2.8.0-cu124`| ✅ Да         | ✅ Да  | 12.4 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu126`| ✅ Да         | ✅ Да  | 12.6 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu128`| ✅ Да         | ✅ Да  | 12.8 |
-| `smyshnikof/comfyui:base-torch2.8.0-cu129`| ✅ Да         | ✅ Да  | 12.9 |
+| Имя образа                                   | Кастомные ноды | Пресеты | CUDA |
+| -------------------------------------------- | ------------ | ---- | ---- |
+| `smyshnikof/comfyui:full-torch2.8.0-cu124`   | ✅ Все        | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu126`   | ✅ Все        | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu128`   | ✅ Все        | ✅ Да  | 12.8 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu129`   | ✅ Все        | ✅ Да  | 12.9 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu124`   | ✅ Стабильные | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu126`   | ✅ Стабильные | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu128`   | ✅ Стабильные | ✅ Да  | 12.8 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu129`   | ✅ Стабильные | ✅ Да  | 12.9 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да  | 12.4 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да  | 12.6 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да  | 12.8 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu129`| ❌ Нет        | ✅ Да  | 12.9 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
+
+**full** дополнительно включает ноды, которые чаще всего дают проблемы при старте/зависимости (поэтому они вынесены из `base`):
+- `ComfyUI-WanVideoWrapper`, `ComfyUI-Frame-Interpolation`, `ComfyUI_TensorRT`
+- `ComfyUI-VideoHelperSuite`, `comfyui-dream-video-batches`, `ComfyUI-VFI`
+- `ComfyUI-Florence2`, `ComfyUI-segment-anything-2`, `ComfyUI-DepthAnythingV2`
+- `ComfyUI-QwenVL`, `ComfyUI_Qwen3-VL-Instruct`, `ComfyUI-Qwen-Image-Integrated-KSampler`, `Comfyui-QwenEditUtils`
+- `ComfyUI-RMBG`, `ComfyUI-Wan22FMLF`, `ComfyUI-PainterI2V`, `ComfyUI-wanBlockswap`
+- `ComfyUI-MelBandRoFormer`, `ComfyUI-MMAudio`, `ComfyUI-WanAnimatePreprocess`, `ComfyUI-SCAIL-Pose`
+- `ComfyUI-SeedVR2_VideoUpscaler`, `-Multiple-Angle-Camera-Control`, `comfyui-vrgamedevgirl`
 
 ---
 
@@ -139,7 +158,7 @@ bash /download_presets.sh PRESET1,PRESET2,...
 * **Фреймворк**: [ComfyUI](https://github.com/comfyanonymous/ComfyUI) + [ComfyUI Manager](https://github.com/Comfy-Org/ComfyUI-Manager) + [JupyterLab](https://jupyter.org/)
 * **Библиотеки**: PyTorch 2.8.0, CUDA (12.4–12.8), Triton, [hf\_hub](https://huggingface.co/docs/huggingface_hub), [nvtop](https://github.com/Syllo/nvtop)
 
-#### Кастомные ноды (в образе **base**)
+#### Кастомные ноды (в образах **base/full**)
 
 * ComfyUI-KJNodes
 * ComfyUI-WanVideoWrapper (опционально)

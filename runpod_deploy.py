@@ -9,7 +9,7 @@ import time
 
 # Настройки
 RUNPOD_API_KEY = "YOUR_RUNPOD_API_KEY"  # Получите на https://runpod.io/console/user/settings
-DOCKER_IMAGE = "smyshnikof/comfyui:base-torch2.8.0-cu128"
+DOCKER_IMAGE = "smyshnikof/comfyui:base-torch2.8.0-cu128"  # base = стабильные ноды, full = все ноды
 GPU_TYPE = "NVIDIA GeForce RTX 4090"  # Или другой GPU
 CONTAINER_DISK_SIZE = 50  # GB
 
