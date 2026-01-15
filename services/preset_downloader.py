@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import subprocess
@@ -18,6 +18,15 @@ app = FastAPI(title="Preset & Model Downloader")
 # Подключаем статические файлы
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+def is_ajax_request(request: Request) -> bool:
+    # Явно отличаем fetch от обычной формы, чтобы не открывался JSON в браузере
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return True
+    if request.headers.get("x-api-request") == "1":
+        return True
+    return False
 
 # Структура файлов для каждого пресета
 PRESET_FILES = {
@@ -941,8 +950,34 @@ INDEX_HTML = """
       });
     }
     
+    function handleHfQueryParams() {
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get('hf_task_id');
+      if (!taskId) {
+        return;
+      }
+      const method = params.get('hf_method') || 'url';
+      // Переключаемся на таб HuggingFace и нужный метод
+      if (typeof switchTab === 'function') {
+        switchTab('huggingface');
+      }
+      if (typeof switchHFMethod === 'function') {
+        switchHFMethod(method);
+      }
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      if (progress) {
+        progress.style.display = 'block';
+      }
+      if (result) {
+        result.textContent = 'Загрузка...';
+      }
+      pollHFStatus(taskId);
+    }
+
     // Обработка форм HuggingFace - прикрепляем после загрузки DOM
     document.addEventListener('DOMContentLoaded', function() {
+      handleHfQueryParams();
       // Обработка формы HuggingFace (только для репозитория)
       const hfFormEl = document.querySelector('form[action="/download_hf"]');
       if (hfFormEl) {
@@ -964,6 +999,10 @@ INDEX_HTML = """
       
           fetch('/download_hf', {
             method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
             body: formData
           })
           .then(response => response.json())
@@ -1009,6 +1048,10 @@ INDEX_HTML = """
       
           fetch('/download_url', {
             method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
             body: formData
           })
           .then(response => response.json())
@@ -1442,7 +1485,13 @@ def download_presets(presets: str = Form(...)):
         return {"message": f"❌ Ошибка: {str(e)}"}
 
 @app.post("/download_hf")
-def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Form(""), folder: str = Form("diffusion_models")):
+def download_hf(
+    request: Request,
+    repo: str = Form(...),
+    filename: str = Form(""),
+    token: str = Form(""),
+    folder: str = Form("diffusion_models"),
+):
     try:
         # Создаем уникальный ID для отслеживания
         task_id = str(uuid.uuid4())
@@ -1572,13 +1621,19 @@ def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Fo
             "progress": 0
         }
         
-        return {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
+        result = {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
+        if is_ajax_request(request):
+            return result
+        return RedirectResponse(url=f"/?hf_task_id={task_id}&hf_method=repo", status_code=303)
         
     except Exception as e:
-        return {"message": f"❌ Ошибка: {str(e)}"}
+        error_msg = f"❌ Ошибка: {str(e)}"
+        if is_ajax_request(request):
+            return {"message": error_msg}
+        return HTMLResponse(f"<pre>{error_msg}</pre>", status_code=400)
 
 @app.post("/download_url")
-def download_url(url: str = Form(...), folder: str = Form("diffusion_models")):
+def download_url(request: Request, url: str = Form(...), folder: str = Form("diffusion_models")):
     try:
         # Создаем уникальный ID для отслеживания
         task_id = str(uuid.uuid4())
@@ -1694,7 +1749,13 @@ def download_url(url: str = Form(...), folder: str = Form("diffusion_models")):
             "progress": 0
         }
         
-        return {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
+        result = {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
+        if is_ajax_request(request):
+            return result
+        return RedirectResponse(url=f"/?hf_task_id={task_id}&hf_method=url", status_code=303)
         
     except Exception as e:
-        return {"message": f"❌ Ошибка: {str(e)}"}
+        error_msg = f"❌ Ошибка: {str(e)}"
+        if is_ajax_request(request):
+            return {"message": error_msg}
+        return HTMLResponse(f"<pre>{error_msg}</pre>", status_code=400)
