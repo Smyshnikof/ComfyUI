@@ -19,8 +19,6 @@ app = FastAPI(title="Preset & Model Downloader")
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-
-
 # Структура файлов для каждого пресета
 PRESET_FILES = {
     "WAN_T2V": [
@@ -893,9 +891,9 @@ INDEX_HTML = """
       const urlForm = document.getElementById('hf-url-form');
       let btn = null;
       
-      if (hfForm && hfForm.style.display !== 'none') {
+      if (hfForm.style.display !== 'none') {
         btn = hfForm.querySelector('button[type="submit"]');
-      } else if (urlForm && urlForm.style.display !== 'none') {
+      } else if (urlForm.style.display !== 'none') {
         btn = urlForm.querySelector('button[type="submit"]');
       }
       
