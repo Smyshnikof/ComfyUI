@@ -36,6 +36,218 @@ window.switchHFMethod = function(method) {
   }
 }
 
+window.pollHFStatus = function(taskId) {
+  const progress = document.getElementById('hf-progress');
+  const progressFill = document.getElementById('hf-progress-fill');
+  const progressText = document.getElementById('hf-progress-text');
+  const result = document.getElementById('hf-result');
+  
+  // Находим активную кнопку (видимую форму)
+  const hfForm = document.getElementById('hf-repo-form');
+  const urlForm = document.getElementById('hf-url-form');
+  let btn = null;
+  
+  if (hfForm && hfForm.style.display !== 'none') {
+    btn = hfForm.querySelector('button[type="submit"]');
+  } else if (urlForm && urlForm.style.display !== 'none') {
+    btn = urlForm.querySelector('button[type="submit"]');
+  }
+  
+  if (!btn) {
+    // Fallback - ищем любую кнопку
+    btn = document.querySelector('form[action="/download_hf"] button[type="submit"]') || 
+          document.querySelector('form[action="/download_url"] button[type="submit"]');
+  }
+  
+  fetch('/status/' + taskId)
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'completed' || data.status === 'error') {
+      if (result) {
+        result.textContent = data.message;
+      }
+      if (progress) {
+        progress.style.display = 'none';
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
+      }
+    } else if (data.status === 'running') {
+      // Обновляем прогресс-бар
+      const progressPercent = data.progress || 0;
+      if (progressFill) {
+        progressFill.style.width = progressPercent + '%';
+      }
+      if (progressText) {
+        progressText.textContent = data.message || 'Загрузка...';
+      }
+      if (result) {
+        result.textContent = data.message || 'Загрузка...';
+      }
+      
+      // Повторяем через 500ms для более плавного обновления
+      setTimeout(() => pollHFStatus(taskId), 500);
+    } else {
+      if (result) {
+        result.textContent = '❌ Неизвестный статус: ' + data.message;
+      }
+      if (progress) {
+        progress.style.display = 'none';
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
+      }
+    }
+  })
+  .catch(error => {
+    if (result) {
+      result.textContent = '❌ Ошибка проверки статуса: ' + error.message;
+    }
+    if (progress) {
+      progress.style.display = 'none';
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
+    }
+  });
+}
+
+window.bindHfHandlers = function() {
+  const hfForm = document.querySelector('form[action="/download_hf"]');
+  const urlForm = document.querySelector('form[action="/download_url"]');
+  
+  if (hfForm && !hfForm.dataset.hfBound) {
+    hfForm.dataset.hfBound = '1';
+    hfForm.addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
+      
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = document.querySelector('form[action="/download_hf"] button[type="submit"]');
+      
+      // Показываем прогресс
+      if (progress) {
+        progress.style.display = 'block';
+      }
+      if (result) {
+        result.textContent = '';
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Загрузка...';
+      }
+      
+      // Отправляем форму через fetch
+      const formData = new FormData(this);
+      
+      fetch('/download_hf', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          if (result) {
+            result.textContent = data.message;
+          }
+          // Начинаем опрос статуса
+          pollHFStatus(data.task_id);
+        } else {
+          if (result) {
+            result.textContent = data.message;
+          }
+          if (progress) {
+            progress.style.display = 'none';
+          }
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🤗 Скачать с HuggingFace';
+          }
+        }
+      })
+      .catch(error => {
+        if (result) {
+          result.textContent = '❌ Ошибка: ' + error.message;
+        }
+        if (progress) {
+          progress.style.display = 'none';
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🤗 Скачать с HuggingFace';
+        }
+      });
+    });
+  }
+  
+  if (urlForm && !urlForm.dataset.hfBound) {
+    urlForm.dataset.hfBound = '1';
+    urlForm.addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
+      
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = document.querySelector('form[action="/download_url"] button[type="submit"]');
+      
+      // Показываем прогресс
+      if (progress) {
+        progress.style.display = 'block';
+      }
+      if (result) {
+        result.textContent = '';
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Загрузка...';
+      }
+      
+      // Отправляем форму через fetch
+      const formData = new FormData(this);
+      
+      fetch('/download_url', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          if (result) {
+            result.textContent = data.message;
+          }
+          // Начинаем опрос статуса
+          pollHFStatus(data.task_id);
+        } else {
+          if (result) {
+            result.textContent = data.message;
+          }
+          if (progress) {
+            progress.style.display = 'none';
+          }
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🔗 Скачать по ссылке';
+          }
+        }
+      })
+      .catch(error => {
+        if (result) {
+          result.textContent = '❌ Ошибка: ' + error.message;
+        }
+        if (progress) {
+          progress.style.display = 'none';
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🔗 Скачать по ссылке';
+        }
+      });
+    });
+  }
+}
+
 // Глобальный объект для хранения выбранных вариантов (уже объявлен выше)
 
 window.togglePresetCard = function(presetId, event) {
@@ -344,5 +556,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Инициализируем фильтры
   if (typeof applyFilters === 'function') {
     applyFilters();
+  }
+  if (typeof bindHfHandlers === 'function') {
+    bindHfHandlers();
   }
 });
