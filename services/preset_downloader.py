@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import subprocess
@@ -18,6 +18,8 @@ app = FastAPI(title="Preset & Model Downloader")
 # Подключаем статические файлы
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
 
 # Структура файлов для каждого пресета
 PRESET_FILES = {
@@ -178,6 +180,218 @@ PRESET_FILES = {
         ("https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx", "detection", None),
         ("https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/wholebody/vitpose-l-wholebody.onnx", "detection", None),
     ],
+    # Qwen пресеты
+    "QWEN_IMAGE": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_fp8_e4m3fn.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_EDIT": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_EDIT_2509_FP8": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_IMAGE_BF16": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_IMAGE_2512_FP8": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_IMAGE_2512_BF16": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_2512_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_IMAGE_2512_Q8_GGUF": [
+        ("https://huggingface.co/unsloth/Qwen-Image-2512-GGUF/resolve/main/qwen-image-2512-Q8_0.gguf", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_EDIT_BF16": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_EDIT_2509_BF16": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2509_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_EDIT_2511_BF16": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-fp32.safetensors", "loras", None),
+        ("https://huggingface.co/DiffSynth-Studio/Qwen-Image-Edit-F2P/resolve/main/edit_0928_lora_step40000.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_EDIT_2511_FP8": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+    ],
+    "QWEN_LAYERED_BF16": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_layered_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/vae/qwen_image_layered_vae.safetensors", "vae", None),
+    ],
+    "QWEN_LAYERED_FP8": [
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_layered_fp8mixed.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/vae/qwen_image_layered_vae.safetensors", "vae", None),
+    ],
+    "QWEN_IMAGE_LIGHTNING": [
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V2.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-4steps-V2.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.1-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V1.1.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V2.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Lightning-8steps-V2.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-fp8-e4m3fn-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-fp8-e4m3fn-Lightning-4steps-V1.0-fp32.safetensors", "loras", None),
+    ],
+    "QWEN_EDIT_LIGHTNING": [
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors", "loras", None),
+    ],
+    "QWEN_EDIT_2509_LIGHTNING": [
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-fp32.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-fp32.safetensors", "loras", None),
+    ],
+    # Z-Image пресеты
+    "Z_IMAGE_TURBO": [
+        ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors", "vae", None),
+    ],
+    # LTX пресеты
+    "LTX_2_FP8": [
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev-fp8.safetensors", "checkpoints", None),
+        ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors", "loras", None),
+        ("https://huggingface.co/Comfy-Org/lotus/resolve/main/lotus-depth-d-v1-1.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
+    ],
+    "LTX_2_BF16": [
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors", "checkpoints", None),
+        ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors", "loras", None),
+        ("https://huggingface.co/Comfy-Org/lotus/resolve/main/lotus-depth-d-v1-1.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
+    ],
+    "LTX_2_DISTILLED_FP8": [
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-fp8.safetensors", "checkpoints", None),
+        ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors", "loras", None),
+        ("https://huggingface.co/Comfy-Org/lotus/resolve/main/lotus-depth-d-v1-1.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
+    ],
+    "LTX_2_DISTILLED_BF16": [
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled.safetensors", "checkpoints", None),
+        ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors", "loras", None),
+        ("https://huggingface.co/Comfy-Org/lotus/resolve/main/lotus-depth-d-v1-1.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
+    ],
+}
+
+# Категории пресетов
+PRESET_CATEGORIES = {
+    "Wan": {
+        "name": "Wan",
+        "icon": "🎬",
+        "color": "#22c55e"
+    },
+    "Qwen": {
+        "name": "Qwen",
+        "icon": "🤖",
+        "color": "#3b82f6"
+    },
+    "Z-Image": {
+        "name": "Z-Image",
+        "icon": "🖼️",
+        "color": "#8b5cf6"
+    },
+    "Flux": {
+        "name": "Flux",
+        "icon": "⚡",
+        "color": "#f59e0b"
+    },
+    "LTX": {
+        "name": "LTX",
+        "icon": "🎨",
+        "color": "#ec4899"
+    }
 }
 
 # Доступные пресеты
@@ -187,6 +401,7 @@ PRESETS = {
         "description": "Генерация видео из текста",
         "size": "~40GB",
         "time": "15-20 мин",
+        "category": "Wan",
         "video_guide": "https://youtu.be/9Yg02eaFHJI?si=sJeT5NunkyzdDxqp"
     },
     "WAN_T2I": {
@@ -194,6 +409,7 @@ PRESETS = {
         "description": "Генерация изображений из текста",
         "size": "~18GB",
         "time": "8-12 мин",
+        "category": "Wan",
         "video_guide": "https://youtu.be/D032P5gl5Wg?si=VUSoWugV5VI7e_Q3"
     },
     "WAN_I2V": {
@@ -201,86 +417,181 @@ PRESETS = {
         "description": "Генерация видео из изображения",
         "size": "~40GB", 
         "time": "15-20 мин",
+        "category": "Wan",
         "video_guide": "https://youtu.be/SUh_25b4zeU?si=p8P-aXOYh5HIaIEW"
     },
     "WAN_I2V_LOOP": {
         "name": "Wan I2V Loop",
         "description": "Генерация зацикленного видео из изображения",
         "size": "~40GB",
-        "time": "15-20 мин"
+        "time": "15-20 мин",
+        "category": "Wan"
     },
     "WAN_ANIMATE": {
         "name": "Wan Animate",
         "description": "Анимация изображений",
-        "size": "~30GB",
-        "time": "10-15 мин",
+        "size": "~30-40GB",
+        "time": "10-18 мин",
+        "category": "Wan",
+        "has_variants": True,
+        "variant_groups": {
+            "Базовая версия": {
+                "WAN_ANIMATE": {"name": "Классический", "size": "~30GB", "time": "10-15 мин"}
+            },
+            "Специализированные версии": {
+                "WAN_ANIMATE_STEADY_DANCER": {"name": "Steady Dancer (танцевальная)", "size": "~30GB", "time": "12-18 мин"},
+                "WAN_ANIMATE_ONETOALL": {"name": "OneToAll (согласованная)", "size": "~30GB", "time": "12-18 мин"},
+                "WAN_ANIMATE_SCAIL": {"name": "SCAIL (контроль позы)", "size": "~40GB", "time": "12-18 мин"}
+            }
+        },
         "video_guide": "https://youtu.be/fUNbH3o_cE0?si=VTa-ljuPPaAngf3L"
     },
     "WAN_FLF": {
         "name": "Wan FLF (First Last Frame)",
         "description": "Генерация видео с помощью первого и последнего кадра",
         "size": "~40GB",
-        "time": "15-20 мин"
+        "time": "15-20 мин",
+        "category": "Wan"
     },
     "WAN_LIGHTX2V": {
         "name": "Wan LightX2V",
         "description": "LightX2V модели для генерации видео",
         "size": "~70GB",
-        "time": "12-18 мин"
+        "time": "12-18 мин",
+        "category": "Wan"
     },
     "WAN_I2I_REFINER": {
         "name": "Wan I2I Refiner",
         "description": "Модели для улучшения изображений (Image-to-Image Refiner)",
         "size": "~15GB",
-        "time": "8-12 мин"
+        "time": "8-12 мин",
+        "category": "Wan"
     },
     "WAN_CHRONOEDIT": {
         "name": "ChronoEdit",
         "description": "Редактирование изображений через создание видео",
         "size": "~25GB",
-        "time": "10-15 мин"
+        "time": "10-15 мин",
+        "category": "Wan"
     },
     "WAN_T2V_T2I_BATCH": {
         "name": "T2V&T2I Batch",
         "description": "Параллельная генерация изображений и видео",
         "size": "~20GB",
-        "time": "8-12 мин"
+        "time": "8-12 мин",
+        "category": "Wan"
     },
     "WAN_INFINITETALK": {
         "name": "Wan InfiniteTalk",
         "description": "LipSync говорящие аватары",
         "size": "~35GB",
-        "time": "12-18 мин"
+        "time": "12-18 мин",
+        "category": "Wan"
     },
     "WAN_2_1_ALPHA": {
         "name": "Wan 2.1 Alpha",
         "description": "Генерация видео из текста с поддержкой альфа канала",
         "size": "~25GB",
-        "time": "10-15 мин"
+        "time": "10-15 мин",
+        "category": "Wan"
     },
     "WAN_REMIX_I2V": {
         "name": "Wan Remix I2V",
         "description": "Креативная модель для генерации видео с реалистичными движениеми",
         "size": "~30GB",
-        "time": "12-18 мин"
+        "time": "12-18 мин",
+        "category": "Wan"
     },
-    "WAN_ANIMATE_STEADY_DANCER": {
-        "name": "Wan Animate Steady Dancer",
-        "description": "Танцевальная анимация",
-        "size": "~30GB",
-        "time": "12-18 мин"
+    # Qwen пресеты (группированные с двухуровневыми вариантами)
+    "QWEN_IMAGE": {
+        "name": "Qwen Image (Text-to-Image)", 
+        "description": "Генерация изображений из текста",
+        "size": "~15-40GB",
+        "time": "8-20 мин",
+        "category": "Qwen",
+        "has_variants": True,
+        "variant_groups": {
+            "Базовая версия": {
+                "QWEN_IMAGE": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
+                "QWEN_IMAGE_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+            },
+            "Версия 2512": {
+                "QWEN_IMAGE_2512_FP8": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
+                "QWEN_IMAGE_2512_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"},
+                "QWEN_IMAGE_2512_Q8_GGUF": {"name": "Q8 GGUF", "size": "~20GB", "time": "10-15 мин"}
+            }
+        }
     },
-    "WAN_ANIMATE_ONETOALL": {
-        "name": "Wan Animate OneToAll",
-        "description": "Согласованая анимация без идеального референса",
-        "size": "~30GB",
-        "time": "12-18 мин"
+    "QWEN_EDIT": {
+        "name": "Qwen Edit (Image Edit)",
+        "description": "Редактирование изображений",
+        "size": "~15-40GB",
+        "time": "8-20 мин",
+        "category": "Qwen",
+        "has_variants": True,
+        "variant_groups": {
+            "Базовая версия": {
+                "QWEN_EDIT": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
+                "QWEN_EDIT_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+            },
+            "Версия 2509": {
+                "QWEN_EDIT_2509_FP8": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
+                "QWEN_EDIT_2509_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+            },
+            "Версия 2511": {
+                "QWEN_EDIT_2511_FP8": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
+                "QWEN_EDIT_2511_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+            }
+        }
     },
-    "WAN_ANIMATE_SCAIL": {
-        "name": "Wan Animate SCAIL",
-        "description": "Контроль позы, лица, рук без масок",
+    "QWEN_LAYERED": {
+        "name": "Qwen Layered",
+        "description": "Разложить изображение на слои",
         "size": "~40GB",
-        "time": "12-18 мин"
+        "time": "10-20 мин",
+        "category": "Qwen",
+        "has_variants": True,
+        "variant_groups": {
+            "Форматы": {
+                "QWEN_LAYERED_FP8": {"name": "FP8", "size": "~40GB", "time": "10-20 мин"},
+                "QWEN_LAYERED_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+            }
+        }
+    },
+    "Z_IMAGE_TURBO": {
+        "name": "Z Image Turbo",
+        "description": "Быстрая генерация изображений из текста",
+        "size": "~15-20GB",
+        "time": "8-12 мин",
+        "category": "Z-Image"
+    },
+    "LTX_2": {
+        "name": "LTX-2",
+        "description": "Генерация видео из текста и картинки с озвучкой",
+        "size": "~20-40GB",
+        "time": "10-20 мин",
+        "category": "LTX",
+        "has_variants": True,
+        "variant_groups": {
+            "Форматы": {
+                "LTX_2_FP8": {"name": "FP8", "size": "~20GB", "time": "10-15 мин"},
+                "LTX_2_BF16": {"name": "BF16 (полная версия)", "size": "~40GB", "time": "15-20 мин"}
+            }
+        }
+    },
+    "LTX_2_DISTILLED": {
+        "name": "LTX-2 Distilled",
+        "description": "Дистиллированная версия LTX-2 для более быстрой генерации",
+        "size": "~20-40GB",
+        "time": "10-20 мин",
+        "category": "LTX",
+        "has_variants": True,
+        "variant_groups": {
+            "Форматы": {
+                "LTX_2_DISTILLED_FP8": {"name": "FP8", "size": "~20GB", "time": "10-15 мин"},
+                "LTX_2_DISTILLED_BF16": {"name": "BF16 (полная версия)", "size": "~40GB", "time": "15-20 мин"}
+            }
+        }
     }
 }
 
@@ -370,20 +681,43 @@ INDEX_HTML = """
       transform: scale(1.15);
       box-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
     .tab { padding: 8px 16px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
     .tab.active { background: var(--accent); color: var(--bg); }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    .search-container { margin-bottom: 20px; position: relative; }
+    .search-input { width: 100%; padding: 12px 16px 12px 44px; background: #1a1a1a; border: 1px solid #3a3a3a; color: var(--text); border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .category-filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .category-filter { padding: 8px 16px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    .category-filter:hover { border-color: var(--accent); background: #222; }
+    .category-filter.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .category-filter.all { background: #2a2a2a; }
+    .category-filter.all.active { background: var(--accent); }
+    .preset-card.hidden { display: none; }
+    .preset-variants { margin-top: 12px; padding-top: 12px; border-top: 1px solid #3a3a3a; display: none; }
+    .preset-card.expanded .preset-variants { display: block; }
+    .preset-variant-group { margin-bottom: 16px; }
+    .preset-variant-group-title { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #2a2a2a; }
+    .preset-variant-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding: 8px; background: #0f0f0f; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .preset-variant-item:hover { background: #151515; }
+    .preset-variant-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    .preset-variant-label { flex: 1; font-size: 13px; color: var(--muted); }
+    .preset-variant-label strong { color: var(--text); }
+    .preset-variant-info { font-size: 11px; color: var(--muted); }
+    .preset-expand-icon { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); font-size: 18px; color: var(--muted); transition: transform 0.2s; cursor: pointer; z-index: 5; }
+    .preset-card.expanded .preset-expand-icon { transform: translateY(-50%) rotate(180deg); }
+    .preset-expand-icon:hover { color: var(--accent); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1 class="title">Загрузчик пресетов и моделей</h1>
-    <p class="subtitle">Скачивание пресетов Wan и моделей с HuggingFace</p>
+    <p class="subtitle">Скачивание пресетов и моделей с HuggingFace</p>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('presets')">🎯 Пресеты Wan</div>
+      <div class="tab active" onclick="switchTab('presets')">🎯 Пресеты</div>
       <div class="tab" onclick="switchTab('huggingface')">🤗 HuggingFace</div>
     </div>
     
@@ -391,17 +725,19 @@ INDEX_HTML = """
       <!-- Пресеты -->
       <div class="card tab-content active" id="presets-tab">
         <h3>Выберите пресеты для скачивания</h3>
+        
+        <!-- Поиск -->
+        <div class="search-container">
+          <input type="text" class="search-input" id="preset-search" placeholder="Поиск пресетов..." oninput="filterPresets()">
+        </div>
+        
+        <!-- Фильтры категорий -->
+        <div class="category-filters" id="category-filters">
+          {{ category_filters_html }}
+        </div>
+        
         <div class="preset-grid" id="preset-grid">
           {{ presets_html }}
-        </div>
-        <div class="row-full">
-          <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer;">
-            <input type="checkbox" id="lightning-lora-checkbox" style="width: 16px; height: 16px;">
-            <span id="lightning-lora-text">⚡ Дополнительно докачать экспериментальные Lightning LoRA</span>
-          </label>
-          <div id="lightning-lora-details" style="margin-left: 24px; font-size: 12px; color: var(--muted); display: none;">
-            <div id="lightning-lora-list"></div>
-          </div>
         </div>
         <div class="row-full">
           <button class="btn btn-preset" onclick="downloadPresets()" id="download-presets-btn" disabled>
@@ -443,6 +779,7 @@ INDEX_HTML = """
               <option value="vae">vae</option>
               <option value="text_encoders">text_encoders</option>
               <option value="upscale_models">upscale_models</option>
+              <option value="latent_upscale_models">latent_upscale_models</option>
               <option value="clip_vision">clip_vision</option>
               <option value="audio_encoders">audio_encoders</option>
               <option value="checkpoints">checkpoints</option>
@@ -503,6 +840,7 @@ INDEX_HTML = """
               <option value="vae">vae</option>
               <option value="text_encoders">text_encoders</option>
               <option value="upscale_models">upscale_models</option>
+              <option value="latent_upscale_models">latent_upscale_models</option>
               <option value="clip_vision">clip_vision</option>
               <option value="audio_encoders">audio_encoders</option>
               <option value="checkpoints">checkpoints</option>
@@ -555,9 +893,9 @@ INDEX_HTML = """
       const urlForm = document.getElementById('hf-url-form');
       let btn = null;
       
-      if (hfForm.style.display !== 'none') {
+      if (hfForm && hfForm.style.display !== 'none') {
         btn = hfForm.querySelector('button[type="submit"]');
-      } else if (urlForm.style.display !== 'none') {
+      } else if (urlForm && urlForm.style.display !== 'none') {
         btn = urlForm.querySelector('button[type="submit"]');
       }
       
@@ -689,43 +1027,152 @@ INDEX_HTML = """
       });
     });
     
-    // Обработчик для чекбокса Lightning LoRA
-    document.getElementById('lightning-lora-checkbox').addEventListener('change', function() {
-      // Обновляем информацию о Lightning LoRA при изменении чекбокса
-      updateLightningLoraInfo();
-    });
+    // Фильтрация по категориям и поиск
+    let currentCategory = 'all';
+    let searchQuery = '';
+    
+    function filterByCategory(category) {
+      currentCategory = category;
+      
+      // Обновляем активный фильтр
+      document.querySelectorAll('.category-filter').forEach(filter => {
+        filter.classList.remove('active');
+      });
+      event.target.closest('.category-filter').classList.add('active');
+      
+      // Применяем фильтры
+      applyFilters();
+    }
+    
+    function filterPresets() {
+      searchQuery = document.getElementById('preset-search').value.toLowerCase().trim();
+      applyFilters();
+    }
+    
+    function applyFilters() {
+      const cards = document.querySelectorAll('.preset-card');
+      let visibleCount = 0;
+      
+      cards.forEach(card => {
+        const presetCategory = card.getAttribute('data-category');
+        const presetName = card.querySelector('.preset-name').textContent.toLowerCase();
+        const presetDesc = card.querySelector('.preset-desc').textContent.toLowerCase();
+        const presetInfo = card.querySelector('.preset-info').textContent.toLowerCase();
+        
+        // Проверяем категорию
+        const categoryMatch = currentCategory === 'all' || presetCategory === currentCategory;
+        
+        // Проверяем поисковый запрос
+        const searchMatch = !searchQuery || 
+          presetName.includes(searchQuery) || 
+          presetDesc.includes(searchQuery) || 
+          presetInfo.includes(searchQuery);
+        
+        // Показываем/скрываем карточку
+        if (categoryMatch && searchMatch) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      
+      // Показываем сообщение, если ничего не найдено
+      const grid = document.getElementById('preset-grid');
+      let noResultsMsg = document.getElementById('no-results-message');
+      
+      if (visibleCount === 0) {
+        if (!noResultsMsg) {
+          noResultsMsg = document.createElement('div');
+          noResultsMsg.id = 'no-results-message';
+          noResultsMsg.style.cssText = 'text-align: center; padding: 40px; color: var(--muted); font-size: 16px; grid-column: 1 / -1;';
+          noResultsMsg.textContent = '😔 Пресеты не найдены';
+          grid.appendChild(noResultsMsg);
+        }
+      } else {
+        if (noResultsMsg) {
+          noResultsMsg.remove();
+        }
+      }
+    }
     
     // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
-      // Инициализируем состояние Lightning LoRA при загрузке страницы
-      updateLightningLoraInfo();
+      // Инициализируем фильтры
+      applyFilters();
     });
   </script>
 </body>
 </html>
 """
 
+def generate_category_filters_html():
+    html = '<div class="category-filter all active" onclick="filterByCategory(\'all\', event)">Все</div>'
+    for category_id, category_info in PRESET_CATEGORIES.items():
+        html += f'''
+        <div class="category-filter" onclick="filterByCategory('{category_id}', event)" data-category="{category_id}">
+          <span>{category_info['icon']}</span>
+          <span>{category_info['name']}</span>
+        </div>
+        '''
+    return html
+
 def generate_presets_html():
     html = ""
     for preset_id, preset_info in PRESETS.items():
+        category = preset_info.get('category', 'Wan')
         video_guide_html = ""
         if preset_info.get('video_guide'):
             video_guide_html = f'<a href="{preset_info["video_guide"]}" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>'
         
-        html += f'''
-        <div class="preset-card" data-preset="{preset_id}" onclick="togglePreset('{preset_id}')">
-          {video_guide_html}
-          <div class="preset-name">{preset_info['name']}</div>
-          <div class="preset-desc">{preset_info['description']}</div>
-          <div class="preset-info">Размер: {preset_info['size']} • Время: {preset_info['time']}</div>
-        </div>
-        '''
+        # Проверяем, есть ли варианты (для Qwen пресетов)
+        if preset_info.get('has_variants') and preset_info.get('variant_groups'):
+            variants_html = ""
+            for group_name, variants in preset_info['variant_groups'].items():
+                group_html = f'<div class="preset-variant-group-title">{group_name}</div>'
+                for variant_id, variant_info in variants.items():
+                    group_html += f'''
+                    <div class="preset-variant-item" onclick="event.stopPropagation();">
+                      <input type="checkbox" id="variant-{variant_id}" data-variant="{variant_id}" data-parent="{preset_id}" onchange="toggleVariant('{preset_id}', '{variant_id}')">
+                      <label for="variant-{variant_id}" class="preset-variant-label">
+                        <strong>{variant_info['name']}</strong>
+                        <span class="preset-variant-info"> • {variant_info['size']} • {variant_info['time']}</span>
+                      </label>
+                    </div>
+                    '''
+                variants_html += f'<div class="preset-variant-group">{group_html}</div>'
+            
+            html += f'''
+            <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePresetCard('{preset_id}', event)">
+              {video_guide_html}
+              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('{preset_id}', event)">▼</span>
+              <div class="preset-name">{preset_info['name']}</div>
+              <div class="preset-desc">{preset_info['description']}</div>
+              <div class="preset-info">Размер: {preset_info['size']} • Время: {preset_info['time']}</div>
+              <div class="preset-variants">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
+                {variants_html}
+              </div>
+            </div>
+            '''
+        else:
+            # Обычная карточка без вариантов (Wan пресеты)
+            html += f'''
+            <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePreset('{preset_id}')">
+              {video_guide_html}
+              <div class="preset-name">{preset_info['name']}</div>
+              <div class="preset-desc">{preset_info['description']}</div>
+              <div class="preset-info">Размер: {preset_info['size']} • Время: {preset_info['time']}</div>
+            </div>
+            '''
     return html
 
 @app.get("/", response_class=HTMLResponse)
 def index():
     presets_html = generate_presets_html()
+    category_filters_html = generate_category_filters_html()
     return HTMLResponse(INDEX_HTML.replace("{{ presets_html }}", presets_html)
+                       .replace("{{ category_filters_html }}", category_filters_html)
                        .replace("{{ hf_repo_value }}", "")
                        .replace("{{ hf_file_value }}", "")
                        .replace("{{ hf_token_value }}", "")
@@ -743,7 +1190,7 @@ def get_status(task_id: str):
     return download_status[task_id]
 
 @app.post("/download_presets")
-def download_presets(presets: str = Form(...), lightning_lora: str = Form("false")):
+def download_presets(presets: str = Form(...)):
     try:
         # Парсим строку пресетов
         presets_list = [p.strip() for p in presets.split(',') if p.strip()]
@@ -881,14 +1328,6 @@ def download_presets(presets: str = Form(...), lightning_lora: str = Form("false
                 for preset_id in presets_list:
                     if preset_id in PRESET_FILES:
                         all_files.extend(PRESET_FILES[preset_id])
-                    # Добавляем Lightning LoRA если нужно
-                    if lightning_lora.lower() == "true":
-                        if preset_id == "WAN_T2V" and "WAN_T2V_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["WAN_T2V_LIGHTNING"])
-                        elif preset_id in ["WAN_I2V", "WAN_I2V_LOOP"] and "WAN_I2V_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["WAN_I2V_LIGHTNING"])
-                        elif preset_id == "WAN_FLF" and "WAN_FLF_LIGHTNING" in PRESET_FILES:
-                            all_files.extend(PRESET_FILES["WAN_FLF_LIGHTNING"])
                 
                 total_files = len(all_files)
                 
