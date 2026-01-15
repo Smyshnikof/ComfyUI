@@ -773,7 +773,7 @@ INDEX_HTML = """
         </div>
         
         <!-- Прямая ссылка метод (дефолтный) -->
-        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;" onsubmit="return handleHfUrlSubmit(event);">
+        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;">
           <div class="row">
             <label for="hf_url">Прямая ссылка на файл</label>
             <input id="hf_url" type="text" name="url" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" required />
@@ -815,7 +815,7 @@ INDEX_HTML = """
         </form>
         
         <!-- HuggingFace Repo метод -->
-        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;" onsubmit="return handleHfRepoSubmit(event);">
+        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;">
           <div class="row">
             <label for="hf_repo">Репозиторий</label>
             <input id="hf_repo" type="text" name="repo" placeholder="username/model-name" value="{{ hf_repo_value }}" />
@@ -950,33 +950,9 @@ INDEX_HTML = """
       });
     }
     
-    function handleHfQueryParams() {
-      const params = new URLSearchParams(window.location.search);
-      const taskId = params.get('hf_task_id');
-      if (!taskId) {
-        return;
-      }
-      const method = params.get('hf_method') || 'url';
-      // Переключаемся на таб HuggingFace и нужный метод
-      if (typeof switchTab === 'function') {
-        switchTab('huggingface');
-      }
-      if (typeof switchHFMethod === 'function') {
-        switchHFMethod(method);
-      }
-      const progress = document.getElementById('hf-progress');
-      const result = document.getElementById('hf-result');
-      if (progress) {
-        progress.style.display = 'block';
-      }
-      if (result) {
-        result.textContent = 'Загрузка...';
-      }
-      pollHFStatus(taskId);
-    }
-
-    function handleHfRepoSubmit(e) {
-      e.preventDefault();
+    // Обработка формы HuggingFace (только для репозитория)
+    document.querySelector('form[action="/download_hf"]').addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
       const result = document.getElementById('hf-result');
@@ -989,14 +965,10 @@ INDEX_HTML = """
       btn.textContent = 'Загрузка...';
       
       // Отправляем форму через fetch
-      const formData = new FormData(document.getElementById('hf-repo-form'));
+      const formData = new FormData(this);
       
       fetch('/download_hf', {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
         body: formData
       })
       .then(response => response.json())
@@ -1018,12 +990,11 @@ INDEX_HTML = """
         btn.disabled = false;
         btn.textContent = '🤗 Скачать с HuggingFace';
       });
-      
-      return false;
-    }
+    });
     
-    function handleHfUrlSubmit(e) {
-      e.preventDefault();
+    // Обработка формы прямой ссылки
+    document.querySelector('form[action="/download_url"]').addEventListener('submit', function(e) {
+      e.preventDefault(); // Предотвращаем стандартную отправку формы
       
       const progress = document.getElementById('hf-progress');
       const result = document.getElementById('hf-result');
@@ -1036,14 +1007,10 @@ INDEX_HTML = """
       btn.textContent = 'Загрузка...';
       
       // Отправляем форму через fetch
-      const formData = new FormData(document.getElementById('hf-url-form'));
+      const formData = new FormData(this);
       
       fetch('/download_url', {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
         body: formData
       })
       .then(response => response.json())
@@ -1065,11 +1032,7 @@ INDEX_HTML = """
         btn.disabled = false;
         btn.textContent = '🔗 Скачать по ссылке';
       });
-      
-      return false;
-    }
-
-    handleHfQueryParams();
+    });
     
     
     // Фильтрация по категориям и поиск
