@@ -773,7 +773,7 @@ INDEX_HTML = """
         </div>
         
         <!-- Прямая ссылка метод (дефолтный) -->
-        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;">
+        <form id="hf-url-form" method="post" action="/download_url" style="margin-top:12px;" onsubmit="return handleHfUrlSubmit(event);">
           <div class="row">
             <label for="hf_url">Прямая ссылка на файл</label>
             <input id="hf_url" type="text" name="url" placeholder="https://huggingface.co/username/model/resolve/main/file.safetensors" required />
@@ -815,7 +815,7 @@ INDEX_HTML = """
         </form>
         
         <!-- HuggingFace Repo метод -->
-        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;">
+        <form id="hf-repo-form" method="post" action="/download_hf" style="margin-top:12px; display:none;" onsubmit="return handleHfRepoSubmit(event);">
           <div class="row">
             <label for="hf_repo">Репозиторий</label>
             <input id="hf_repo" type="text" name="repo" placeholder="username/model-name" value="{{ hf_repo_value }}" />
@@ -975,107 +975,101 @@ INDEX_HTML = """
       pollHFStatus(taskId);
     }
 
-    // Обработка форм HuggingFace - прикрепляем после загрузки DOM
-    document.addEventListener('DOMContentLoaded', function() {
-      handleHfQueryParams();
-      // Обработка формы HuggingFace (только для репозитория)
-      const hfFormEl = document.querySelector('form[action="/download_hf"]');
-      if (hfFormEl) {
-        hfFormEl.addEventListener('submit', function(e) {
-          e.preventDefault(); // Предотвращаем стандартную отправку формы
+    function handleHfRepoSubmit(e) {
+      e.preventDefault();
       
-          const progress = document.getElementById('hf-progress');
-          const result = document.getElementById('hf-result');
-          const btn = document.querySelector('form[action="/download_hf"] button[type="submit"]');
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = document.querySelector('form[action="/download_hf"] button[type="submit"]');
       
-          // Показываем прогресс
-          progress.style.display = 'block';
-          result.textContent = '';
-          btn.disabled = true;
-          btn.textContent = 'Загрузка...';
+      // Показываем прогресс
+      progress.style.display = 'block';
+      result.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
       
-          // Отправляем форму через fetch
-          const formData = new FormData(this);
+      // Отправляем форму через fetch
+      const formData = new FormData(document.getElementById('hf-repo-form'));
       
-          fetch('/download_hf', {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.task_id) {
-              result.textContent = data.message;
-              // Начинаем опрос статуса
-              pollHFStatus(data.task_id);
-            } else {
-              result.textContent = data.message;
-              progress.style.display = 'none';
-              btn.disabled = false;
-              btn.textContent = '🤗 Скачать с HuggingFace';
-            }
-          })
-          .catch(error => {
-            result.textContent = '❌ Ошибка: ' + error.message;
-            progress.style.display = 'none';
-            btn.disabled = false;
-            btn.textContent = '🤗 Скачать с HuggingFace';
-          });
-        });
-      }
+      fetch('/download_hf', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          result.textContent = data.message;
+          // Начинаем опрос статуса
+          pollHFStatus(data.task_id);
+        } else {
+          result.textContent = data.message;
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '🤗 Скачать с HuggingFace';
+        }
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка: ' + error.message;
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = '🤗 Скачать с HuggingFace';
+      });
       
-      // Обработка формы прямой ссылки
-      const urlFormEl = document.querySelector('form[action="/download_url"]');
-      if (urlFormEl) {
-        urlFormEl.addEventListener('submit', function(e) {
-          e.preventDefault(); // Предотвращаем стандартную отправку формы
+      return false;
+    }
+    
+    function handleHfUrlSubmit(e) {
+      e.preventDefault();
       
-          const progress = document.getElementById('hf-progress');
-          const result = document.getElementById('hf-result');
-          const btn = document.querySelector('form[action="/download_url"] button[type="submit"]');
+      const progress = document.getElementById('hf-progress');
+      const result = document.getElementById('hf-result');
+      const btn = document.querySelector('form[action="/download_url"] button[type="submit"]');
       
-          // Показываем прогресс
-          progress.style.display = 'block';
-          result.textContent = '';
-          btn.disabled = true;
-          btn.textContent = 'Загрузка...';
+      // Показываем прогресс
+      progress.style.display = 'block';
+      result.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Загрузка...';
       
-          // Отправляем форму через fetch
-          const formData = new FormData(this);
+      // Отправляем форму через fetch
+      const formData = new FormData(document.getElementById('hf-url-form'));
       
-          fetch('/download_url', {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.task_id) {
-              result.textContent = data.message;
-              // Начинаем опрос статуса
-              pollHFStatus(data.task_id);
-            } else {
-              result.textContent = data.message;
-              progress.style.display = 'none';
-              btn.disabled = false;
-              btn.textContent = '🔗 Скачать по ссылке';
-            }
-          })
-          .catch(error => {
-            result.textContent = '❌ Ошибка: ' + error.message;
-            progress.style.display = 'none';
-            btn.disabled = false;
-            btn.textContent = '🔗 Скачать по ссылке';
-          });
-        });
-      }
-    });
+      fetch('/download_url', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          result.textContent = data.message;
+          // Начинаем опрос статуса
+          pollHFStatus(data.task_id);
+        } else {
+          result.textContent = data.message;
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '🔗 Скачать по ссылке';
+        }
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка: ' + error.message;
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = '🔗 Скачать по ссылке';
+      });
+      
+      return false;
+    }
+
+    handleHfQueryParams();
     
     
     // Фильтрация по категориям и поиск
