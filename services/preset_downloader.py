@@ -263,6 +263,7 @@ PRESET_FILES = {
         ("https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-fp32.safetensors", "loras", None),
         ("https://huggingface.co/DiffSynth-Studio/Qwen-Image-Edit-F2P/resolve/main/edit_0928_lora_step40000.safetensors", "loras", None),
         ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth", "upscale_models", None),
+        ("https://huggingface.co/Comfy-Org/Qwen-Image-InstantX-ControlNets/resolve/main/split_files/controlnet/Qwen-Image-InstantX-ControlNet-Union.safetensors", "controlnet", None),
     ],
     "QWEN_EDIT_2511_FP8": [
         ("https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors", "diffusion_models", None),
@@ -311,6 +312,29 @@ PRESET_FILES = {
         ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
         ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors", "diffusion_models", None),
         ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors", "vae", None),
+        ("https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors", "model_patches", None),
+    ],
+    # Flux пресеты
+    "FLUX_2_DEV_FP8": [
+        ("https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors", "vae", None),
+    ],
+    "FLUX_2_KLEIN_BASE_FP8": [
+        ("https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/black-forest-labs/FLUX.2-klein-base-4b-fp8/resolve/main/flux-2-klein-base-4b-fp8.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors", "vae", None),
+    ],
+    "FLUX_2_KLEIN_FP8": [
+        ("https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors", "vae", None),
+    ],
+    "FLUX_1_KREA_FP8": [
+        ("https://huggingface.co/Comfy-Org/FLUX.1-Krea-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-krea-dev_fp8_scaled.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors", "text_encoders", None),
+        ("https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors", "text_encoders", None),
+        ("https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors", "vae", None),
     ],
     # LTX пресеты
     "LTX_2_FP8": [
@@ -590,6 +614,35 @@ PRESETS = {
                 "LTX_2_DISTILLED_BF16": {"name": "BF16 (полная версия)", "size": "~40GB", "time": "15-20 мин"}
             }
         }
+    },
+    # Flux пресеты
+    "FLUX_2_DEV_FP8": {
+        "name": "Flux.2 Dev FP8 Mixed",
+        "description": "Генерация изображений из текста с моделью Flux.2 Dev",
+        "size": "~29GB",
+        "time": "12-18 мин",
+        "category": "Flux"
+    },
+    "FLUX_2_KLEIN": {
+        "name": "Flux.2 Klein 4B",
+        "description": "Компактная версия Flux.2 для генерации изображений",
+        "size": "~13GB",
+        "time": "8-12 мин",
+        "category": "Flux",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия модели": {
+                "FLUX_2_KLEIN_BASE_FP8": {"name": "Base FP8", "size": "~13GB", "time": "8-12 мин"},
+                "FLUX_2_KLEIN_FP8": {"name": "Standard FP8", "size": "~13GB", "time": "8-12 мин"}
+            }
+        }
+    },
+    "FLUX_1_KREA_FP8": {
+        "name": "Flux.1 Krea Dev",
+        "description": "Специализированная версия Flux.1 от Krea для генерации изображений",
+        "size": "~28GB",
+        "time": "12-18 мин",
+        "category": "Flux"
     }
 }
 
