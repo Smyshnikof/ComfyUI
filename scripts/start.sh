@@ -136,6 +136,7 @@ echo "Pod Started"
 
 setup_ssh
 start_jupyter
+start_code_server
 export_env_vars
 
 # Start aux web services (Preset downloader, CivitAI LoRA downloader, and Outputs browser)
