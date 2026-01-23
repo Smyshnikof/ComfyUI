@@ -1,0 +1,494 @@
+{
+  "id": "2554a80a-3c72-4f20-9190-34d882c1df13",
+  "revision": 0,
+  "last_node_id": 8,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 4,
+      "type": "LoadImage",
+      "pos": [
+        1360,
+        130
+      ],
+      "size": [
+        282.798828125,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "ComfyUI_00023_.png",
+        "image"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 2,
+      "type": "LayerUtility: ImageReel",
+      "pos": [
+        2010,
+        130
+      ],
+      "size": [
+        260,
+        270
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "image1",
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "label": "image2",
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "label": "image3",
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 6
+        },
+        {
+          "label": "image4",
+          "name": "image4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "label": "reel",
+          "name": "reel",
+          "type": "Reel",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_layerstyle",
+        "ver": "89014d833d2ad0998d724090eff1456692692a1d",
+        "Node name for S&R": "LayerUtility: ImageReel",
+        "aux_id": "chflame163/ComfyUI_LayerStyle",
+        "ue_properties": {
+          "widget_ue_connectable": {
+            "border": true,
+            "image3_text": true,
+            "reel_height": true,
+            "image2_text": true,
+            "image4_text": true,
+            "image1_text": true
+          },
+          "input_ue_unconnectable": {},
+          "version": "7.2.1"
+        },
+        "widget_ue_connectable": {
+          "border": true,
+          "image3_text": true,
+          "reel_height": true,
+          "image2_text": true,
+          "image4_text": true,
+          "image1_text": true
+        },
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "enableTabs": false,
+        "secondTabOffset": 80,
+        "tabWidth": 65,
+        "secondTabWidth": 65,
+        "tabXOffset": 10
+      },
+      "widgets_values": [
+        "Qwen Image 2512 Clownshark",
+        "upscale",
+        "color fix",
+        "result",
+        1024,
+        32
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 1,
+      "type": "LayerUtility: ImageReelComposit",
+      "pos": [
+        2010,
+        430
+      ],
+      "size": [
+        262.601171875,
+        190
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "reel_1",
+          "name": "reel_1",
+          "type": "Reel",
+          "link": 1
+        },
+        {
+          "label": "reel_2",
+          "name": "reel_2",
+          "shape": 7,
+          "type": "Reel",
+          "link": null
+        },
+        {
+          "label": "reel_3",
+          "name": "reel_3",
+          "shape": 7,
+          "type": "Reel",
+          "link": null
+        },
+        {
+          "label": "reel_4",
+          "name": "reel_4",
+          "shape": 7,
+          "type": "Reel",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "image1",
+          "name": "image1",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_layerstyle",
+        "ver": "89014d833d2ad0998d724090eff1456692692a1d",
+        "Node name for S&R": "LayerUtility: ImageReelComposit",
+        "aux_id": "chflame163/ComfyUI_LayerStyle",
+        "ue_properties": {
+          "widget_ue_connectable": {
+            "border": true,
+            "font_size": true,
+            "font_file": true,
+            "color_theme": true
+          },
+          "input_ue_unconnectable": {},
+          "version": "7.2.1"
+        },
+        "widget_ue_connectable": {
+          "border": true,
+          "font_size": true,
+          "font_file": true,
+          "color_theme": true
+        },
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "enableTabs": false,
+        "secondTabOffset": 80,
+        "tabWidth": 65,
+        "secondTabWidth": 65,
+        "tabXOffset": 10
+      },
+      "widgets_values": [
+        "Alibaba-PuHuiTi-Heavy.ttf",
+        30,
+        8,
+        "light"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 8,
+      "type": "SaveImage",
+      "pos": [
+        2280,
+        130
+      ],
+      "size": [
+        670,
+        670
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "SaveImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 5,
+      "type": "LoadImage",
+      "pos": [
+        1660,
+        130
+      ],
+      "size": [
+        282.798828125,
+        314
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "ComfyUI_00023_.png",
+        "image"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 6,
+      "type": "LoadImage",
+      "pos": [
+        1360,
+        490
+      ],
+      "size": [
+        282.798828125,
+        314.00000000000006
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "ComfyUI_00023_.png",
+        "image"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 7,
+      "type": "LoadImage",
+      "pos": [
+        1660,
+        490
+      ],
+      "size": [
+        282.798828125,
+        314.00000000000006
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "ComfyUI_00023_.png",
+        "image"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      1,
+      0,
+      "Reel"
+    ],
+    [
+      3,
+      4,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      1,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      5,
+      0,
+      2,
+      1,
+      "IMAGE"
+    ],
+    [
+      6,
+      6,
+      0,
+      2,
+      2,
+      "IMAGE"
+    ],
+    [
+      7,
+      7,
+      0,
+      2,
+      3,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowRendererVersion": "LG",
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "ds": {
+      "scale": 0.7627768444386046,
+      "offset": [
+        -936.416924583852,
+        257.7735097391368
+      ]
+    },
+    "frontendVersion": "1.37.11",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

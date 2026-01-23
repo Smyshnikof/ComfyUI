@@ -1,0 +1,363 @@
+{
+  "id": "e49f1415-7023-4802-8a4e-892f1d2f8f22",
+  "revision": 0,
+  "last_node_id": 160,
+  "last_link_id": 259,
+  "nodes": [
+    {
+      "id": 160,
+      "type": "LoadImage",
+      "pos": [
+        -550,
+        1050
+      ],
+      "size": [
+        390,
+        700
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            249
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.9.2",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "4a4139a0f970b86f6d8d9e4b17b2be9a_1765211654.png",
+        "image"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 149,
+      "type": "Qwen3_VQA",
+      "pos": [
+        -140,
+        1050
+      ],
+      "size": [
+        236.15203857421875,
+        509.9371337890625
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "source_path",
+          "name": "source_path",
+          "shape": 7,
+          "type": "PATH",
+          "link": null
+        },
+        {
+          "label": "image",
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 249
+        },
+        {
+          "label": "text",
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": null
+        },
+        {
+          "label": "model",
+          "name": "model",
+          "type": "COMBO",
+          "widget": {
+            "name": "model"
+          },
+          "link": null
+        },
+        {
+          "label": "quantization",
+          "name": "quantization",
+          "type": "COMBO",
+          "widget": {
+            "name": "quantization"
+          },
+          "link": null
+        },
+        {
+          "label": "keep_model_loaded",
+          "name": "keep_model_loaded",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "keep_model_loaded"
+          },
+          "link": null
+        },
+        {
+          "label": "temperature",
+          "name": "temperature",
+          "type": "FLOAT",
+          "widget": {
+            "name": "temperature"
+          },
+          "link": null
+        },
+        {
+          "label": "max_new_tokens",
+          "name": "max_new_tokens",
+          "type": "INT",
+          "widget": {
+            "name": "max_new_tokens"
+          },
+          "link": null
+        },
+        {
+          "label": "min_pixels",
+          "name": "min_pixels",
+          "type": "INT",
+          "widget": {
+            "name": "min_pixels"
+          },
+          "link": null
+        },
+        {
+          "label": "max_pixels",
+          "name": "max_pixels",
+          "type": "INT",
+          "widget": {
+            "name": "max_pixels"
+          },
+          "link": null
+        },
+        {
+          "label": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "label": "attention",
+          "name": "attention",
+          "type": "COMBO",
+          "widget": {
+            "name": "attention"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            259
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "IuvenisSapiens/ComfyUI_Qwen3-VL-Instruct",
+        "ver": "70cc35edacfd5979cbe7a15caf56bd2f715bc3b5",
+        "Node name for S&R": "Qwen3_VQA",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.4"
+        },
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "You are a professional AI image prompt engineer specializing in vision-language models and ControlNet-guided image generation.\n\nCarefully analyze the given image and produce a detailed, structured English prompt suitable for Stable Diffusion with ControlNet.\n\nDescribe with high precision:\n\nthe main subject (appearance, pose, orientation, proportions)\n\nforeground, midground, and background elements\n\nspatial relationships and depth hierarchy\n\ncomposition and framing (camera angle, shot type, perspective)\n\nvisual guidance lines, motion direction, and balance\n\nlighting conditions, light direction, contrast, and atmosphere\n\nmaterial properties and textures where relevant\n\nThe prompt should prioritize clear spatial structure, geometry, and visual constraints to ensure strong ControlNet guidance, not abstract interpretation.\n\nDo not mention watermarks, UI elements, text overlays, or irrelevant artifacts.\nDo not add explanations, summaries, emojis, or formatting symbols.\nOutput only the final image prompt in English.\nKeep the output concise but information-dense.",
+        "Qwen3-VL-4B-Instruct",
+        "none",
+        false,
+        0.7,
+        2048,
+        200704,
+        1003520,
+        692,
+        "fixed",
+        "eager"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 159,
+      "type": "ShowText|pysssss",
+      "pos": [
+        110,
+        1050
+      ],
+      "size": [
+        410,
+        370
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 259
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            248
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "f2838ed5e59de4d73cde5c98354b87a8d3200190",
+        "Node name for S&R": "ShowText|pysssss",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "Cartoon-style portrait of a man with brown wavy hair, wearing round black-framed glasses, smiling slightly with eyes looking slightly upward and to the right. He is dressed in a dark blue suit jacket over a light blue collared shirt. The subject is centered, facing the viewer in a three-quarter profile view, with the head and shoulders occupying the frame. The background is a plain, solid light gray. The image has a sticker-like white border with rounded corners. Lighting is even and soft, with no strong shadows, creating a flat, illustrative style. The composition is tightly framed with no background elements or depth cues beyond the subject. No motion or directional cues are present. Material properties are smooth and flat, consistent with vector illustration."
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 155,
+      "type": "SomethingToString",
+      "pos": [
+        110,
+        1460
+      ],
+      "size": [
+        410,
+        100
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "input",
+          "type": "*",
+          "link": 248
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "47ca2b2c26358615974162059061e9dc78be6715",
+        "Node name for S&R": "SomethingToString",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.5.2"
+        }
+      },
+      "widgets_values": [
+        "prefix",
+        "suffix"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      248,
+      159,
+      0,
+      155,
+      0,
+      "STRING"
+    ],
+    [
+      249,
+      160,
+      0,
+      149,
+      1,
+      "IMAGE"
+    ],
+    [
+      259,
+      149,
+      0,
+      159,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 14,
+      "title": "Controlnet Prompting",
+      "bounding": [
+        -580,
+        950,
+        1130,
+        840
+      ],
+      "color": "#000000",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6934334949441496,
+      "offset": [
+        1485.8078980912496,
+        -630.0033316085502
+      ]
+    },
+    "frontendVersion": "1.37.11",
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}
