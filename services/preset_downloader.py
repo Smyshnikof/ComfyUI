@@ -308,9 +308,15 @@ PRESET_FILES = {
         ("https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-fp32.safetensors", "loras", None),
     ],
     # Z-Image пресеты
+    "Z_IMAGE": [
+        ("https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/diffusion_models/z_image_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/vae/ae.safetensors", "vae", None),
+        ("https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors", "model_patches", None),
+    ],
     "Z_IMAGE_TURBO": [
-        ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
         ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors", "text_encoders", None),
         ("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors", "vae", None),
         ("https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors", "model_patches", None),
     ],
@@ -580,6 +586,13 @@ PRESETS = {
                 "QWEN_LAYERED_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
             }
         }
+    },
+    "Z_IMAGE": {
+        "name": "Z-Image",
+        "description": "Фундаментальная RAW модель генерации изображений",
+        "size": "~15-20GB",
+        "time": "8-12 мин",
+        "category": "Z-Image"
     },
     "Z_IMAGE_TURBO": {
         "name": "Z Image Turbo",
