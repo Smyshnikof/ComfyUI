@@ -392,6 +392,18 @@ PRESET_FILES = {
         ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
         ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
     ],
+    # LTX-2 Talking Avatar
+    "LTX_2_TALKING_AVATAR": [
+        ("https://huggingface.co/Kijai/LTXV2_comfy/resolve/main/diffusion_models/ltx-2-19b-dev_Q8_0.gguf", "diffusion_models", None),
+        ("https://huggingface.co/Kijai/LTXV2_comfy/resolve/main/loras/ltx-2-19b-distilled-lora_resized_dynamic_fro09_avg_rank_175_bf16.safetensors", "loras", None),
+        ("https://huggingface.co/Kijai/MelBandRoFormer_comfy/resolve/main/MelBandRoformer_fp16.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/unsloth/gemma-3-12b-it-GGUF/resolve/main/gemma-3-12b-it-Q2_K.gguf", "text_encoders", None),
+        ("https://huggingface.co/Kijai/LTXV2_comfy/resolve/main/text_encoders/ltx-2-19b-embeddings_connector_dev_bf16.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Kijai/LTXV2_comfy/resolve/main/VAE/LTX2_audio_vae_bf16.safetensors", "vae", None),
+        ("https://huggingface.co/Kijai/LTXV2_comfy/resolve/main/VAE/LTX2_video_vae_bf16.safetensors", "vae", None),
+        ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
+        ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Static/resolve/main/ltx-2-19b-lora-camera-control-static.safetensors", "loras", None),
+    ],
 }
 
 # Категории пресетов
@@ -628,6 +640,13 @@ PRESETS = {
                 "LTX_2_DISTILLED_BF16": {"name": "BF16 (полная версия)", "size": "~40GB", "time": "15-20 мин"}
             }
         }
+    },
+    "LTX_2_TALKING_AVATAR": {
+        "name": "LTX-2 Talking Avatar",
+        "description": "LipSync говорящие аватары с клонированием голоса",
+        "size": "~25GB",
+        "time": "10-15 мин",
+        "category": "LTX"
     },
     # Flux пресеты
     "FLUX_2_DEV_FP8": {
