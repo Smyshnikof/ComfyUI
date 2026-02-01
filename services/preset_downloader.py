@@ -644,7 +644,7 @@ PRESETS = {
     "LTX_2_TALKING_AVATAR": {
         "name": "LTX-2 Talking Avatar",
         "description": "LipSync говорящие аватары с клонированием голоса",
-        "size": "~25GB",
+        "size": "~50GB",
         "time": "10-15 мин",
         "category": "LTX"
     },
