@@ -405,8 +405,13 @@ PRESET_FILES = {
         ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Static/resolve/main/ltx-2-19b-lora-camera-control-static.safetensors", "loras", None),
     ],
     # Audio пресеты
-    "ACE_STEP_1_5": [
+    "ACE_STEP_1_5_AIO": [
         ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/checkpoints/ace_step_1.5_turbo_aio.safetensors", "checkpoints", None),
+    ],
+    "ACE_STEP_1_5_TURBO_SPLIT": [
+        ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/diffusion_models/acestep_v1.5_turbo.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_1.7b_ace15.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/vae/ace_1.5_vae.safetensors", "vae", None),
     ],
 }
 
@@ -663,7 +668,14 @@ PRESETS = {
         "description": "Full-song генерация: жанр, вокал, текст и аранжировка",
         "size": "~3GB",
         "time": "3-5 мин",
-        "category": "Audio"
+        "category": "Audio",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия": {
+                "ACE_STEP_1_5_AIO": {"name": "AIO (одна нода)", "size": "~3GB", "time": "3-5 мин"},
+                "ACE_STEP_1_5_TURBO_SPLIT": {"name": "Turbo Split", "size": "~3GB", "time": "3-5 мин"}
+            }
+        }
     },
     # Flux пресеты
     "FLUX_2_DEV_FP8": {
