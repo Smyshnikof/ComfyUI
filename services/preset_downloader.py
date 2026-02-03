@@ -404,6 +404,10 @@ PRESET_FILES = {
         ("https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
         ("https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Static/resolve/main/ltx-2-19b-lora-camera-control-static.safetensors", "loras", None),
     ],
+    # Audio пресеты
+    "ACE_STEP_1_5": [
+        ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/checkpoints/ace_step_1.5_turbo_aio.safetensors", "checkpoints", None),
+    ],
 }
 
 # Категории пресетов
@@ -432,6 +436,11 @@ PRESET_CATEGORIES = {
         "name": "LTX",
         "icon": "🎨",
         "color": "#ec4899"
+    },
+    "Audio": {
+        "name": "Audio",
+        "icon": "🎵",
+        "color": "#06b6d4"
     }
 }
 
@@ -647,6 +656,14 @@ PRESETS = {
         "size": "~50GB",
         "time": "10-15 мин",
         "category": "LTX"
+    },
+    # Audio пресеты
+    "ACE_STEP_1_5": {
+        "name": "ACE-Step 1.5",
+        "description": "Full-song генерация: жанр, вокал, текст и аранжировка",
+        "size": "~3GB",
+        "time": "3-5 мин",
+        "category": "Audio"
     },
     # Flux пресеты
     "FLUX_2_DEV_FP8": {
