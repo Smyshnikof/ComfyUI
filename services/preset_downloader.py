@@ -1247,6 +1247,34 @@ def get_status(task_id: str):
     
     return download_status[task_id]
 
+
+@app.get("/api/tasks")
+def get_all_tasks():
+    """Get all download tasks (for dashboard integration)."""
+    # Filter to show only active/recent tasks
+    active_tasks = []
+    for task_id, status in download_status.items():
+        task_info = {
+            "task_id": task_id,
+            **status
+        }
+        active_tasks.append(task_info)
+    
+    # Sort by most recent (downloading first, then completed)
+    def sort_key(t):
+        s = t.get("status", "")
+        if s == "downloading":
+            return 0
+        elif s == "completed":
+            return 1
+        elif s == "error":
+            return 2
+        return 3
+    
+    active_tasks.sort(key=sort_key)
+    return {"tasks": active_tasks[:20]}  # Limit to 20 most recent
+
+
 @app.post("/download_presets")
 def download_presets(presets: str = Form(...)):
     try:

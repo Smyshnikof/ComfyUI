@@ -65,6 +65,7 @@ class ServiceEntry(BaseModel):
     display: str
     port: int
     running: bool
+    managed: bool = False
     url: Optional[str] = None
 
 
@@ -300,12 +301,114 @@ def get_telemetry() -> Telemetry:
 # ============================================================================
 
 SERVICES = [
-    {"name": "preset_downloader", "display": "Preset Downloader", "port": 8081},
-    {"name": "civitai_downloader", "display": "CivitAI Downloader", "port": 8082},
-    {"name": "outputs_browser", "display": "Outputs Browser", "port": 8083},
-    {"name": "comfyui", "display": "ComfyUI", "port": 3000},
-    {"name": "jupyter", "display": "JupyterLab", "port": 8888},
+    {"name": "preset_downloader", "display": "Preset Downloader", "port": 8081, "module": "services.preset_downloader:app", "managed": True},
+    {"name": "civitai_downloader", "display": "CivitAI Downloader", "port": 8082, "module": "services.civitai_downloader:app", "managed": True},
+    {"name": "outputs_browser", "display": "Outputs Browser", "port": 8083, "module": "services.outputs_browser:app", "managed": True},
+    {"name": "comfyui", "display": "ComfyUI", "port": 3000, "module": None, "managed": False},
+    {"name": "jupyter", "display": "JupyterLab", "port": 8888, "module": None, "managed": False},
 ]
+
+# Track service PIDs
+service_pids: dict = {}
+
+
+def find_process_by_port(port: int) -> Optional[int]:
+    """Find PID of process listening on a port."""
+    try:
+        if os.name == 'nt':
+            result = subprocess.run(
+                ['netstat', '-ano'],
+                capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.splitlines():
+                if f':{port}' in line and 'LISTENING' in line:
+                    parts = line.split()
+                    if parts:
+                        return int(parts[-1])
+        else:
+            result = subprocess.run(
+                ['lsof', '-i', f':{port}', '-t'],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.stdout.strip():
+                return int(result.stdout.strip().split()[0])
+    except Exception:
+        pass
+    return None
+
+
+def start_service(name: str) -> dict:
+    """Start a service by name."""
+    svc = next((s for s in SERVICES if s["name"] == name), None)
+    if not svc:
+        return {"success": False, "message": f"Сервис {name} не найден"}
+    
+    if not svc.get("managed"):
+        return {"success": False, "message": f"Сервис {name} не управляется через dashboard"}
+    
+    # Check if already running
+    pid = find_process_by_port(svc["port"])
+    if pid:
+        return {"success": False, "message": f"Сервис уже запущен (PID: {pid})"}
+    
+    try:
+        log_dir = "/workspace/logs" if os.path.exists("/workspace") else "."
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = open(f"{log_dir}/{name}.log", "a")
+        
+        proc = subprocess.Popen(
+            ["python", "-m", "uvicorn", svc["module"], "--host", "0.0.0.0", "--port", str(svc["port"])],
+            stdout=log_file,
+            stderr=log_file,
+            start_new_session=True,
+        )
+        service_pids[name] = proc.pid
+        return {"success": True, "message": f"Сервис {name} запущен (PID: {proc.pid})"}
+    except Exception as e:
+        return {"success": False, "message": f"Ошибка запуска: {str(e)}"}
+
+
+def stop_service(name: str) -> dict:
+    """Stop a service by name."""
+    svc = next((s for s in SERVICES if s["name"] == name), None)
+    if not svc:
+        return {"success": False, "message": f"Сервис {name} не найден"}
+    
+    if not svc.get("managed"):
+        return {"success": False, "message": f"Сервис {name} не управляется через dashboard"}
+    
+    pid = find_process_by_port(svc["port"])
+    if not pid:
+        return {"success": False, "message": f"Сервис {name} не запущен"}
+    
+    try:
+        if os.name == 'nt':
+            subprocess.run(['taskkill', '/F', '/PID', str(pid)], check=True, capture_output=True)
+        else:
+            os.kill(pid, 15)  # SIGTERM
+            time.sleep(1)
+            try:
+                os.kill(pid, 0)  # Check if still alive
+                os.kill(pid, 9)  # SIGKILL if still running
+            except ProcessLookupError:
+                pass
+        
+        if name in service_pids:
+            del service_pids[name]
+        return {"success": True, "message": f"Сервис {name} остановлен"}
+    except Exception as e:
+        return {"success": False, "message": f"Ошибка остановки: {str(e)}"}
+
+
+def restart_service(name: str) -> dict:
+    """Restart a service by name."""
+    stop_result = stop_service(name)
+    time.sleep(1)
+    start_result = start_service(name)
+    
+    if start_result["success"]:
+        return {"success": True, "message": f"Сервис {name} перезапущен"}
+    return start_result
 
 
 async def check_service_health(port: int) -> bool:
@@ -341,6 +444,7 @@ async def get_services_status() -> List[ServiceEntry]:
             display=svc["display"],
             port=svc["port"],
             running=running,
+            managed=svc.get("managed", False),
             url=url,
         ))
     return entries
@@ -348,20 +452,150 @@ async def get_services_status() -> List[ServiceEntry]:
 
 def get_service_log(name: str, lines: int = 100) -> dict:
     """Get service log from /workspace/logs/."""
-    log_path = f"/workspace/logs/{name}.log"
+    log_dir = "/workspace/logs" if os.path.exists("/workspace/logs") else "."
+    log_path = f"{log_dir}/{name}.log"
     if not os.path.exists(log_path):
-        return {"log": f"Log file not found: {log_path}", "path": log_path}
+        return {"log": f"Лог-файл не найден: {log_path}", "path": log_path}
     
     try:
-        result = subprocess.run(
-            ["tail", "-n", str(lines), log_path],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        return {"log": result.stdout, "path": log_path}
+        # Cross-platform log reading
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            all_lines = f.readlines()
+            last_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            return {"log": ''.join(last_lines), "path": log_path}
     except Exception as e:
-        return {"log": f"Error reading log: {str(e)}", "path": log_path}
+        return {"log": f"Ошибка чтения лога: {str(e)}", "path": log_path}
+
+
+# ============================================================================
+# Environment Info
+# ============================================================================
+
+class EnvironmentInfo(BaseModel):
+    python_version: str
+    cuda_version: str
+    torch_version: str
+    container_image: str
+    hostname: str
+
+
+def get_environment_info() -> EnvironmentInfo:
+    """Get environment information."""
+    import sys
+    import socket
+    
+    # Python version
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    
+    # CUDA version
+    cuda_version = "N/A"
+    cuda_env = os.environ.get("CUDA_VERSION", "")
+    if cuda_env:
+        cuda_version = cuda_env
+    else:
+        try:
+            result = subprocess.run(
+                ["nvcc", "--version"],
+                capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.splitlines():
+                if "release" in line.lower():
+                    parts = line.split("release")
+                    if len(parts) > 1:
+                        cuda_version = parts[1].split(",")[0].strip()
+                        break
+        except Exception:
+            # Try nvidia-smi
+            try:
+                result = subprocess.run(
+                    ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.stdout.strip():
+                    cuda_version = f"Driver {result.stdout.strip()}"
+            except Exception:
+                pass
+    
+    # PyTorch version
+    torch_version = "N/A"
+    try:
+        import torch
+        torch_version = torch.__version__
+    except ImportError:
+        pass
+    
+    # Container image
+    container_image = os.environ.get("CONTAINER_IMAGE", "")
+    if not container_image:
+        container_image = os.environ.get("RUNPOD_POD_HOSTNAME", "local")
+    
+    # Hostname
+    hostname = socket.gethostname()
+    
+    return EnvironmentInfo(
+        python_version=python_version,
+        cuda_version=cuda_version,
+        torch_version=torch_version,
+        container_image=container_image,
+        hostname=hostname,
+    )
+
+
+# ============================================================================
+# Network Speed Test
+# ============================================================================
+
+class NetworkSpeed(BaseModel):
+    download_speed: float  # MB/s
+    latency: float  # ms
+    test_url: str
+    file_size: int  # bytes
+    duration: float  # seconds
+
+
+def test_network_speed() -> NetworkSpeed:
+    """Test network download speed using a small file."""
+    import urllib.request
+    
+    # Use Cloudflare's speed test file (100KB)
+    test_urls = [
+        ("https://speed.cloudflare.com/__down?bytes=102400", 102400),
+        ("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png", 13504),
+    ]
+    
+    for test_url, expected_size in test_urls:
+        try:
+            # Measure latency first
+            latency_start = time.time()
+            urllib.request.urlopen(test_url, timeout=5)
+            latency = (time.time() - latency_start) * 1000
+            
+            # Measure download speed
+            start_time = time.time()
+            response = urllib.request.urlopen(test_url, timeout=30)
+            data = response.read()
+            duration = time.time() - start_time
+            
+            file_size = len(data)
+            speed_mbps = (file_size / 1024 / 1024) / duration if duration > 0 else 0
+            
+            return NetworkSpeed(
+                download_speed=round(speed_mbps, 2),
+                latency=round(latency, 1),
+                test_url=test_url.split("?")[0],
+                file_size=file_size,
+                duration=round(duration, 3),
+            )
+        except Exception:
+            continue
+    
+    return NetworkSpeed(
+        download_speed=0,
+        latency=0,
+        test_url="failed",
+        file_size=0,
+        duration=0,
+    )
 
 
 # ============================================================================
@@ -374,6 +608,31 @@ def telemetry_endpoint():
     return get_telemetry()
 
 
+@app.get("/api/network/speed", response_model=NetworkSpeed)
+def network_speed_endpoint():
+    """Test network download speed."""
+    return test_network_speed()
+
+
+@app.get("/api/environment", response_model=EnvironmentInfo)
+def environment_endpoint():
+    """Get environment information."""
+    return get_environment_info()
+
+
+@app.get("/api/downloads")
+async def downloads_endpoint():
+    """Get active downloads from preset_downloader."""
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.get("http://127.0.0.1:8081/api/tasks")
+            if response.status_code == 200:
+                return response.json()
+    except Exception:
+        pass
+    return {"tasks": []}
+
+
 @app.get("/api/services")
 async def services_endpoint():
     """Get status of all services."""
@@ -384,6 +643,24 @@ async def services_endpoint():
 def service_log_endpoint(name: str, lines: int = 100):
     """Get service log."""
     return get_service_log(name, lines)
+
+
+@app.post("/api/services/{name}/start")
+def service_start_endpoint(name: str):
+    """Start a service."""
+    return start_service(name)
+
+
+@app.post("/api/services/{name}/stop")
+def service_stop_endpoint(name: str):
+    """Stop a service."""
+    return stop_service(name)
+
+
+@app.post("/api/services/{name}/restart")
+def service_restart_endpoint(name: str):
+    """Restart a service."""
+    return restart_service(name)
 
 
 @app.post("/api/shutdown/schedule")
@@ -431,6 +708,7 @@ INDEX_HTML = """
     .subtitle { margin:0 0 40px; color:var(--muted); text-align: center; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
     .card { background: var(--card); border:1px solid var(--border); border-radius: 12px; padding: 24px; box-sizing: border-box; }
+    .card-full { grid-column: 1 / -1; }
     .card h3 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
     
     /* Pills */
@@ -467,9 +745,10 @@ INDEX_HTML = """
       border-radius: 18px;
       padding: 20px;
       color: #fff;
-      background: linear-gradient(135deg, #ff6b4a 0%, #f35a3c 50%, #e04d31 100%);
+      background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 50%, #2a2a2a 100%);
       box-shadow: 0 18px 50px rgba(0,0,0,0.35);
       overflow: hidden;
+      border: 1px solid var(--border);
     }
     .shutdown-widget::before {
       content: "";
@@ -526,7 +805,7 @@ INDEX_HTML = """
       cursor: pointer;
       transition: all 0.2s;
     }
-    .shutdown-btn.primary { background: rgba(255,255,255,0.95); color: #e04d31; }
+    .shutdown-btn.primary { background: rgba(255,255,255,0.95); color: #1e1e1e; }
     .shutdown-btn.primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
     .shutdown-btn.secondary { background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.2); }
     .shutdown-btn.secondary:hover { background: rgba(0,0,0,0.3); }
@@ -535,16 +814,65 @@ INDEX_HTML = """
     
     /* Services */
     .services-list { display: flex; flex-direction: column; gap: 12px; }
-    .service-card { background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .service-card { background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .service-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .service-info { display: flex; align-items: center; gap: 12px; }
     .service-dot { width: 10px; height: 10px; border-radius: 50%; }
     .service-dot.running { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
     .service-dot.stopped { background: #ef4444; }
     .service-name { font-weight: 600; }
     .service-port { color: var(--muted); font-size: 13px; margin-left: 8px; }
-    .service-btn { padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .service-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .service-btn { padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer; text-decoration: none; transition: all 0.2s; }
     .service-btn:hover { background: rgba(255,255,255,0.15); border-color: var(--accent); }
     .service-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .service-btn.start { border-color: #22c55e; color: #22c55e; }
+    .service-btn.start:hover { background: rgba(34,197,94,0.15); }
+    .service-btn.stop { border-color: #ef4444; color: #ef4444; }
+    .service-btn.stop:hover { background: rgba(239,68,68,0.15); }
+    .service-btn.restart { border-color: #f59e0b; color: #f59e0b; }
+    .service-btn.restart:hover { background: rgba(245,158,11,0.15); }
+    
+    /* Network */
+    .network-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .network-stat { background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+    .network-value { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+    .network-value.speed { color: #22c55e; }
+    .network-value.latency { color: #3b82f6; }
+    .network-label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+    .network-test-btn { margin-top: 16px; width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .network-test-btn:hover { background: rgba(255,255,255,0.15); border-color: var(--accent); }
+    .network-test-btn:disabled { opacity: 0.5; cursor: wait; }
+    
+    /* Environment */
+    .env-list { display: flex; flex-direction: column; gap: 12px; }
+    .env-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; }
+    .env-label { font-size: 13px; color: var(--muted); }
+    .env-value { font-size: 13px; font-weight: 600; font-family: monospace; color: #a78bfa; }
+    
+    /* Downloads */
+    .downloads-list { display: flex; flex-direction: column; gap: 12px; }
+    .download-item { background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .download-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .download-name { font-weight: 600; font-size: 14px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .download-status { font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+    .download-status.downloading { background: rgba(59,130,246,0.2); color: #3b82f6; }
+    .download-status.completed { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .download-status.error { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .download-progress { margin-top: 8px; }
+    .download-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .no-downloads { color: var(--muted); font-style: italic; text-align: center; padding: 20px; }
+    
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 800px; max-height: 80vh; display: flex; flex-direction: column; }
+    .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer; padding: 0; line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 20px; overflow: auto; flex: 1; }
+    .log-content { background: #0a0a0a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow: auto; }
+    .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; }
     
     /* Loading */
     .loading { color: var(--muted); font-style: italic; }
@@ -592,7 +920,7 @@ INDEX_HTML = """
       
       <!-- Disks -->
       <div class="card">
-        <h3>Disks</h3>
+        <h3>Диски</h3>
         <table>
           <thead>
             <tr><th>Mount</th><th>Usage</th><th></th></tr>
@@ -603,13 +931,37 @@ INDEX_HTML = """
         </table>
       </div>
       
+      <!-- Environment -->
+      <div class="card">
+        <h3>Окружение</h3>
+        <div class="env-list" id="env-list">
+          <div class="loading">Загрузка...</div>
+        </div>
+      </div>
+      
+      <!-- Network -->
+      <div class="card">
+        <h3>Сеть</h3>
+        <div class="network-stats">
+          <div class="network-stat">
+            <div class="network-value speed" id="net-speed">-</div>
+            <div class="network-label">Скорость (MB/s)</div>
+          </div>
+          <div class="network-stat">
+            <div class="network-value latency" id="net-latency">-</div>
+            <div class="network-label">Задержка (ms)</div>
+          </div>
+        </div>
+        <button class="network-test-btn" id="net-test-btn" onclick="testNetwork()">Тест скорости</button>
+      </div>
+      
       <!-- Shutdown Scheduler -->
       <div class="card" style="padding:0; border:none; background:transparent;">
         <div class="shutdown-widget" id="shutdown-widget">
           <div class="shutdown-header">
             <div>
               <div class="shutdown-title">Shutdown Pod</div>
-              <div class="shutdown-subtitle">Schedule automatic termination</div>
+              <div class="shutdown-subtitle">Запланировать автоматическое завершение</div>
             </div>
             <div class="shutdown-icon">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
@@ -623,17 +975,17 @@ INDEX_HTML = """
           <div class="shutdown-timebox" id="shutdown-picker">
             <div class="shutdown-seg">
               <input type="number" class="shutdown-input" id="shutdown-hours" min="0" max="99" value="0">
-              <div class="shutdown-lbl">Hours</div>
+              <div class="shutdown-lbl">Часы</div>
             </div>
             <div class="shutdown-sep">:</div>
             <div class="shutdown-seg">
               <input type="number" class="shutdown-input" id="shutdown-mins" min="0" max="59" value="30">
-              <div class="shutdown-lbl">Mins</div>
+              <div class="shutdown-lbl">Мин</div>
             </div>
             <div class="shutdown-sep">:</div>
             <div class="shutdown-seg">
               <input type="number" class="shutdown-input" id="shutdown-secs" min="0" max="59" value="0">
-              <div class="shutdown-lbl">Secs</div>
+              <div class="shutdown-lbl">Сек</div>
             </div>
           </div>
           
@@ -641,37 +993,62 @@ INDEX_HTML = """
           <div class="shutdown-timebox hidden" id="shutdown-countdown">
             <div class="shutdown-seg">
               <div class="shutdown-num" id="countdown-hours">00</div>
-              <div class="shutdown-lbl">Hours</div>
+              <div class="shutdown-lbl">Часы</div>
             </div>
             <div class="shutdown-sep">:</div>
             <div class="shutdown-seg">
               <div class="shutdown-num" id="countdown-mins">00</div>
-              <div class="shutdown-lbl">Mins</div>
+              <div class="shutdown-lbl">Мин</div>
             </div>
             <div class="shutdown-sep">:</div>
             <div class="shutdown-seg">
               <div class="shutdown-num" id="countdown-secs">00</div>
-              <div class="shutdown-lbl">Secs</div>
+              <div class="shutdown-lbl">Сек</div>
             </div>
           </div>
           
           <div class="shutdown-actions">
-            <button class="shutdown-btn primary" id="schedule-btn" onclick="scheduleShutdown()">Schedule Shutdown</button>
-            <button class="shutdown-btn secondary hidden" id="cancel-btn" onclick="cancelShutdown()">Cancel</button>
+            <button class="shutdown-btn primary" id="schedule-btn" onclick="scheduleShutdown()">Запланировать</button>
+            <button class="shutdown-btn secondary hidden" id="cancel-btn" onclick="cancelShutdown()">Отменить</button>
           </div>
           
           <div class="shutdown-meta hidden" id="shutdown-meta">
-            Shutdown at: <span id="shutdown-time">-</span>
+            Завершение в: <span id="shutdown-time">-</span>
           </div>
         </div>
       </div>
       
-      <!-- Services -->
-      <div class="card">
-        <h3>Services</h3>
-        <div class="services-list" id="services-list">
-          <div class="loading">Loading services...</div>
+      <!-- Active Downloads -->
+      <div class="card card-full">
+        <h3>Активные загрузки</h3>
+        <div class="downloads-list" id="downloads-list">
+          <div class="no-downloads">Нет активных загрузок</div>
         </div>
+      </div>
+      
+      <!-- Services -->
+      <div class="card card-full">
+        <h3>Сервисы</h3>
+        <div class="services-list" id="services-list">
+          <div class="loading">Загрузка сервисов...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Log Modal -->
+  <div class="modal-overlay hidden" id="log-modal" onclick="closeLogModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" id="log-modal-title">Логи сервиса</h3>
+        <button class="modal-close" onclick="closeLogModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre class="log-content" id="log-content">Загрузка...</pre>
+      </div>
+      <div class="modal-footer">
+        <button class="service-btn" onclick="refreshLog()">Обновить</button>
+        <button class="service-btn" onclick="closeLogModal()">Закрыть</button>
       </div>
     </div>
   </div>
@@ -767,6 +1144,112 @@ INDEX_HTML = """
       }
     }
     
+    // Network speed test
+    async function testNetwork() {
+      const btn = document.getElementById('net-test-btn');
+      const speedEl = document.getElementById('net-speed');
+      const latencyEl = document.getElementById('net-latency');
+      
+      btn.disabled = true;
+      btn.textContent = 'Тестирование...';
+      speedEl.textContent = '...';
+      latencyEl.textContent = '...';
+      
+      try {
+        const res = await fetch('/api/network/speed');
+        const data = await res.json();
+        
+        speedEl.textContent = data.download_speed > 0 ? data.download_speed.toFixed(2) : 'Ошибка';
+        latencyEl.textContent = data.latency > 0 ? Math.round(data.latency) : 'Ошибка';
+      } catch (e) {
+        speedEl.textContent = 'Ошибка';
+        latencyEl.textContent = 'Ошибка';
+      }
+      
+      btn.disabled = false;
+      btn.textContent = 'Тест скорости';
+    }
+    
+    // Load environment info
+    async function loadEnvironment() {
+      try {
+        const res = await fetch('/api/environment');
+        const env = await res.json();
+        
+        const list = document.getElementById('env-list');
+        list.innerHTML = `
+          <div class="env-item">
+            <span class="env-label">Python</span>
+            <span class="env-value">${env.python_version}</span>
+          </div>
+          <div class="env-item">
+            <span class="env-label">CUDA</span>
+            <span class="env-value">${env.cuda_version}</span>
+          </div>
+          <div class="env-item">
+            <span class="env-label">PyTorch</span>
+            <span class="env-value">${env.torch_version}</span>
+          </div>
+          <div class="env-item">
+            <span class="env-label">Hostname</span>
+            <span class="env-value">${env.hostname}</span>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Environment error:', e);
+      }
+    }
+    
+    // Load active downloads
+    async function loadDownloads() {
+      try {
+        const res = await fetch('/api/downloads');
+        const data = await res.json();
+        
+        const list = document.getElementById('downloads-list');
+        
+        if (!data.tasks || data.tasks.length === 0) {
+          list.innerHTML = '<div class="no-downloads">Нет активных загрузок</div>';
+          return;
+        }
+        
+        list.innerHTML = data.tasks.map(task => {
+          const statusClass = task.status || 'unknown';
+          const statusText = {
+            'downloading': 'Загрузка',
+            'completed': 'Завершено',
+            'error': 'Ошибка'
+          }[task.status] || task.status;
+          
+          const progress = task.progress || 0;
+          const filename = task.current_filename || task.filename || 'Файл';
+          const fileInfo = task.total_files > 1 ? `${task.current_file || 1}/${task.total_files}` : '';
+          
+          return `
+            <div class="download-item">
+              <div class="download-header">
+                <span class="download-name" title="${filename}">${filename}</span>
+                <span class="download-status ${statusClass}">${statusText}</span>
+              </div>
+              ${task.status === 'downloading' ? `
+                <div class="download-progress">
+                  <div class="bar-wrap"><div class="bar-fill" style="width:${progress}%"></div></div>
+                </div>
+                <div class="download-info">
+                  <span>${progress}%</span>
+                  <span>${fileInfo}</span>
+                </div>
+              ` : ''}
+              ${task.status === 'error' ? `<div class="download-info"><span style="color:#ef4444">${task.message || 'Ошибка загрузки'}</span></div>` : ''}
+            </div>
+          `;
+        }).join('');
+        
+      } catch (e) {
+        // Silent fail - preset_downloader might not be running
+      }
+    }
+    
     // Load services
     async function loadServices() {
       try {
@@ -776,18 +1259,76 @@ INDEX_HTML = """
         const list = document.getElementById('services-list');
         list.innerHTML = services.map(svc => `
           <div class="service-card">
-            <div class="service-info">
-              <div class="service-dot ${svc.running ? 'running' : 'stopped'}"></div>
-              <span class="service-name">${svc.display}</span>
-              <span class="service-port">:${svc.port}</span>
+            <div class="service-header">
+              <div class="service-info">
+                <div class="service-dot ${svc.running ? 'running' : 'stopped'}"></div>
+                <span class="service-name">${svc.display}</span>
+                <span class="service-port">:${svc.port}</span>
+              </div>
+              <a href="${svc.url}" target="_blank" class="service-btn" ${!svc.running ? 'style="pointer-events:none;opacity:0.5"' : ''}>Открыть</a>
             </div>
-            <a href="${svc.url}" target="_blank" class="service-btn" ${!svc.running ? 'disabled' : ''}>Open</a>
+            <div class="service-actions">
+              ${svc.managed ? `
+                ${!svc.running ? `<button class="service-btn start" onclick="serviceAction('${svc.name}', 'start')">Запустить</button>` : ''}
+                ${svc.running ? `<button class="service-btn stop" onclick="serviceAction('${svc.name}', 'stop')">Остановить</button>` : ''}
+                ${svc.running ? `<button class="service-btn restart" onclick="serviceAction('${svc.name}', 'restart')">Перезапустить</button>` : ''}
+              ` : ''}
+              <button class="service-btn" onclick="showLog('${svc.name}', '${svc.display}')">Логи</button>
+            </div>
           </div>
         `).join('');
         
       } catch (e) {
         console.error('Services error:', e);
       }
+    }
+    
+    // Service actions
+    async function serviceAction(name, action) {
+      try {
+        const res = await fetch(`/api/services/${name}/${action}`, { method: 'POST' });
+        const result = await res.json();
+        
+        if (result.success) {
+          loadServices();
+        } else {
+          alert(result.message);
+        }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
+    
+    // Log modal
+    let currentLogService = null;
+    
+    function showLog(name, display) {
+      currentLogService = name;
+      document.getElementById('log-modal-title').textContent = `Логи: ${display}`;
+      document.getElementById('log-modal').classList.remove('hidden');
+      refreshLog();
+    }
+    
+    async function refreshLog() {
+      if (!currentLogService) return;
+      
+      const content = document.getElementById('log-content');
+      content.textContent = 'Загрузка...';
+      
+      try {
+        const res = await fetch(`/api/services/${currentLogService}/log?lines=200`);
+        const data = await res.json();
+        content.textContent = data.log || 'Лог пуст';
+        content.scrollTop = content.scrollHeight;
+      } catch (e) {
+        content.textContent = 'Ошибка загрузки: ' + e.message;
+      }
+    }
+    
+    function closeLogModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('log-modal').classList.add('hidden');
+      currentLogService = null;
     }
     
     // Shutdown scheduler
@@ -856,7 +1397,7 @@ INDEX_HTML = """
       const totalSeconds = hours * 3600 + mins * 60 + secs;
       
       if (totalSeconds < 1) {
-        alert('Please set a countdown greater than 0 seconds.');
+        alert('Укажите время больше 0 секунд.');
         return;
       }
       
@@ -868,7 +1409,7 @@ INDEX_HTML = """
         });
         loadShutdownStatus();
       } catch (e) {
-        alert('Failed to schedule shutdown: ' + e.message);
+        alert('Ошибка планирования: ' + e.message);
       }
     }
     
@@ -877,7 +1418,7 @@ INDEX_HTML = """
         await fetch('/api/shutdown/cancel', { method: 'POST' });
         loadShutdownStatus();
       } catch (e) {
-        alert('Failed to cancel shutdown: ' + e.message);
+        alert('Ошибка отмены: ' + e.message);
       }
     }
     
@@ -885,10 +1426,13 @@ INDEX_HTML = """
     loadTelemetry();
     loadServices();
     loadShutdownStatus();
+    loadEnvironment();
+    loadDownloads();
     
-    // Auto-refresh telemetry every 5 seconds
+    // Auto-refresh
     setInterval(loadTelemetry, 5000);
     setInterval(loadServices, 10000);
+    setInterval(loadDownloads, 3000);  // Downloads refresh more frequently
   </script>
 </body>
 </html>
