@@ -163,7 +163,7 @@ echo "Instance Started"
 setup_ssh
 start_jupyter
 
-# Start aux web services (Preset downloader, CivitAI LoRA downloader, and Outputs browser)
+# Start aux web services (Preset downloader, CivitAI LoRA downloader, Outputs browser, and Dashboard)
 if [ -d /services ]; then
     echo "Starting aux web services..."
     
@@ -177,6 +177,7 @@ if [ -d /services ]; then
     nohup uvicorn services.preset_downloader:app --host 0.0.0.0 --port 8081 &> ${VAST_WORKSPACE}/logs/preset_downloader.log &
     nohup uvicorn services.civitai_downloader:app --host 0.0.0.0 --port 8082 &> ${VAST_WORKSPACE}/logs/civitai_downloader.log &
     nohup uvicorn services.outputs_browser:app --host 0.0.0.0 --port 8083 &> ${VAST_WORKSPACE}/logs/outputs_browser.log &
+    nohup uvicorn services.dashboard:app --host 0.0.0.0 --port 8084 &> ${VAST_WORKSPACE}/logs/dashboard.log &
 fi
 
 execute_script "/post_start.sh" "Running post-start script..."
