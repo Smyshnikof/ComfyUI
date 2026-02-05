@@ -554,35 +554,59 @@ class NetworkSpeed(BaseModel):
 
 
 def test_network_speed() -> NetworkSpeed:
-    """Test network download speed using a small file."""
+    """Test network download speed."""
     import urllib.request
+    import ssl
     
-    # Use Cloudflare's speed test file (100KB)
-    test_urls = [
-        ("https://speed.cloudflare.com/__down?bytes=102400", 102400),
-        ("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png", 13504),
+    # Create SSL context that doesn't verify (for testing)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    
+    latency = 0
+    
+    # Test URLs - various sizes and sources
+    test_configs = [
+        # (url, expected_bytes, is_for_latency)
+        ("http://ipv4.download.thinkbroadband.com/5MB.zip", 5242880, False),
+        ("http://ipv4.download.thinkbroadband.com/1MB.zip", 1048576, False),
+        ("http://speedtest.tele2.net/1MB.zip", 1048576, False),
+        ("https://www.google.com/generate_204", 0, True),  # Just for latency
     ]
     
-    for test_url, expected_size in test_urls:
+    # Measure latency first with a simple request
+    for url, _, is_latency in test_configs:
+        if is_latency or True:  # Try any URL for latency
+            try:
+                latency_start = time.time()
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                urllib.request.urlopen(req, timeout=10, context=ctx if url.startswith('https') else None)
+                latency = (time.time() - latency_start) * 1000
+                break
+            except Exception:
+                continue
+    
+    # Speed test with larger files
+    for url, expected_size, is_latency in test_configs:
+        if is_latency:
+            continue
         try:
-            # Measure latency first
-            latency_start = time.time()
-            urllib.request.urlopen(test_url, timeout=5)
-            latency = (time.time() - latency_start) * 1000
-            
-            # Measure download speed
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             start_time = time.time()
-            response = urllib.request.urlopen(test_url, timeout=30)
+            response = urllib.request.urlopen(req, timeout=60, context=ctx if url.startswith('https') else None)
             data = response.read()
             duration = time.time() - start_time
             
             file_size = len(data)
+            if file_size < 10000:  # Too small, skip
+                continue
+                
             speed_mbps = (file_size / 1024 / 1024) / duration if duration > 0 else 0
             
             return NetworkSpeed(
                 download_speed=round(speed_mbps, 2),
                 latency=round(latency, 1),
-                test_url=test_url.split("?")[0],
+                test_url=url.split("/")[-1],
                 file_size=file_size,
                 duration=round(duration, 3),
             )
@@ -591,7 +615,7 @@ def test_network_speed() -> NetworkSpeed:
     
     return NetworkSpeed(
         download_speed=0,
-        latency=0,
+        latency=round(latency, 1) if latency > 0 else 0,
         test_url="failed",
         file_size=0,
         duration=0,
@@ -840,6 +864,7 @@ INDEX_HTML = """
     .network-value.speed { color: #22c55e; }
     .network-value.latency { color: #3b82f6; }
     .network-label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+    .network-sublabel { font-size: 11px; color: var(--muted); margin-top: 4px; opacity: 0.7; }
     .network-test-btn { margin-top: 16px; width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .network-test-btn:hover { background: rgba(255,255,255,0.15); border-color: var(--accent); }
     .network-test-btn:disabled { opacity: 0.5; cursor: wait; }
@@ -946,6 +971,7 @@ INDEX_HTML = """
           <div class="network-stat">
             <div class="network-value speed" id="net-speed">-</div>
             <div class="network-label">Скорость (MB/s)</div>
+            <div class="network-sublabel" id="net-speed-mbps"></div>
           </div>
           <div class="network-stat">
             <div class="network-value latency" id="net-latency">-</div>
@@ -1148,21 +1174,31 @@ INDEX_HTML = """
     async function testNetwork() {
       const btn = document.getElementById('net-test-btn');
       const speedEl = document.getElementById('net-speed');
+      const speedMbpsEl = document.getElementById('net-speed-mbps');
       const latencyEl = document.getElementById('net-latency');
       
       btn.disabled = true;
       btn.textContent = 'Тестирование...';
       speedEl.textContent = '...';
+      speedMbpsEl.textContent = '';
       latencyEl.textContent = '...';
       
       try {
         const res = await fetch('/api/network/speed');
         const data = await res.json();
         
-        speedEl.textContent = data.download_speed > 0 ? data.download_speed.toFixed(2) : 'Ошибка';
+        if (data.download_speed > 0) {
+          speedEl.textContent = data.download_speed.toFixed(2);
+          const mbps = (data.download_speed * 8).toFixed(1);
+          speedMbpsEl.textContent = `≈ ${mbps} Mbps`;
+        } else {
+          speedEl.textContent = 'Ошибка';
+          speedMbpsEl.textContent = '';
+        }
         latencyEl.textContent = data.latency > 0 ? Math.round(data.latency) : 'Ошибка';
       } catch (e) {
         speedEl.textContent = 'Ошибка';
+        speedMbpsEl.textContent = '';
         latencyEl.textContent = 'Ошибка';
       }
       
