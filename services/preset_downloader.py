@@ -413,6 +413,25 @@ PRESET_FILES = {
         ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_1.7b_ace15.safetensors", "text_encoders", None),
         ("https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/vae/ace_1.5_vae.safetensors", "vae", None),
     ],
+    # Wan VACE пресеты
+    "WAN_VACE_F16": [
+        ("https://huggingface.co/QuantStack/Wan2.1_14B_VACE-GGUF/resolve/main/Wan2.1_14B_VACE-F16.gguf", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors", "vae", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors", "loras", None),
+    ],
+    "WAN_VACE_BF16": [
+        ("https://huggingface.co/QuantStack/Wan2.1_14B_VACE-GGUF/resolve/main/Wan2.1_14B_VACE-BF16.gguf", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors", "vae", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors", "loras", None),
+    ],
+    "WAN_VACE_Q5_K_S": [
+        ("https://huggingface.co/QuantStack/Wan2.1_14B_VACE-GGUF/resolve/main/Wan2.1_14B_VACE-Q5_K_S.gguf", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors", "vae", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors", "loras", None),
+    ],
 }
 
 # Категории пресетов
@@ -556,6 +575,21 @@ PRESETS = {
         "size": "~30GB",
         "time": "12-18 мин",
         "category": "Wan"
+    },
+    "WAN_VACE": {
+        "name": "Wan VACE",
+        "description": "Изменение и стилизация видео на основе исходного ролика с сохранением движения, композиции и таймингов",
+        "size": "~35GB",
+        "time": "12-18 мин",
+        "category": "Wan",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия модели": {
+                "WAN_VACE_F16": {"name": "F16 (Full precision)", "size": "~35GB", "time": "12-18 мин"},
+                "WAN_VACE_BF16": {"name": "BF16 (Brain float)", "size": "~35GB", "time": "12-18 мин"},
+                "WAN_VACE_Q5_K_S": {"name": "Q5_K_S (Quantized)", "size": "~15GB", "time": "8-12 мин"}
+            }
+        }
     },
     # Qwen пресеты (группированные с двухуровневыми вариантами)
     "QWEN_IMAGE": {
