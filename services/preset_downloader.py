@@ -74,6 +74,19 @@ PRESET_FILES = {
         ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/LoRAs/Wan22_relight/WanAnimate_relight_lora_fp16.safetensors", "loras", None),
         ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors", "loras", None),
     ],
+    "WAN_ANIMATE_CLASSIC_V2": [
+        ("https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/Wan22Animate/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/rahul7star/wan2.2Lora/resolve/main/Wan2.2-Fun-A14B-InP-LOW-HPS2.1_resized_dynamic_avg_rank_15_bf16.safetensors", "loras", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/LoRAs/Wan22_relight/WanAnimate_relight_lora_fp16.safetensors", "loras", None),
+        ("https://huggingface.co/wangkanai/wan21-lightx2v-i2v-14b-480p/resolve/main/loras/wan/wan21-lightx2v-i2v-14b-480p-cfg-step-distill-rank256-bf16.safetensors", "loras", None),
+        ("https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/wholebody/vitpose-l-wholebody.onnx", "detection", None),
+        ("https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx", "detection", None),
+        ("https://huggingface.co/VeryAladeen/Sec-4B/resolve/main/SeC-4B-fp16.safetensors", "sams", None),
+        ("https://huggingface.co/Kyca/KycasFiles/resolve/main/2xNomosUni_esrgan_multijpg.pth", "upscale_models", None),
+        ("https://huggingface.co/chatpig/encoder/resolve/main/umt5_xxl_fp16.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors", "clip_vision", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors", "vae", None),
+    ],
     "WAN_FLF": [
         ("https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/Fun/Wan2_2-Fun-InP-A14B-HIGH_fp8_e4m3fn_scaled_KJ.safetensors", "diffusion_models", None),
         ("https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/Fun/Wan2_2-Fun-InP-A14B-LOW_fp8_e4m3fn_scaled_KJ.safetensors", "diffusion_models", None),
@@ -510,7 +523,8 @@ PRESETS = {
         "has_variants": True,
         "variant_groups": {
             "Базовая версия": {
-                "WAN_ANIMATE": {"name": "Классический", "size": "~30GB", "time": "10-15 мин"}
+                "WAN_ANIMATE": {"name": "Классический", "size": "~30GB", "time": "10-15 мин"},
+                "WAN_ANIMATE_CLASSIC_V2": {"name": "Classic V2", "size": "~35GB", "time": "12-18 мин"}
             },
             "Специализированные версии": {
                 "WAN_ANIMATE_STEADY_DANCER": {"name": "Steady Dancer (танцевальная)", "size": "~30GB", "time": "12-18 мин"},
