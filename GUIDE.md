@@ -400,7 +400,20 @@ ls -la /workspace/ComfyUI/models/diffusion_models/
 bash /download_presets.sh WAN_T2V
 ```
 
-#### 3. Ошибки CUDA
+#### 3. Загрузчик пресетов (порт 8081) не работает
+Часто возникает после обновления Python. Выполните в терминале:
+```bash
+cd /workspace
+source venv/bin/activate
+pip install --upgrade click typer huggingface_hub
+```
+Затем перезапустите pod или сервис:
+```bash
+pkill -f "preset_downloader"
+nohup uvicorn services.preset_downloader:app --host 0.0.0.0 --port 8081 &> /workspace/logs/preset_downloader.log &
+```
+
+#### 4. Ошибки CUDA
 ```bash
 # Проверить совместимость CUDA
 nvidia-smi
@@ -411,7 +424,7 @@ cd /ComfyUI && pip uninstall sageattention2 -y
 pip install sageattention2
 ```
 
-#### 4. Недостаточно места на диске
+#### 5. Недостаточно места на диске
 ```bash
 # Очистить кэш
 rm -rf /workspace/.cache/pip/*

@@ -43,6 +43,12 @@ else
     echo "Skip: /venv does not exist."
 fi
 
+# Fix for preset_downloader (port 8081) after Python updates - upgrade huggingface_hub and deps
+if [ -f ${VAST_WORKSPACE}/venv/bin/activate ]; then
+    echo "**** Upgrading huggingface_hub, click, typer (fix for preset downloader compatibility) ****"
+    source ${VAST_WORKSPACE}/venv/bin/activate && pip install --upgrade --quiet click typer huggingface_hub 2>/dev/null || true
+fi
+
 echo "**** syncing ComfyUI to workspace, please wait ****"
 if [ -d /ComfyUI ]; then
 
