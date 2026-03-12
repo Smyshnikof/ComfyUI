@@ -72,6 +72,7 @@ target "_cu130" {
     args = {
         BASE_IMAGE         = "nvidia/cuda:13.0.0-devel-ubuntu24.04"
         CUDA_VERSION       = "cu130"
+        TORCH_VERSION      = "2.9.0"
     }
 }
 

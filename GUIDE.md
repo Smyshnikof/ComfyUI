@@ -36,6 +36,9 @@ smyshnikof/comfyui:base-torch2.8.0-cu124
 
 # Старые драйверы (525 и ниже)
 smyshnikof/comfyui:base-torch2.8.0-cu121
+
+# RunPod с CUDA 13.0 (новые поды)
+smyshnikof/comfyui:base-torch2.9.0-cu130
 ```
 
 > Типы: `full` (все ноды), `base` (стабильные), `minimal` (без кастомных нод).  
@@ -95,7 +98,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
   - `full`: ComfyUI + Manager + все кастомные ноды + веб-загрузчик пресетов
   - `base`: ComfyUI + Manager + стабильные кастомные ноды + веб-загрузчик пресетов
   - `minimal`: ComfyUI + Manager без кастомных нод
-- **(B)**: версия CUDA → `cu124`, `cu126`, `cu128`
+- **(B)**: версия CUDA → `cu124`, `cu126`, `cu128`, `cu129`, `cu130`
 
 ### 🧱 Варианты образов
 
@@ -110,6 +113,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да | 12.4 | Минимальная среда |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да | 12.6 | Минимальная среда |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да | 12.8 | Минимальная среда |
+| `smyshnikof/comfyui:base-torch2.9.0-cu130`   | ✅ Стабильные | ✅ Да | 13.0 | RunPod с CUDA 13.0 |
 
 > 👉 **Для переключения**: Edit Pod/Template → установите `Container Image`
 
@@ -124,6 +128,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | **RTX 4070** | `base-torch2.8.0-cu124` | Стабильная работа |
 | **RTX 3090** | `base-torch2.8.0-cu124` | Совместимость с Ampere |
 | **RTX 3080** | `base-torch2.8.0-cu124` | Совместимость с Ampere |
+| **RunPod CUDA 13.0** | `base-torch2.9.0-cu130` | Для новых подов с CUDA 13.0 |
 
 > ⚠️ **Важно**: RTX 5090/5080 требуют CUDA 12.8+ для корректной работы SageAttention2
 
@@ -449,7 +454,7 @@ rm /workspace/ComfyUI/models/diffusion_models/unused_model.safetensors
 - **ОС**: Ubuntu 24.04 (22.02 для CUDA 12.4)
 - **Python**: 3.13
 - **Фреймворк**: ComfyUI + ComfyUI Manager + JupyterLab + code-server
-- **Библиотеки**: PyTorch 2.8.0, CUDA (12.4–12.8), Triton, hf_hub, nvtop
+- **Библиотеки**: PyTorch 2.8.0 (2.9.0 для cu130), CUDA (12.4–13.0), Triton, hf_hub, nvtop
 
 ### Кастомные ноды (только в образах base и full)
 

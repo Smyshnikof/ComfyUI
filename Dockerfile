@@ -96,14 +96,14 @@ RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
             echo "Cloning $repo..." && \
             git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
         done < "/${CUSTOM_NODES_FILE}" && \
-        if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
+        if [ "$CUDA_VERSION" = "cu130" ] || [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
             pip install --no-cache-dir "Pillow>=12.0.0" && \
             pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \
             find /ComfyUI/custom_nodes -name "requirements.txt" -exec sed -i 's/Pillow~=10\.3\.0/Pillow>=12.0.0/g; s/Pillow==10\.3\.0/Pillow>=12.0.0/g' {} \; ; \
         fi && \
         find /ComfyUI/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; && \
         find /ComfyUI/custom_nodes -name "install.py" -exec python {} \; && \
-        if [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
+        if [ "$CUDA_VERSION" = "cu130" ] || [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
             pip cache purge && \
             rm -rf /tmp/pip-* /tmp/build /root/.cache/pip ; \
         fi ; \
