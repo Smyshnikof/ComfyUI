@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import os
 import json
 from datetime import datetime
 
 app = FastAPI(title="ComfyUI Outputs Gallery")
+
+# Лимит архива (MB). 0 = без лимита. Иначе — блокировка при превышении.
+# Для >500MB используется ZIP_STORED — мало памяти.
+MAX_ARCHIVE_SIZE_MB = int(os.environ.get("OUTPUT_ARCHIVE_MAX_MB", "0"))
 
 # Support both RunPod (/workspace) and Vast.ai (/opt/workspace-internal)
 ROOT = os.environ.get("OUTPUT_ROOT") or (
@@ -144,19 +148,74 @@ def get_file(path: str):
     return FileResponse(full)
 
 
+def _total_output_size(path: str = "") -> int:
+    """Суммарный размер всех файлов в path (относительно ROOT)."""
+    full = safe_path(ROOT, path) if path else ROOT
+    if not os.path.isdir(full):
+        return 0
+    total = 0
+    for dirpath, _, filenames in os.walk(full):
+        for fn in filenames:
+            try:
+                total += os.path.getsize(os.path.join(dirpath, fn))
+            except OSError:
+                pass
+    return total
+
+
+@app.get("/api/archive-size")
+def api_archive_size(path: str = Query("", alias="path")):
+    """Размер архива в байтах. Для проверки перед скачиванием."""
+    size = _total_output_size(path)
+    return {"size": size, "size_mb": round(size / (1024 * 1024), 1), "max_mb": MAX_ARCHIVE_SIZE_MB}
+
+
 @app.get("/download-all")
-def download_all():
+def download_all(background_tasks: BackgroundTasks, path: str = Query("", alias="path")):
     import tempfile
     import zipfile
     os.makedirs(ROOT, exist_ok=True)
+    base = safe_path(ROOT, path) if path else ROOT
+    if not os.path.isdir(base):
+        return JSONResponse({"error": "Folder not found"}, status_code=404)
+
+    total = _total_output_size(path)
+    if MAX_ARCHIVE_SIZE_MB > 0:
+        max_bytes = MAX_ARCHIVE_SIZE_MB * 1024 * 1024
+        if total > max_bytes:
+            return JSONResponse(
+                {
+                    "error": f"Архив слишком большой ({total / (1024**3):.1f} GB). "
+                    f"Лимит: {MAX_ARCHIVE_SIZE_MB} MB. Скачайте папки по отдельности или используйте SSH/SFTP.",
+                    "size_mb": round(total / (1024 * 1024), 1),
+                    "max_mb": MAX_ARCHIVE_SIZE_MB,
+                },
+                status_code=413,
+            )
+
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
     tmp.close()
-    with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as z:
-        for dirpath, _, filenames in os.walk(ROOT):
-            for fn in filenames:
-                p = os.path.join(dirpath, fn)
-                rel = os.path.relpath(p, ROOT)
-                z.write(p, arcname=rel)
+    # ZIP_STORED для больших объёмов — меньше памяти и CPU, контейнер не падает
+    compress = zipfile.ZIP_DEFLATED if total < 500 * 1024 * 1024 else zipfile.ZIP_STORED
+    try:
+        with zipfile.ZipFile(tmp.name, "w", compress) as z:
+            for dirpath, _, filenames in os.walk(base):
+                for fn in filenames:
+                    p = os.path.join(dirpath, fn)
+                    rel = os.path.relpath(p, ROOT)
+                    z.write(p, arcname=rel)
+    except OSError as e:
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    def cleanup():
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+    background_tasks.add_task(cleanup)
     return FileResponse(tmp.name, filename="comfyui_outputs.zip")
 
 
@@ -291,7 +350,7 @@ _GALLERY_HTML = """<!DOCTYPE html>
             <label><input type="checkbox" data-ext=".webm"> WEBM</label>
           </div>
           <button class="btn btn-primary" onclick="refresh()">↻ Обновить</button>
-          <a class="btn" href="/download-all">↓ ZIP</a>
+          <span id="zipBtnContainer"><a class="btn" href="/download-all" id="zipDownloadBtn">↓ ZIP</a></span>
         </div>
       </div>
       <div class="gallery">
@@ -451,10 +510,28 @@ _GALLERY_HTML = """<!DOCTYPE html>
       document.getElementById('modalContent').innerHTML = '';
     }
 
+    async function updateZipButton() {
+      const container = document.getElementById('zipBtnContainer');
+      try {
+        const url = '/api/archive-size?path=' + encodeURIComponent(currentPath);
+        const data = await fetch(url).then(r => r.json());
+        const over = data.max_mb > 0 && data.size > data.max_mb * 1024 * 1024;
+        if (over) {
+          container.innerHTML = `<span class="btn" style="opacity:0.6;cursor:not-allowed" title="Слишком большой (${data.size_mb} MB). Лимит ${data.max_mb} MB. Скачайте папки по отдельности.">↓ ZIP</span>`;
+        } else {
+          const href = '/download-all' + (currentPath ? '?path=' + encodeURIComponent(currentPath) : '');
+          container.innerHTML = `<a class="btn" href="${href}" title="Скачать архив (${data.size_mb} MB)">↓ ZIP</a>`;
+        }
+      } catch {
+        container.innerHTML = `<a class="btn" href="/download-all">↓ ZIP</a>`;
+      }
+    }
+
     function navigate(path) {
       currentPath = path;
       buildBreadcrumb();
       loadFiles();
+      updateZipButton();
       document.querySelectorAll('.tree-item').forEach(el => {
         el.classList.toggle('active', el.dataset.path === path);
       });
@@ -464,6 +541,7 @@ _GALLERY_HTML = """<!DOCTYPE html>
     function refresh() {
       loadTree();
       loadFiles();
+      updateZipButton();
     }
 
     document.getElementById('sidebarToggle').onclick = () => {
@@ -481,6 +559,7 @@ _GALLERY_HTML = """<!DOCTYPE html>
       await loadTree();
       buildBreadcrumb();
       await loadFiles();
+      await updateZipButton();
     })();
   </script>
 </body>

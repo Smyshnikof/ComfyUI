@@ -41,7 +41,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-cu128
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да  | 12.4 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да  | 12.8 |
-| `smyshnikof/comfyui:base-torch2.9.0-cu130`   | ✅ Стабильные | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu130`   | ✅ Стабильные | ✅ Да  | 13.0 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
 
@@ -80,7 +80,7 @@ smyshnikof/comfyui:base-torch2.8.0-cu126
 smyshnikof/comfyui:base-torch2.8.0-cu124
 
 # RunPod с CUDA 13.0 (новые поды)
-smyshnikof/comfyui:base-torch2.9.0-cu130
+smyshnikof/comfyui:base-torch2.8.0-cu130
 ```
 
 ### 2. Запустите POD

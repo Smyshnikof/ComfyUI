@@ -46,6 +46,33 @@ if [ -f /workspace/venv/bin/activate ]; then
     source /workspace/venv/bin/activate && pip install --upgrade --quiet click typer huggingface_hub 2>/dev/null || true
 fi
 
+# ComfyUI requirements.txt ломает связку torch/torchaudio → нужны wheel'ы torch==X.Y.Z+cu*** с pytorch.org
+if [ -f /workspace/venv/bin/activate ] && [ -f /comfy_pytorch_pin.txt ]; then
+    if ! bash -c 'source /workspace/venv/bin/activate && python -c "import torchaudio"' 2>/dev/null; then
+        TV=$(sed -n '1p' /comfy_pytorch_pin.txt)
+        CV=$(sed -n '2p' /comfy_pytorch_pin.txt)
+        TVIS=$(sed -n '3p' /comfy_pytorch_pin.txt)
+        echo "**** Восстановление torch-стека (ABI / torchaudio) ****"
+        source /workspace/venv/bin/activate && pip uninstall -y torch torchvision torchaudio 2>/dev/null || true
+        if [ "$TVIS" = "legacy" ]; then
+            pip install --no-cache-dir "torch==${TV}" torchvision torchaudio --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+        elif [ -n "$TVIS" ]; then
+            pip install --no-cache-dir \
+                "torch==${TV}+${CV}" "torchvision==${TVIS}+${CV}" "torchaudio==${TV}+${CV}" \
+                --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+        else
+            [ "$TV" = "2.9.0" ] && TVIS=0.24.0 || TVIS=0.23.0
+            if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then
+                pip install --no-cache-dir \
+                    "torch==${TV}+${CV}" "torchvision==${TVIS}+${CV}" "torchaudio==${TV}+${CV}" \
+                    --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+            else
+                pip install --no-cache-dir "torch==${TV}" torchvision torchaudio --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+            fi
+        fi
+    fi
+fi
+
 echo "**** syncing ComfyUI to workspace, please wait ****"
 if [ -d /ComfyUI ]; then
 
@@ -74,6 +101,35 @@ else
     echo "Skip: /ComfyUI does not exist."
 fi
 
+# Старый volume / detached HEAD (клон по тегу): git pull без ветки не работает — делаем checkout -B main|master.
+if [ "${COMFYUI_UPDATE_ON_START,,}" = "true" ] || [ "$COMFYUI_UPDATE_ON_START" = "1" ]; then
+    if [ -d /workspace/ComfyUI/.git ]; then
+        echo "**** COMFYUI_UPDATE_ON_START: обновление ComfyUI из GitHub ****"
+        cd /workspace/ComfyUI || true
+        git config --global --add safe.directory /workspace/ComfyUI 2>/dev/null || true
+        git remote set-url origin https://github.com/comfy-org/ComfyUI.git 2>/dev/null || true
+        if ! git fetch origin 2>/dev/null; then
+            echo "**** git fetch не удался ****"
+        fi
+        # shallow по тегу: после первого fetch часто нет refs на main/master
+        if ! git rev-parse --verify origin/main >/dev/null 2>&1 && ! git rev-parse --verify origin/master >/dev/null 2>&1; then
+            git fetch origin main:refs/remotes/origin/main --depth=64 2>/dev/null || true
+            git fetch origin master:refs/remotes/origin/master --depth=64 2>/dev/null || true
+        fi
+        if git rev-parse --verify origin/main >/dev/null 2>&1; then
+            git checkout -B main origin/main && git reset --hard origin/main && echo "**** ComfyUI → main @ origin/main ****"
+        elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+            git checkout -B master origin/master && git reset --hard origin/master && echo "**** ComfyUI → master @ origin/master ****"
+        else
+            echo "**** Нет origin/main и origin/master. Вручную: git fetch --unshallow && git fetch origin ****"
+        fi
+        if [ -f /workspace/venv/bin/activate ]; then
+            source /workspace/venv/bin/activate && pip install --no-cache-dir -q -r /workspace/ComfyUI/requirements.txt 2>/dev/null || true
+        fi
+    else
+        echo "**** COMFYUI_UPDATE_ON_START: в /workspace/ComfyUI нет .git — обновление пропущено ****"
+    fi
+fi
 
 if [ "${INSTALL_SAGEATTENTION,,}" = "true" ]; then
     if pip show sageattention > /dev/null 2>&1; then

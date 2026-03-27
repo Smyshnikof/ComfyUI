@@ -69,18 +69,36 @@ RUN uv python install ${PYTHON_VERSION} --default --preview && \
 ENV PATH="/workspace/venv/bin:/venv/bin:$PATH"
 
 # Install essential Python packages and dependencies
-RUN pip install --no-cache-dir -U \
+# Явные wheel'ы torch==X.Y.Z+cu*** с download.pytorch.org; иначе pip берёт torchaudio с pypi → ABI: undefined symbol torch_library_impl
+# comfy_pytorch_pin.txt: torch_ver, cuda_tag, torchvision_ver или третья строка «legacy» (cu124/cu125 + py3.13)
+RUN TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
+    if [ "$TV" = "2.9.0" ]; then TVIS="0.24.0"; else TVIS="0.23.0"; fi && \
+    if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then \
+        PIN_THIRD="$TVIS" && TORCH_PKGS="torch==${TV}+${CV} torchvision==${TVIS}+${CV} torchaudio==${TV}+${CV}"; \
+    else \
+        PIN_THIRD="legacy" && TORCH_PKGS="torch==${TV} torchvision torchaudio"; \
+    fi && \
+    pip install --no-cache-dir -U \
     pip setuptools wheel \
     jupyterlab jupyterlab_widgets ipykernel ipywidgets \
     huggingface_hub hf_transfer \
     numpy scipy matplotlib pandas scikit-learn seaborn requests tqdm pillow pyyaml \
     triton fastapi uvicorn aiofiles aiohttp python-multipart \
-    torch==${TORCH_VERSION} torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/${CUDA_VERSION}
+    ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${CV}" && \
+    printf '%s\n%s\n%s\n' "$TV" "$CV" "$PIN_THIRD" > /comfy_pytorch_pin.txt
 
-# Install ComfyUI and ComfyUI Manager
+# Install ComfyUI and ComfyUI Manager (ветка по умолчанию репозитория — актуальный main/master)
 RUN git clone https://github.com/comfy-org/ComfyUI.git && \
     cd ComfyUI && \
     pip install --no-cache-dir -r requirements.txt && \
+    TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
+    if [ "$TV" = "2.9.0" ]; then TVIS="0.24.0"; else TVIS="0.23.0"; fi && \
+    if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then \
+        TORCH_PKGS="torch==${TV}+${CV} torchvision==${TVIS}+${CV} torchaudio==${TV}+${CV}"; \
+    else \
+        TORCH_PKGS="torch==${TV} torchvision torchaudio"; \
+    fi && \
+    pip install --no-cache-dir ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${CV}" && \
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git custom_nodes/ComfyUI-Manager && \
     cd custom_nodes/ComfyUI-Manager && \
     pip install --no-cache-dir -r requirements.txt
@@ -103,6 +121,14 @@ RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
         fi && \
         find /ComfyUI/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; && \
         find /ComfyUI/custom_nodes -name "install.py" -exec python {} \; && \
+        TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
+        if [ "$TV" = "2.9.0" ]; then TVIS="0.24.0"; else TVIS="0.23.0"; fi && \
+        if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then \
+            TORCH_PKGS="torch==${TV}+${CV} torchvision==${TVIS}+${CV} torchaudio==${TV}+${CV}"; \
+        else \
+            TORCH_PKGS="torch==${TV} torchvision torchaudio"; \
+        fi && \
+        pip install --no-cache-dir ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${CV}" && \
         if [ "$CUDA_VERSION" = "cu130" ] || [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
             pip cache purge && \
             rm -rf /tmp/pip-* /tmp/build /root/.cache/pip ; \

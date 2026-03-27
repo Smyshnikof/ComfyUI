@@ -52,17 +52,17 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | `smyshnikof/comfyui:full-torch2.8.0-cu126`   | ✅ Все        | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:full-torch2.8.0-cu128`   | ✅ Все        | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:full-torch2.8.0-cu129`   | ✅ Все        | ✅ Да  | 12.9 |
-| `smyshnikof/comfyui:full-torch2.9.0-cu130`   | ✅ Все        | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu130`   | ✅ Все        | ✅ Да  | 13.0 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu124`   | ✅ Стабильные | ✅ Да  | 12.4 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu126`   | ✅ Стабильные | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu128`   | ✅ Стабильные | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu129`   | ✅ Стабильные | ✅ Да  | 12.9 |
-| `smyshnikof/comfyui:base-torch2.9.0-cu130`   | ✅ Стабильные | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu130`   | ✅ Стабильные | ✅ Да  | 13.0 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да  | 12.4 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu129`| ❌ Нет        | ✅ Да  | 12.9 |
-| `smyshnikof/comfyui:minimal-torch2.9.0-cu130`| ❌ Нет        | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu130`| ❌ Нет        | ✅ Да  | 13.0 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
 
@@ -84,7 +84,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | **RTX 5090** | `smyshnikof/comfyui:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
 | **RTX 5080** | `smyshnikof/comfyui:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
 | **Новые GPU с CUDA 12.9** | `smyshnikof/comfyui:base-torch2.8.0-cu129` | Для новых видеокарт с CUDA 12.9 |
-| **RunPod с CUDA 13.0** | `smyshnikof/comfyui:base-torch2.9.0-cu130` | Для новых подов RunPod с CUDA 13.0 |
+| **RunPod с CUDA 13.0** | `smyshnikof/comfyui:base-torch2.8.0-cu130` | Для новых подов RunPod с CUDA 13.0 |
 | **RTX 4090** | `smyshnikof/comfyui:base-torch2.8.0-cu126` | Оптимальная производительность |
 | **RTX 4080** | `smyshnikof/comfyui:base-torch2.8.0-cu126` | Отличная совместимость |
 | **RTX 4070** | `smyshnikof/comfyui:base-torch2.8.0-cu124` | Стабильная работа |
@@ -104,6 +104,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | `COMFYUI_EXTRA_ARGS`    | Дополнительные опции ComfyUI (например `--fast`)                        | (не установлен)   |
 | `INSTALL_SAGEATTENTION` | Установить [SageAttention2](https://github.com/thu-ml/SageAttention) при запуске (`True`/`False`) | `True`    |
 | `PRESET_DOWNLOAD`       | Скачать пресеты моделей при запуске (список через запятую). **См. ниже**.                  | (не установлен)   |
+| `COMFYUI_UPDATE_ON_START` | При старте пода: обновить ComfyUI с GitHub (`git pull` + зависимости) | `false` |
 
 > 👉 Для установки: **Edit Pod/Template** → **Add Environment Variable** (Key/Value).
 

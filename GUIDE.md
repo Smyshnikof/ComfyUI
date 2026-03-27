@@ -38,7 +38,7 @@ smyshnikof/comfyui:base-torch2.8.0-cu124
 smyshnikof/comfyui:base-torch2.8.0-cu121
 
 # RunPod с CUDA 13.0 (новые поды)
-smyshnikof/comfyui:base-torch2.9.0-cu130
+smyshnikof/comfyui:base-torch2.8.0-cu130
 ```
 
 > Типы: `full` (все ноды), `base` (стабильные), `minimal` (без кастомных нод).  
@@ -113,7 +113,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да | 12.4 | Минимальная среда |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да | 12.6 | Минимальная среда |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да | 12.8 | Минимальная среда |
-| `smyshnikof/comfyui:base-torch2.9.0-cu130`   | ✅ Стабильные | ✅ Да | 13.0 | RunPod с CUDA 13.0 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu130`   | ✅ Стабильные | ✅ Да | 13.0 | RunPod с CUDA 13.0 |
 
 > 👉 **Для переключения**: Edit Pod/Template → установите `Container Image`
 
@@ -128,7 +128,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | **RTX 4070** | `base-torch2.8.0-cu124` | Стабильная работа |
 | **RTX 3090** | `base-torch2.8.0-cu124` | Совместимость с Ampere |
 | **RTX 3080** | `base-torch2.8.0-cu124` | Совместимость с Ampere |
-| **RunPod CUDA 13.0** | `base-torch2.9.0-cu130` | Для новых подов с CUDA 13.0 |
+| **RunPod CUDA 13.0** | `base-torch2.8.0-cu130` | Для новых подов с CUDA 13.0 |
 
 > ⚠️ **Важно**: RTX 5090/5080 требуют CUDA 12.8+ для корректной работы SageAttention2
 
@@ -143,6 +143,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | `COMFYUI_EXTRA_ARGS`    | Дополнительные опции ComfyUI (например `--fast`)                        | `--use-sage-attention`   |
 | `INSTALL_SAGEATTENTION` | Установить [SageAttention2](https://github.com/thu-ml/SageAttention) при запуске (`True`/`False`) | `True`    |
 | `PRESET_DOWNLOAD`       | Скачать пресеты моделей при запуске (список через запятую)                  | (не установлен)   |
+| `COMFYUI_UPDATE_ON_START` | При старте: `git pull` + `pip install -r requirements.txt` в `/workspace/ComfyUI` (актуальные core-ноды, LTX и т.д.) | `false` |
 
 > 👉 **Для установки**: Edit Pod/Template → Add Environment Variable (Key/Value)
 
@@ -271,8 +272,8 @@ grep -i error /workspace/logs/*.log
 - **Функции**:
   - Просмотр всех файлов из `/workspace/ComfyUI/output`
   - Скачивание отдельных файлов
-  - Скачивание архива со всеми результатами
-  - Удобная навигация по папкам
+  - Скачивание архива (ZIP) — без жёсткого лимита (для больших объёмов — ZIP без сжатия)
+  - Удобная навигация по папкам; можно скачать архив только текущей папки
 
 ### 5. JupyterLab (порт 8888)
 - **URL**: `https://your-pod-id-8888.proxy.runpod.net`
@@ -429,7 +430,85 @@ cd /ComfyUI && pip uninstall sageattention2 -y
 pip install sageattention2
 ```
 
-#### 5. Недостаточно места на диске
+#### 5. «Workflow новее ComfyUI» / ноды LTXV*, LTXAV* / падение ComfyUI-LTXVideo при старте
+
+**Если в логе:** `torchaudio` … `undefined symbol: torch_library_impl` — это **не версия ComfyUI**, а **несовместимые wheel'ы**: команда вида `torch==2.8.0` **без суффикса `+cu128`** часто оставляет `torch` с pytorch.org, а `torchaudio` pip подтягивает **с pypi.org** (другая сборка → ломается ABI).
+
+Исправление вручную — **сначала снести три пакета**, потом поставить **одну линейку с суффиксом CUDA** (пример для образа **base-torch2.8.0-cu128**):
+```bash
+source /workspace/venv/bin/activate
+pip uninstall -y torch torchvision torchaudio
+pip cache purge
+pip install --no-cache-dir \
+  torch==2.8.0+cu128 torchvision==0.23.0+cu128 torchaudio==2.8.0+cu128 \
+  --extra-index-url https://download.pytorch.org/whl/cu128
+```
+Для **cu126** замените везде `cu128` на `cu126`. Для образов **cu130** (torch **2.9.0**):  
+`torch==2.9.0+cu130 torchvision==0.24.0+cu130 torchaudio==2.9.0+cu130` и `--extra-index-url .../cu130`.
+
+Проверка: `python -c "import torchaudio; print('ok')"`. Затем перезапустите ComfyUI.
+
+В новых сборках образа ставятся именно пакеты `X.Y.Z+cu***`, после `requirements.txt` стек переустанавливается снова; при старте пода при сбое `import torchaudio` срабатывает авто-восстановление по `/comfy_pytorch_pin.txt`.
+
+---
+
+**Если речь только про «ноды не установлены» во фронте** — это **встроенные** ноды ComfyUI (`comfy_extras`, LTX-2.3), не пакет из Manager. Частые причины:
+
+1. **ComfyUI не перезапущен после `git` / `pip`** — старый процесс `python main.py` держит в памяти прежний код. Обновление диска **не** подхватывается, пока процесс жив.
+2. Диск в `/workspace` старый; во **вложенных subgraph** новый фронт иногда показывает «Install Required» даже при актуальном бэкенде (баги связки шаблонов + UI).
+
+**Шаг 1 — обновить файлы и зависимости** (detached HEAD → ветка, жёстко как на GitHub):
+```bash
+cd /workspace/ComfyUI
+git remote set-url origin https://github.com/comfy-org/ComfyUI.git
+git fetch origin
+git fetch origin main:refs/remotes/origin/main --depth=64 2>/dev/null || true
+git fetch origin master:refs/remotes/origin/master --depth=64 2>/dev/null || true
+if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  git checkout -B main origin/main && git reset --hard origin/main
+else
+  git checkout -B master origin/master && git reset --hard origin/master
+fi
+source /workspace/venv/bin/activate && pip install -r requirements.txt
+```
+
+**Шаг 2 — обязательно перезапустить ComfyUI** (не только обновить вкладку браузера):
+```bash
+pkill -f "python main.py" || true
+source /workspace/venv/bin/activate
+cd /workspace/ComfyUI
+nohup python main.py --listen --port 3000 $COMFYUI_EXTRA_ARGS >> /workspace/ComfyUI/user/comfyui_3000.log 2>&1 &
+```
+Либо полный **Restart** pod в RunPod.
+
+**Шаг 3 — проверить, что ноды реально грузятся в Python** (если после перезапуска ошибка та же):
+```bash
+cd /workspace/ComfyUI && source /workspace/venv/bin/activate && python -c "
+import importlib.util
+spec = importlib.util.spec_from_file_location('x', 'comfy_extras/nodes_lt_audio.py')
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+print('nodes_lt_audio: OK')
+"
+```
+Если здесь **traceback** (часто `torchaudio`, `import ... failed`) — пришлите текст; без успешного импорта нод в API не будет.
+
+**Шаг 4 — лог при старте ComfyUI:**
+```bash
+grep -iE 'nodes_lt_audio|comfy_entrypoint|IMPORT FAILED|Cannot import' /workspace/ComfyUI/user/comfyui_3000.log | tail -30
+```
+
+**Переменная окружения:** `COMFYUI_UPDATE_ON_START=true` — автоматическое обновление из Git при старте пода (см. таблицу переменных).
+
+Если импорт OK, перезапуск был, а в subgraph всё ещё «Install Required» — попробуйте жёсткое обновление страницы (Ctrl+Shift+R) или открыть тот же workflow в официальной сборке ComfyUI; возможен рассинхрон шаблона `comfyui-workflow-templates` и UI.
+
+#### 6. Контейнер падает при скачивании архива (ZIP)
+На подах с малым RAM (<16GB) большие архивы могут вызвать OOM. Решения:
+- **Скачивайте папки по отдельности** — в галерее выберите папку и нажмите ↓ ZIP
+- **Используйте SSH/SFTP** — для очень больших объёмов: `scp -r root@pod-ip:/workspace/ComfyUI/output ./`
+- **Задать лимит** (опционально): `OUTPUT_ARCHIVE_MAX_MB=2048` для подов с 16GB RAM
+
+#### 7. Недостаточно места на диске
 ```bash
 # Очистить кэш
 rm -rf /workspace/.cache/pip/*
