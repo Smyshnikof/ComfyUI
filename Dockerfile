@@ -169,6 +169,7 @@ COPY --chmod=755 scripts/post_start.sh /
 
 COPY --chmod=755 scripts/download_presets.sh /
 COPY --chmod=755 scripts/install_custom_nodes.sh /
+COPY --chmod=755 scripts/patch_comfy_cuda_mem.py /
 
 # Welcome Message
 COPY logo/runpod.txt /etc/runpod.txt

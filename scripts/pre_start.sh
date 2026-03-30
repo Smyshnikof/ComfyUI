@@ -131,6 +131,33 @@ if [ "${COMFYUI_UPDATE_ON_START,,}" = "true" ] || [ "$COMFYUI_UPDATE_ON_START" =
     fi
 fi
 
+# pip install -r requirements.txt после git pull может перезаписать torch — вернуть wheel'ы из образа
+if [ "${COMFYUI_UPDATE_ON_START,,}" = "true" ] || [ "$COMFYUI_UPDATE_ON_START" = "1" ]; then
+    if [ -f /workspace/venv/bin/activate ] && [ -f /comfy_pytorch_pin.txt ]; then
+        echo "**** Re-applying PyTorch wheels after ComfyUI requirements.txt ****"
+        TV=$(sed -n '1p' /comfy_pytorch_pin.txt)
+        CV=$(sed -n '2p' /comfy_pytorch_pin.txt)
+        TVIS=$(sed -n '3p' /comfy_pytorch_pin.txt)
+        source /workspace/venv/bin/activate
+        if [ "$TVIS" = "legacy" ]; then
+            pip install --no-cache-dir "torch==${TV}" torchvision torchaudio --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+        elif [ -n "$TVIS" ]; then
+            pip install --no-cache-dir \
+                "torch==${TV}+${CV}" "torchvision==${TVIS}+${CV}" "torchaudio==${TV}+${CV}" \
+                --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+        else
+            [ "$TV" = "2.9.0" ] && TVIS_FALLBACK=0.24.0 || TVIS_FALLBACK=0.23.0
+            if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then
+                pip install --no-cache-dir \
+                    "torch==${TV}+${CV}" "torchvision==${TVIS_FALLBACK}+${CV}" "torchaudio==${TV}+${CV}" \
+                    --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+            else
+                pip install --no-cache-dir "torch==${TV}" torchvision torchaudio --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
+            fi
+        fi
+    fi
+fi
+
 if [ "${INSTALL_SAGEATTENTION,,}" = "true" ]; then
     if pip show sageattention > /dev/null 2>&1; then
         echo "**** SageAttention2 is already installed. Skipping installation. ****"
@@ -189,4 +216,10 @@ if [ -d "$USER_MYDOCKER_DIR" ]; then
     done
     # Copy top-level JSONs commonly used as workflows (e.g., T2V/T2I roots)
     find "$USER_MYDOCKER_DIR" -maxdepth 2 -type f -name "*.json" -print0 | xargs -0 -I {} rsync -au {} "$DST_WORKFLOWS_DIR/"
+fi
+
+# ComfyUI: если torch.cuda.mem_get_info падает при импорте (CUDA busy/unavailable на RunPod)
+if [ -f /workspace/ComfyUI/comfy/model_management.py ] && [ -x /workspace/venv/bin/python ] && [ -f /patch_comfy_cuda_mem.py ]; then
+    echo "**** ComfyUI: patch model_management CUDA mem_get_info fallback ****"
+    /workspace/venv/bin/python /patch_comfy_cuda_mem.py || echo "**** patch_comfy_cuda_mem.py: check logs above ****"
 fi
