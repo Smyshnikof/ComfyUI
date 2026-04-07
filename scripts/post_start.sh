@@ -15,6 +15,8 @@ echo "**** Displays the available arguments for running ComfyUI. ****"
 
 python main.py --help
 
-echo "**** Starts ComfyUI, listening on port 3000, with additional arguments specified by COMFYUI_EXTRA_ARGS. ****"
+echo "**** Starts ComfyUI on 0.0.0.0:3000 + CORS (RunPod / внешние ссылки). Extra: COMFYUI_EXTRA_ARGS ****"
 
-python main.py --listen --port 3000 $COMFYUI_EXTRA_ARGS &
+# Явный 0.0.0.0: иначе по умолчанию 127.0.0.1 — ссылка RunPod не откроется («нет прав» / пустая страница).
+# --enable-cors-header: прокси RunPod, другой origin, WebSocket.
+python main.py --listen 0.0.0.0 --port 3000 --enable-cors-header $COMFYUI_EXTRA_ARGS &
