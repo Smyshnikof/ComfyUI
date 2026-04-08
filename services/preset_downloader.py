@@ -334,6 +334,22 @@ PRESET_FILES = {
         ("https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors", "model_patches", None),
         ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_foolhardy_Remacri.pth", "upscale_models", None),
     ],
+    # Anima (circlestone-labs) — общие text_encoders + vae, различается только diffusion
+    "ANIMA_PREVIEW": [
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors", "text_encoders", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+    ],
+    "ANIMA_PREVIEW2": [
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview2.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors", "text_encoders", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+    ],
+    "ANIMA_PREVIEW3_BASE": [
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview3-base.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors", "text_encoders", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+    ],
     # Flux пресеты
     "FLUX_2_DEV_FP8": [
         ("https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors", "text_encoders", None),
@@ -480,6 +496,11 @@ PRESET_CATEGORIES = {
         "name": "Z-Image",
         "icon": "🖼️",
         "color": "#8b5cf6"
+    },
+    "Anima": {
+        "name": "Anima",
+        "icon": "✨",
+        "color": "#c084fc"
     },
     "Flux": {
         "name": "Flux",
@@ -691,6 +712,21 @@ PRESETS = {
         "size": "~15-20GB",
         "time": "8-12 мин",
         "category": "Z-Image"
+    },
+    "ANIMA": {
+        "name": "Anima",
+        "description": "Генерация изображений (circlestone-labs / Qwen-бэкенд)",
+        "size": "~6GB на вариант",
+        "time": "5-10 мин",
+        "category": "Anima",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия модели": {
+                "ANIMA_PREVIEW": {"name": "preview (исходная)", "size": "~6GB", "time": "5-10 мин"},
+                "ANIMA_PREVIEW2": {"name": "preview 2", "size": "~6GB", "time": "5-10 мин"},
+                "ANIMA_PREVIEW3_BASE": {"name": "preview3-base", "size": "~6GB", "time": "5-10 мин"},
+            }
+        }
     },
     "LTX_2": {
         "name": "LTX-2",
