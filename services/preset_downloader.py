@@ -438,6 +438,14 @@ PRESET_FILES = {
         ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors", "loras", None),
         ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
     ],
+    "LTX_2_3_DISTILLED_1_1_BF16": [
+        ("https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-1.1.safetensors", "checkpoints", None),
+        ("https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384-1.1.safetensors", "loras", None),
+        ("https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.0.safetensors", "latent_upscale_models", None),
+        ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors", "loras", None),
+        ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae", None),
+    ],
     # LTX-2 Talking Avatar
     "LTX_2_TALKING_AVATAR": [
         ("https://huggingface.co/Kijai/LTXV2_comfy/resolve/main/diffusion_models/ltx-2-19b-dev_Q8_0.gguf", "diffusion_models", None),
@@ -766,7 +774,12 @@ PRESETS = {
         "variant_groups": {
             "Форматы": {
                 "LTX_2_3_FP8": {"name": "FP8", "size": "~20GB", "time": "10-15 мин"},
-                "LTX_2_3_BF16": {"name": "BF16 (полная версия)", "size": "~60GB", "time": "15-20 мин"}
+                "LTX_2_3_BF16": {"name": "BF16 (полная версия)", "size": "~60GB", "time": "15-20 мин"},
+                "LTX_2_3_DISTILLED_1_1_BF16": {
+                    "name": "Distilled v1.1 (BF16)",
+                    "size": "~60GB",
+                    "time": "15-20 мин"
+                }
             }
         }
     },
