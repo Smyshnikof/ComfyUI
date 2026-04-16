@@ -334,6 +334,19 @@ PRESET_FILES = {
         ("https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors", "model_patches", None),
         ("https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_foolhardy_Remacri.pth", "upscale_models", None),
     ],
+    # ERNIE-Image (Comfy-Org)
+    "ERNIE_IMAGE_BASE": [
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ministral-3-3b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ernie-image-prompt-enhancer.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/vae/flux2-vae.safetensors", "vae", None),
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/diffusion_models/ernie-image.safetensors", "diffusion_models", None),
+    ],
+    "ERNIE_IMAGE_TURBO": [
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ministral-3-3b.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ernie-image-prompt-enhancer.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/vae/flux2-vae.safetensors", "vae", None),
+        ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/diffusion_models/ernie-image-turbo.safetensors", "diffusion_models", None),
+    ],
     # Anima (circlestone-labs) — общие text_encoders + vae, различается только diffusion
     "ANIMA_PREVIEW": [
         ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview.safetensors", "diffusion_models", None),
@@ -509,6 +522,11 @@ PRESET_CATEGORIES = {
         "name": "Anima",
         "icon": "✨",
         "color": "#c084fc"
+    },
+    "ERNIE": {
+        "name": "ERNIE-Image",
+        "icon": "📝",
+        "color": "#14b8a6"
     },
     "Flux": {
         "name": "Flux",
@@ -720,6 +738,20 @@ PRESETS = {
         "size": "~15-20GB",
         "time": "8-12 мин",
         "category": "Z-Image"
+    },
+    "ERNIE_IMAGE": {
+        "name": "ERNIE-Image",
+        "description": "T2I: текст на изображении, вёрстка, логика и композиция",
+        "size": "~15-25GB",
+        "time": "8-15 мин",
+        "category": "ERNIE",
+        "has_variants": True,
+        "variant_groups": {
+            "Диффузионная модель": {
+                "ERNIE_IMAGE_BASE": {"name": "Base (ernie-image)", "size": "~15-25GB", "time": "8-15 мин"},
+                "ERNIE_IMAGE_TURBO": {"name": "Turbo (ernie-image-turbo)", "size": "~15-25GB", "time": "6-12 мин"},
+            }
+        }
     },
     "ANIMA": {
         "name": "Anima",
