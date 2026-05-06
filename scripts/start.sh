@@ -84,16 +84,19 @@ start_jupyter() {
     fi
     
     mkdir -p /workspace/logs
+    # В bash после `cd /` неэкранированный * в --ip=* и allow_origin раскрывается в имена
+    # файлов в / (bin, boot, dev, …) и ломает JupyterLab (в т.ч. «Directory not found: ""»).
     cd / && \
     nohup jupyter lab --allow-root \
         --no-browser \
         --port=8888 \
-        --ip=* \
+        --ip='*' \
         --FileContentsManager.delete_to_trash=False \
         --ContentsManager.allow_hidden=True \
         --ServerApp.terminado_settings='{"shell_command":["/bin/bash"]}' \
         --ServerApp.token="${JUPYTER_PASSWORD}" \
-        --ServerApp.allow_origin=* \
+        --ServerApp.allow_origin='*' \
+        --ServerApp.root_dir=/workspace \
         --ServerApp.preferred_dir=/workspace &> /workspace/logs/jupyterlab.log &
     echo "JupyterLab started"
 }

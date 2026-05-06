@@ -95,12 +95,13 @@ start_jupyter() {
     nohup jupyter lab --allow-root \
         --no-browser \
         --port=8888 \
-        --ip=* \
+        --ip='*' \
         --FileContentsManager.delete_to_trash=False \
         --ContentsManager.allow_hidden=True \
         --ServerApp.terminado_settings='{"shell_command":["/bin/bash"]}' \
         --ServerApp.token="${JUPYTER_PASSWORD}" \
-        --ServerApp.allow_origin=* \
+        --ServerApp.allow_origin='*' \
+        --ServerApp.root_dir=${VAST_WORKSPACE} \
         --ServerApp.preferred_dir=${VAST_WORKSPACE} &> ${VAST_WORKSPACE}/logs/jupyterlab.log &
     echo "JupyterLab started"
 }
