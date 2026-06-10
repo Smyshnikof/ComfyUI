@@ -191,6 +191,15 @@ PRESET_FILES = {
         ("https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx", "detection", None),
         ("https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/wholebody/vitpose-l-wholebody.onnx", "detection", None),
     ],
+    "WAN_ANIMATE_SCAIL2": [
+        ("https://huggingface.co/Comfy-Org/SCAIL-2/resolve/main/diffusion_models/wan2.1_14B_SCAIL_2_fp8_scaled.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_1_VAE_bf16.safetensors", "vae", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors", "clip_vision", None),
+        ("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors", "loras", None),
+        ("https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors", "loras", None),
+        ("https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors", "checkpoints", None),
+    ],
     # Qwen пресеты
     "QWEN_IMAGE": [
         ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_fp8_e4m3fn.safetensors", "diffusion_models", None),
@@ -593,7 +602,8 @@ PRESETS = {
             "Специализированные версии": {
                 "WAN_ANIMATE_STEADY_DANCER": {"name": "Steady Dancer (танцевальная)", "size": "~30GB", "time": "12-18 мин"},
                 "WAN_ANIMATE_ONETOALL": {"name": "OneToAll (согласованная)", "size": "~30GB", "time": "12-18 мин"},
-                "WAN_ANIMATE_SCAIL": {"name": "SCAIL (контроль позы)", "size": "~40GB", "time": "12-18 мин"}
+                "WAN_ANIMATE_SCAIL": {"name": "SCAIL (контроль позы)", "size": "~40GB", "time": "12-18 мин"},
+                "WAN_ANIMATE_SCAIL2": {"name": "SCAIL 2 (контроль позы)", "size": "~45GB", "time": "12-18 мин"}
             }
         },
         "video_guide": "https://youtu.be/fUNbH3o_cE0?si=VTa-ljuPPaAngf3L"
