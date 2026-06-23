@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "WAN_CHRONOEDIT",
+  "name": "ChronoEdit",
+  "description": "Редактирование изображений через создание видео",
+  "category": "Wan",
+  "size": "~25GB",
+  "time": "10-15 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/ChronoEdit/Wan2_1-14B-I2V_ChronoEdit_fp8_scaled_KJ.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/nvidia/ChronoEdit-14B-Diffusers/resolve/main/lora/chronoedit_distill_lora.safetensors",
+      "folder": "loras",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_1_VAE_bf16.safetensors",
+      "folder": "vae",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/umt5-xxl-enc-bf16.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/OreX/Models/resolve/main/WAN/clip_vision_h.safetensors",
+      "folder": "clip_vision",
+      "filename": null
+    }
+  ]
+}

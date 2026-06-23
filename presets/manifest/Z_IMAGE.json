@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "Z_IMAGE",
+  "name": "Z-Image",
+  "description": "Фундаментальная RAW модель генерации изображений",
+  "category": "Z-Image",
+  "size": "~15-20GB",
+  "time": "8-12 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/diffusion_models/z_image_bf16.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/vae/ae.safetensors",
+      "folder": "vae",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors",
+      "folder": "model_patches",
+      "filename": null
+    }
+  ]
+}

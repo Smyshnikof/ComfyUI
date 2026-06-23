@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "id": "ERNIE_IMAGE",
+  "name": "ERNIE-Image",
+  "description": "T2I: текст на изображении, вёрстка, логика и композиция",
+  "category": "ERNIE",
+  "size": "~15-25GB",
+  "time": "8-15 мин",
+  "variant_groups": [
+    {
+      "group": "Диффузионная модель",
+      "variants": [
+        {
+          "id": "ERNIE_IMAGE_BASE",
+          "name": "Base (ernie-image)",
+          "size": "~15-25GB",
+          "time": "8-15 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ministral-3-3b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ernie-image-prompt-enhancer.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/vae/flux2-vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/diffusion_models/ernie-image.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "ERNIE_IMAGE_TURBO",
+          "name": "Turbo (ernie-image-turbo)",
+          "size": "~15-25GB",
+          "time": "6-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ministral-3-3b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/text_encoders/ernie-image-prompt-enhancer.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/vae/flux2-vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/diffusion_models/ernie-image-turbo.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

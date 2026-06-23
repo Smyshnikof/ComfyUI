@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "IDEOGRAM_4",
+  "name": "Ideogram 4.0",
+  "description": "T2I: типографика, композиция, prompt enhancement (Qwen3VL + Gemma 4)",
+  "category": "Ideogram",
+  "size": "~36GB",
+  "time": "15-25 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_fp8_scaled.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/text_encoders/qwen3vl_8b_fp8_scaled.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/vae/flux2-vae.safetensors",
+      "folder": "vae",
+      "filename": null
+    }
+  ]
+}

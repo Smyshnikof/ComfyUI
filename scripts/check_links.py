@@ -12,7 +12,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from services.preset_downloader import PRESET_FILES  # noqa: E402
+from services._presets import load_presets  # noqa: E402
 
 USER_AGENT = "ComfyUI-link-check/1.0"
 HEADERS = {"User-Agent": USER_AGENT}
@@ -46,10 +46,11 @@ def _check_url(url: str) -> tuple[int | None, str | None]:
 
 
 def main() -> int:
+    _presets, preset_files, _categories = load_presets(log_skips=False)
     seen: set[str] = set()
     failures: list[tuple[str, str, str]] = []
 
-    for preset_id, files in PRESET_FILES.items():
+    for preset_id, files in preset_files.items():
         for url, folder, _custom in files:
             if url in seen:
                 continue

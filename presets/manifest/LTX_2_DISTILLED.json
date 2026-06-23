@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "id": "LTX_2_DISTILLED",
+  "name": "LTX-2 Distilled",
+  "description": "Дистиллированная версия LTX-2 для более быстрой генерации",
+  "category": "LTX",
+  "size": "~20-40GB",
+  "time": "10-20 мин",
+  "variant_groups": [
+    {
+      "group": "Форматы",
+      "variants": [
+        {
+          "id": "LTX_2_DISTILLED_FP8",
+          "name": "FP8",
+          "size": "~20GB",
+          "time": "10-15 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-fp8.safetensors",
+              "folder": "checkpoints",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/lotus/resolve/main/lotus-depth-d-v1-1.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors",
+              "folder": "latent_upscale_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "LTX_2_DISTILLED_BF16",
+          "name": "BF16 (полная версия)",
+          "size": "~40GB",
+          "time": "15-20 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled.safetensors",
+              "folder": "checkpoints",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/lotus/resolve/main/lotus-depth-d-v1-1.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors",
+              "folder": "latent_upscale_models",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

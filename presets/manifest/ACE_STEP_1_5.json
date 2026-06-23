@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "id": "ACE_STEP_1_5",
+  "name": "ACE-Step 1.5",
+  "description": "Full-song генерация: жанр, вокал, текст и аранжировка",
+  "category": "Audio",
+  "size": "~3GB",
+  "time": "3-5 мин",
+  "variant_groups": [
+    {
+      "group": "Версия",
+      "variants": [
+        {
+          "id": "ACE_STEP_1_5_AIO",
+          "name": "AIO (одна нода)",
+          "size": "~3GB",
+          "time": "3-5 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/checkpoints/ace_step_1.5_turbo_aio.safetensors",
+              "folder": "checkpoints",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "ACE_STEP_1_5_TURBO_SPLIT",
+          "name": "Turbo Split",
+          "size": "~3GB",
+          "time": "3-5 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/diffusion_models/acestep_v1.5_turbo.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/text_encoders/qwen_1.7b_ace15.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/split_files/vae/ace_1.5_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

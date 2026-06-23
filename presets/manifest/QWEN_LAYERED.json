@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "id": "QWEN_LAYERED",
+  "name": "Qwen Layered",
+  "description": "Разложить изображение на слои",
+  "category": "Qwen",
+  "size": "~40GB",
+  "time": "10-20 мин",
+  "variant_groups": [
+    {
+      "group": "Форматы",
+      "variants": [
+        {
+          "id": "QWEN_LAYERED_FP8",
+          "name": "FP8",
+          "size": "~40GB",
+          "time": "10-20 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_layered_fp8mixed.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/vae/qwen_image_layered_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "QWEN_LAYERED_BF16",
+          "name": "BF16",
+          "size": "~40GB",
+          "time": "10-20 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_layered_bf16.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Layered_ComfyUI/resolve/main/split_files/vae/qwen_image_layered_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

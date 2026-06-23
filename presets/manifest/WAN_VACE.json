@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "id": "WAN_VACE",
+  "name": "Wan VACE",
+  "description": "Изменение и стилизация видео на основе исходного ролика с сохранением движения, композиции и таймингов",
+  "category": "Wan",
+  "size": "~35GB",
+  "time": "12-18 мин",
+  "variant_groups": [
+    {
+      "group": "Версия модели",
+      "variants": [
+        {
+          "id": "WAN_VACE_F16",
+          "name": "F16 (Full precision)",
+          "size": "~35GB",
+          "time": "12-18 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/QuantStack/Wan2.1_14B_VACE-GGUF/resolve/main/Wan2.1_14B_VACE-F16.gguf",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+              "folder": "loras",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "WAN_VACE_BF16",
+          "name": "BF16 (Brain float)",
+          "size": "~35GB",
+          "time": "12-18 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/QuantStack/Wan2.1_14B_VACE-GGUF/resolve/main/Wan2.1_14B_VACE-BF16.gguf",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+              "folder": "loras",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "WAN_VACE_Q5_K_S",
+          "name": "Q5_K_S (Quantized)",
+          "size": "~15GB",
+          "time": "8-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/QuantStack/Wan2.1_14B_VACE-GGUF/resolve/main/Wan2.1_14B_VACE-Q5_K_S.gguf",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors",
+              "folder": "loras",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

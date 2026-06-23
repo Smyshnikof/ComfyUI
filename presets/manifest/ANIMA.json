@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "id": "ANIMA",
+  "name": "Anima",
+  "description": "Генерация изображений (circlestone-labs / Qwen-бэкенд)",
+  "category": "Anima",
+  "size": "~6GB на вариант",
+  "time": "5-10 мин",
+  "variant_groups": [
+    {
+      "group": "Версия модели",
+      "variants": [
+        {
+          "id": "ANIMA_BASE",
+          "name": "base v1.0 (релизная)",
+          "size": "~6GB",
+          "time": "5-10 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "ANIMA_PREVIEW",
+          "name": "preview (исходная)",
+          "size": "~6GB",
+          "time": "5-10 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "ANIMA_PREVIEW2",
+          "name": "preview 2",
+          "size": "~6GB",
+          "time": "5-10 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview2.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "ANIMA_PREVIEW3_BASE",
+          "name": "preview3-base",
+          "size": "~6GB",
+          "time": "5-10 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview3-base.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

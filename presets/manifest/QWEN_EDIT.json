@@ -1,0 +1,315 @@
+{
+  "schema": 1,
+  "id": "QWEN_EDIT",
+  "name": "Qwen Edit (Image Edit)",
+  "description": "Редактирование изображений",
+  "category": "Qwen",
+  "size": "~15-40GB",
+  "time": "8-20 мин",
+  "variant_groups": [
+    {
+      "group": "Базовая версия",
+      "variants": [
+        {
+          "id": "QWEN_EDIT",
+          "name": "FP8",
+          "size": "~15GB",
+          "time": "8-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_fp8_e4m3fn.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+              "folder": "upscale_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "QWEN_EDIT_BF16",
+          "name": "BF16",
+          "size": "~40GB",
+          "time": "10-20 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_bf16.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+              "folder": "upscale_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "QWEN_EDIT_LIGHTNING",
+          "name": "Lightning",
+          "size": "~2GB",
+          "time": "3-8 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-4steps-V1.0.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-Lightning-8steps-V1.0.safetensors",
+              "folder": "loras",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Версия 2509",
+      "variants": [
+        {
+          "id": "QWEN_EDIT_2509_FP8",
+          "name": "FP8",
+          "size": "~15GB",
+          "time": "8-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+              "folder": "upscale_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "QWEN_EDIT_2509_BF16",
+          "name": "BF16",
+          "size": "~40GB",
+          "time": "10-20 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2509_bf16.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+              "folder": "upscale_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "QWEN_EDIT_2509_LIGHTNING",
+          "name": "Lightning",
+          "size": "~2GB",
+          "time": "3-8 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-fp32.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-8steps-V1.0-fp32.safetensors",
+              "folder": "loras",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Версия 2511",
+      "variants": [
+        {
+          "id": "QWEN_EDIT_2511_FP8",
+          "name": "FP8",
+          "size": "~15GB",
+          "time": "8-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+              "folder": "upscale_models",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "QWEN_EDIT_2511_BF16",
+          "name": "BF16",
+          "size": "~40GB",
+          "time": "10-20 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-fp32.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/DiffSynth-Studio/Qwen-Image-Edit-F2P/resolve/main/edit_0928_lora_step40000.safetensors",
+              "folder": "loras",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+              "folder": "upscale_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Qwen-Image-InstantX-ControlNets/resolve/main/split_files/controlnet/Qwen-Image-InstantX-ControlNet-Union.safetensors",
+              "folder": "controlnet",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "FLUX_1_KREA_FP8",
+  "name": "Flux.1 Krea Dev",
+  "description": "Специализированная версия Flux.1 от Krea для генерации изображений",
+  "category": "Flux",
+  "size": "~28GB",
+  "time": "12-18 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/FLUX.1-Krea-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-krea-dev_fp8_scaled.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors",
+      "folder": "vae",
+      "filename": null
+    }
+  ]
+}

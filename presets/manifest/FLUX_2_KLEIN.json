@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "id": "FLUX_2_KLEIN",
+  "name": "Flux.2 Klein 4B",
+  "description": "Компактная версия Flux.2 для генерации изображений",
+  "category": "Flux",
+  "size": "~13GB",
+  "time": "8-12 мин",
+  "variant_groups": [
+    {
+      "group": "Версия модели",
+      "variants": [
+        {
+          "id": "FLUX_2_KLEIN_BASE_FP8",
+          "name": "Base FP8",
+          "size": "~13GB",
+          "time": "8-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-4b-fp8/resolve/main/flux-2-klein-base-4b-fp8.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        },
+        {
+          "id": "FLUX_2_KLEIN_FP8",
+          "name": "Standard FP8",
+          "size": "~13GB",
+          "time": "8-12 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b-fp8.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+              "folder": "vae",
+              "filename": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

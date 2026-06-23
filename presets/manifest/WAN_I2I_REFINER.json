@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "id": "WAN_I2I_REFINER",
+  "name": "Wan I2I Refiner",
+  "description": "Модели для улучшения изображений (Image-to-Image Refiner)",
+  "category": "Wan",
+  "size": "~15GB",
+  "time": "8-12 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/T2V/Wan2_2-T2V-A14B-LOW_fp8_e4m3fn_scaled_KJ.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+      "folder": "vae",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x-UltraSharp.pth",
+      "folder": "upscale_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_NMKD-Siax_200k.pth",
+      "folder": "upscale_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_RealisticRescaler_100000_G.pth",
+      "folder": "upscale_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_fatal_Anime_500000_G.pth",
+      "folder": "upscale_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/BSRGAN.pth",
+      "folder": "upscale_models",
+      "filename": null
+    }
+  ]
+}

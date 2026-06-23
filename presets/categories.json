@@ -1,0 +1,47 @@
+{
+  "Wan": {
+    "name": "Wan",
+    "icon": "🎬",
+    "color": "#22c55e"
+  },
+  "Qwen": {
+    "name": "Qwen",
+    "icon": "🤖",
+    "color": "#3b82f6"
+  },
+  "Z-Image": {
+    "name": "Z-Image",
+    "icon": "🖼️",
+    "color": "#8b5cf6"
+  },
+  "Anima": {
+    "name": "Anima",
+    "icon": "✨",
+    "color": "#c084fc"
+  },
+  "ERNIE": {
+    "name": "ERNIE-Image",
+    "icon": "📝",
+    "color": "#14b8a6"
+  },
+  "Ideogram": {
+    "name": "Ideogram",
+    "icon": "🎭",
+    "color": "#6366f1"
+  },
+  "Flux": {
+    "name": "Flux",
+    "icon": "⚡",
+    "color": "#f59e0b"
+  },
+  "LTX": {
+    "name": "LTX",
+    "icon": "🎨",
+    "color": "#ec4899"
+  },
+  "Audio": {
+    "name": "Audio",
+    "icon": "🎵",
+    "color": "#06b6d4"
+  }
+}

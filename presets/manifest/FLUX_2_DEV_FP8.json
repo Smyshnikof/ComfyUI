@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "FLUX_2_DEV_FP8",
+  "name": "Flux.2 Dev FP8 Mixed",
+  "description": "Генерация изображений из текста с моделью Flux.2 Dev",
+  "category": "Flux",
+  "size": "~29GB",
+  "time": "12-18 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+      "folder": "vae",
+      "filename": null
+    }
+  ]
+}
