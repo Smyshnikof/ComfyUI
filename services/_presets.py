@@ -5,6 +5,9 @@ import glob
 import json
 import os
 import re
+import zlib
+import base64
+import binascii
 from typing import Any
 from urllib.parse import urlparse
 
@@ -44,6 +47,10 @@ ALLOWED_IMPORT_HOSTS = frozenset({
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
+SHARE_REF_PREFIX = "CUIP1:ref:"
+SHARE_Z_PREFIX = "CUIP1:z:"
+MAX_SHARE_CODE_CHARS = 2500
+
 _TRANSLIT = {
     "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
     "ж": "zh", "з": "z", "и": "i", "й": "i", "к": "k", "л": "l", "м": "m",
@@ -51,6 +58,50 @@ _TRANSLIT = {
     "ф": "f", "х": "h", "ц": "c", "ч": "ch", "ш": "sh", "щ": "sch",
     "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
 }
+
+
+def is_builtin_preset_id(pid: str) -> bool:
+    return pid in _collect_ids(sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json"))))
+
+
+def encode_preset_share_code(obj: dict) -> str | None:
+    """Short ref for built-in presets; gzip+base64 for community. None if too large."""
+    pid = obj.get("id", "")
+    if isinstance(pid, str) and is_builtin_preset_id(pid):
+        return f"{SHARE_REF_PREFIX}{pid}"
+    raw = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    b64 = base64.urlsafe_b64encode(zlib.compress(raw, level=9)).decode("ascii").rstrip("=")
+    code = f"{SHARE_Z_PREFIX}{b64}"
+    if len(code) > MAX_SHARE_CODE_CHARS:
+        return None
+    return code
+
+
+def decode_preset_share_code(code: str) -> tuple[str, Any]:
+    """
+    Returns (kind, payload).
+    kind='ref' → payload is preset id str.
+    kind='preset' → payload is manifest dict.
+    """
+    code = code.strip()
+    if not code:
+        raise ValueError("empty")
+    if code.startswith(SHARE_REF_PREFIX):
+        pid = code[len(SHARE_REF_PREFIX):]
+        if not isinstance(pid, str) or not _ID_RE.fullmatch(pid):
+            raise ValueError("bad ref")
+        return "ref", pid
+    if code.startswith(SHARE_Z_PREFIX):
+        b64 = code[len(SHARE_Z_PREFIX):]
+        pad = (-len(b64)) % 4
+        raw = zlib.decompress(base64.urlsafe_b64decode(b64 + "=" * pad))
+        return "preset", json.loads(raw.decode("utf-8"))
+    pad = (-len(code)) % 4
+    try:
+        raw = base64.urlsafe_b64decode(code.encode("ascii") + b"=" * pad)
+    except binascii.Error as exc:
+        raise ValueError("bad b64") from exc
+    return "preset", json.loads(raw.decode("utf-8"))
 
 
 def slug_id(name: str) -> str:
@@ -312,6 +363,78 @@ def load_presets(*, log_skips: bool = True) -> tuple[dict, dict, dict]:
 def _safe_preset_id(pid: str) -> str | None:
     pid = (pid or "").strip()
     return pid if _ID_RE.fullmatch(pid) else None
+
+
+def _community_preset_path(pid: str) -> str | None:
+    pid = _safe_preset_id(pid)
+    if not pid:
+        return None
+    path = os.path.join(COMMUNITY_DIR, f"{pid}.json")
+    real_root = os.path.realpath(COMMUNITY_DIR)
+    real_path = os.path.realpath(path)
+    if not (real_path == real_root or real_path.startswith(real_root + os.sep)):
+        return None
+    return path
+
+
+def is_community_preset_id(pid: str) -> bool:
+    path = _community_preset_path(pid)
+    return bool(path and os.path.isfile(path))
+
+
+def _count_preset_files(obj: dict) -> int:
+    if obj.get("files"):
+        return len(obj["files"])
+    total = 0
+    for grp in obj.get("variant_groups") or []:
+        for v in grp.get("variants") or []:
+            total += len(v.get("files") or [])
+    return total
+
+
+def list_community_presets() -> list[dict]:
+    os.makedirs(COMMUNITY_DIR, exist_ok=True)
+    items: list[dict] = []
+    for path in sorted(glob.glob(os.path.join(COMMUNITY_DIR, "*.json"))):
+        try:
+            obj = _load_json(path)
+        except Exception:
+            continue
+        pid = obj.get("id")
+        if not isinstance(pid, str):
+            continue
+        items.append({
+            "id": pid,
+            "name": obj.get("name", pid),
+            "category": obj.get("category", ""),
+            "description": obj.get("description", ""),
+            "file_count": _count_preset_files(obj),
+            "has_variants": bool(obj.get("variant_groups")),
+        })
+    return items
+
+
+def get_community_preset_raw(pid: str) -> dict | None:
+    path = _community_preset_path(pid)
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        return _load_json(path)
+    except Exception:
+        return None
+
+
+def delete_community_preset(pid: str) -> tuple[bool, str]:
+    if is_builtin_preset_id(pid):
+        return False, "Нельзя удалить встроенный пресет"
+    path = _community_preset_path(pid)
+    if not path or not os.path.isfile(path):
+        return False, "Пресет не найден"
+    try:
+        os.remove(path)
+        return True, pid
+    except OSError as exc:
+        return False, str(exc)
 
 
 def save_community_preset(obj: dict) -> tuple[bool, str]:

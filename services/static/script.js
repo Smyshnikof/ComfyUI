@@ -2,6 +2,39 @@ console.log('JavaScript loaded');
 let selectedPresets = [];
 let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
 let installedStatus = {};
+
+window.setPresetProgressVisible = function(visible) {
+  const progress = document.getElementById('preset-progress');
+  if (progress) progress.hidden = !visible;
+  document.body.classList.toggle('preset-download-active', visible);
+};
+
+window.openManageModal = function() {
+  const modal = document.getElementById('manage-modal');
+  if (modal) modal.classList.add('open');
+  if (typeof initPresetForm === 'function') initPresetForm();
+  if (typeof loadCommunityPresetList === 'function') loadCommunityPresetList();
+};
+
+window.closeManageModal = function() {
+  const modal = document.getElementById('manage-modal');
+  if (modal) modal.classList.remove('open');
+};
+
+window.updateCommunityBadge = function(count) {
+  const badge = document.getElementById('community-count-badge');
+  if (!badge || count === undefined) return;
+  if (count > 0) {
+    badge.hidden = false;
+    badge.textContent = String(count);
+  } else {
+    badge.hidden = true;
+  }
+};
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeManageModal();
+});
 console.log('selectedPresets initialized:', selectedPresets);
 
 // Убеждаемся, что функции доступны глобально
@@ -166,12 +199,11 @@ window.downloadPresets = function(forceDownload) {
     return;
   }
   
-  const progress = document.getElementById('preset-progress');
   const result = document.getElementById('preset-result');
   const btn = document.getElementById('download-presets-btn');
   
   // Показываем прогресс
-  progress.style.display = 'block';
+  setPresetProgressVisible(true);
   result.textContent = '';
   result.innerHTML = '';
   btn.disabled = true;
@@ -189,7 +221,7 @@ window.downloadPresets = function(forceDownload) {
   .then(response => response.json())
   .then(data => {
     if (data.warning) {
-      progress.style.display = 'none';
+      setPresetProgressVisible(false);
       btn.disabled = false;
       window.updatePresetDownloadButtonLabel();
       window.showDiskSpaceWarning(data);
@@ -200,14 +232,14 @@ window.downloadPresets = function(forceDownload) {
       pollStatus(data.task_id);
     } else {
       result.textContent = data.message;
-      progress.style.display = 'none';
+      setPresetProgressVisible(false);
       btn.disabled = false;
       window.updatePresetDownloadButtonLabel();
     }
   })
   .catch(error => {
     result.textContent = '❌ Ошибка: ' + error.message;
-    progress.style.display = 'none';
+    setPresetProgressVisible(false);
     btn.disabled = false;
     window.updatePresetDownloadButtonLabel();
   });
@@ -259,11 +291,13 @@ window.loadInstalledStatus = function() {
 window.applyInstalledBadges = function() {
   document.querySelectorAll('.preset-card[data-preset]').forEach(card => {
     const presetId = card.dataset.preset;
-    let badge = card.querySelector('.preset-install-badge');
+    const slot = card.querySelector('.preset-install-slot');
+    if (!slot) return;
+    let badge = slot.querySelector('.preset-install-badge');
     if (!badge) {
       badge = document.createElement('span');
       badge.className = 'preset-install-badge';
-      card.insertBefore(badge, card.firstChild);
+      slot.appendChild(badge);
     }
     const info = installedStatus[presetId];
     if (!info || info.state === 'none') {
@@ -328,7 +362,6 @@ window.showDiskSpaceWarning = function(data) {
 }
 
 window.pollStatus = function(taskId) {
-  const progress = document.getElementById('preset-progress');
   const progressFill = document.getElementById('preset-progress-fill');
   const progressText = document.getElementById('preset-progress-text');
   const result = document.getElementById('preset-result');
@@ -339,7 +372,7 @@ window.pollStatus = function(taskId) {
   .then(data => {
     if (data.status === 'completed' || data.status === 'error') {
       result.textContent = data.message;
-      progress.style.display = 'none';
+      setPresetProgressVisible(false);
       btn.disabled = false;
       window.updatePresetDownloadButtonLabel();
       window.loadInstalledStatus();
@@ -368,14 +401,14 @@ window.pollStatus = function(taskId) {
       setTimeout(() => pollStatus(taskId), 500);
     } else {
       result.textContent = '❌ Неизвестный статус: ' + data.message;
-      progress.style.display = 'none';
+      setPresetProgressVisible(false);
       btn.disabled = false;
       window.updatePresetDownloadButtonLabel();
     }
   })
   .catch(error => {
     result.textContent = '❌ Ошибка проверки статуса: ' + error.message;
-    progress.style.display = 'none';
+    setPresetProgressVisible(false);
     btn.disabled = false;
     window.updatePresetDownloadButtonLabel();
   });
@@ -475,13 +508,12 @@ window.resumeActiveDownloads = function() {
       const hfTask = tasks.find(isHfTask);
 
       if (presetTask) {
-        const p = document.getElementById('preset-progress');
         const fill = document.getElementById('preset-progress-fill');
         const text = document.getElementById('preset-progress-text');
         const b = document.getElementById('download-presets-btn');
         const result = document.getElementById('preset-result');
         const pct = presetTask.progress || 0;
-        if (p) p.style.display = 'block';
+        setPresetProgressVisible(true);
         if (fill) fill.style.width = pct + '%';
         if (text) {
           let msg = presetTask.message || 'Загрузка...';
@@ -548,6 +580,135 @@ document.addEventListener('DOMContentLoaded', function() {
 window.refreshInstalled = window.loadInstalledStatus;
 
 let formMeta = { categories: [], folders: [] };
+let editingPresetId = null;
+
+window.loadCommunityPresetList = async function() {
+  const wrap = document.getElementById('community-preset-list');
+  if (!wrap) return;
+  try {
+    const resp = await fetch('/api/community-presets');
+    const data = await resp.json();
+    const items = data.presets || [];
+    if (!items.length) {
+      wrap.innerHTML = '<div class="community-preset-empty">Пока нет своих пресетов — создай или импортируй ниже.</div>';
+      return;
+    }
+    wrap.innerHTML = items.map(p => {
+      const sub = [
+        p.category || '',
+        p.file_count ? `${p.file_count} файл(ов)` : '',
+        p.has_variants ? 'варианты' : '',
+      ].filter(Boolean).join(' · ');
+      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      return `<div class="community-preset-item" data-id="${esc(p.id)}">
+        <div class="community-preset-meta">
+          <div class="community-preset-name">${esc(p.name)}</div>
+          <div class="community-preset-sub">${esc(sub)}</div>
+        </div>
+        <div class="community-preset-actions">
+          <button type="button" class="btn" onclick="editCommunityPreset('${esc(p.id)}')" title="Редактировать">✏️</button>
+          <button type="button" class="btn" onclick="deleteCommunityPreset('${esc(p.id)}')" title="Удалить">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    wrap.innerHTML = '<div class="community-preset-empty">Не удалось загрузить список</div>';
+    console.warn('loadCommunityPresetList failed', e);
+  }
+};
+
+window.resetPresetForm = function() {
+  editingPresetId = null;
+  const nameEl = document.getElementById('np-name');
+  const descEl = document.getElementById('np-desc');
+  if (nameEl) nameEl.value = '';
+  if (descEl) descEl.value = '';
+  const cat = document.getElementById('np-category');
+  if (cat && cat.options.length) cat.selectedIndex = 0;
+  onCategoryChange();
+  const filesWrap = document.getElementById('np-files');
+  if (filesWrap) {
+    filesWrap.innerHTML = '';
+    addFileRow();
+  }
+  const banner = document.getElementById('np-edit-banner');
+  if (banner) banner.classList.remove('visible');
+  const saveBtn = document.getElementById('np-save-btn');
+  if (saveBtn) saveBtn.textContent = 'Сохранить пресет';
+  const res = document.getElementById('np-result');
+  if (res) res.textContent = '';
+};
+
+window.editCommunityPreset = async function(pid) {
+  const res = document.getElementById('np-result');
+  try {
+    const resp = await fetch('/api/community-presets/' + encodeURIComponent(pid));
+    const data = await resp.json();
+    if (!data.ok || !data.preset) {
+      if (res) res.textContent = data.message || '❌ Пресет не найден';
+      return;
+    }
+    const preset = data.preset;
+    if (preset.variant_groups && preset.variant_groups.length) {
+      if (res) res.textContent = '❌ Пресеты с вариантами пока нельзя редактировать в форме';
+      return;
+    }
+    editingPresetId = pid;
+    document.getElementById('np-name').value = preset.name || '';
+    document.getElementById('np-desc').value = preset.description || '';
+    const cat = document.getElementById('np-category');
+    if (cat) {
+      const cid = preset.category || '';
+      const hasOpt = [...cat.options].some(o => o.value === cid);
+      if (hasOpt) cat.value = cid;
+      else if (cid) {
+        const opt = document.createElement('option');
+        opt.value = cid;
+        opt.textContent = cid;
+        cat.insertBefore(opt, cat.querySelector('option[value="__new__"]'));
+        cat.value = cid;
+      }
+    }
+    onCategoryChange();
+    const filesWrap = document.getElementById('np-files');
+    if (filesWrap) {
+      filesWrap.innerHTML = '';
+      const files = preset.files || [];
+      if (files.length) files.forEach(f => addFileRow(f));
+      else addFileRow();
+    }
+    const banner = document.getElementById('np-edit-banner');
+    const label = document.getElementById('np-edit-label');
+    if (banner) banner.classList.add('visible');
+    if (label) label.textContent = preset.name || pid;
+    const saveBtn = document.getElementById('np-save-btn');
+    if (saveBtn) saveBtn.textContent = 'Сохранить изменения';
+    if (res) res.textContent = '';
+    document.getElementById('add-preset-block')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (e) {
+    if (res) res.textContent = '❌ ' + e.message;
+  }
+};
+
+window.deleteCommunityPreset = function(pid) {
+  const item = document.querySelector(`.community-preset-item[data-id="${pid}"] .community-preset-name`);
+  const label = item ? item.textContent : pid;
+  if (!confirm(`Удалить пресет «${label}»? Файл на диске не трогаем — только запись пресета.`)) return;
+  const res = document.getElementById('np-result');
+  fetch('/presets/community/' + encodeURIComponent(pid), { method: 'DELETE' })
+    .then(r => r.json())
+    .then(d => {
+      if (res) res.textContent = d.message || (d.ok ? 'OK' : 'Ошибка');
+      if (d.ok) {
+        if (editingPresetId === pid) resetPresetForm();
+        refreshPresetGrid();
+        loadCommunityPresetList();
+      }
+    })
+    .catch(e => {
+      if (res) res.textContent = '❌ ' + e.message;
+    });
+};
 
 window.initPresetForm = async function() {
   try {
@@ -574,7 +735,7 @@ window.onCategoryChange = function() {
   if (block) block.style.display = isNew ? 'block' : 'none';
 };
 
-window.addFileRow = function() {
+window.addFileRow = function(data) {
   const wrap = document.getElementById('np-files');
   if (!wrap) return;
   const row = document.createElement('div');
@@ -588,6 +749,26 @@ window.addFileRow = function() {
     <input class="np-filename" type="text" placeholder="имя (необяз.)" />
     <button type="button" class="btn" onclick="this.parentNode.remove()">✕</button>`;
   wrap.appendChild(row);
+  if (data) {
+    const urlIn = row.querySelector('.np-url');
+    const folderSel = row.querySelector('.np-folder');
+    const nameIn = row.querySelector('.np-filename');
+    if (urlIn && data.url) urlIn.value = data.url;
+    if (folderSel && data.folder) {
+      if (![...folderSel.options].some(o => o.value === data.folder)) {
+        const opt = document.createElement('option');
+        opt.value = data.folder;
+        opt.textContent = data.folder;
+        folderSel.appendChild(opt);
+      }
+      folderSel.value = data.folder;
+    }
+    if (nameIn && data.filename) nameIn.value = data.filename;
+  }
+};
+
+window.savePreset = function() {
+  if (typeof createPreset === 'function') createPreset();
 };
 
 window.createPreset = function() {
@@ -621,22 +802,17 @@ window.createPreset = function() {
   fd.append('category_icon', category_icon);
   fd.append('description', description);
   fd.append('files_json', JSON.stringify(files));
+  if (editingPresetId) fd.append('preset_id', editingPresetId);
 
-  fetch('/presets/create', { method: 'POST', body: fd })
+  const url = editingPresetId ? '/presets/update' : '/presets/create';
+  fetch(url, { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
       if (res) res.textContent = d.message || (d.ok ? 'OK' : 'Ошибка');
       if (d.ok) {
-        document.getElementById('np-name').value = '';
-        document.getElementById('np-desc').value = '';
-        const filesWrap = document.getElementById('np-files');
-        if (filesWrap) {
-          filesWrap.innerHTML = '';
-          addFileRow();
-        }
-        const block = document.getElementById('add-preset-block');
-        if (block) block.open = false;
+        resetPresetForm();
         refreshPresetGrid();
+        loadCommunityPresetList();
       }
     })
     .catch(e => {
@@ -652,6 +828,7 @@ window.refreshPresetGrid = function() {
       const filters = document.getElementById('category-filters');
       if (grid) grid.innerHTML = d.presets_html;
       if (filters) filters.innerHTML = d.category_filters_html;
+      if (typeof updateCommunityBadge === 'function') updateCommunityBadge(d.community_count);
       selectedPresets = [];
       selectedVariants = {};
       if (typeof applyFilters === 'function') applyFilters();
@@ -680,7 +857,7 @@ window.reloadPresets = function() {
     .finally(() => {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = '🔄 Обновить пресеты';
+        btn.textContent = '🔄 Обновить';
       }
     });
 };
@@ -695,9 +872,18 @@ window.copyPresetCode = function(pid, event) {
   fetch(`/presets/code/${pid}`)
     .then(r => r.json())
     .then(d => {
-      if (!d.ok) { alert(d.message); return; }
+      if (!d.ok) {
+        alert(d.message || 'Не удалось получить код');
+        return;
+      }
+      let hint;
+      if (d.kind === 'ref') {
+        hint = `Код пресета: ${d.code}\n\nВстроенный пресет — на поде с тем же загрузчиком он уже в списке.\nКод можно использовать, чтобы указать, какой пресет качать.`;
+      } else {
+        hint = `Код пресета скопирован (${d.code.length} симв.)!\n\nВставь строку на другом поде: ⚙️ Свои пресеты → поле импорта → Импорт.\n\nЕсли не влезает — «Скачать .json».`;
+      }
       navigator.clipboard.writeText(d.code)
-        .then(() => alert('Код пресета скопирован — вставь его другу в чат'))
+        .then(() => alert(hint))
         .catch(() => prompt('Скопируй код пресета:', d.code));
     })
     .catch(e => alert('❌ ' + e.message));
@@ -712,7 +898,10 @@ window.importPresetFile = function(input) {
     .then(r => r.json())
     .then(d => {
       alert(d.message);
-      if (d.ok) refreshPresetGrid();
+      if (d.ok) refreshPresetGrid().then(() => {
+        loadCommunityPresetList();
+        closeManageModal();
+      });
     })
     .catch(e => alert('❌ ' + e.message))
     .finally(() => { input.value = ''; });
@@ -738,7 +927,10 @@ window.importPresetSmart = function() {
     .then(d => {
       if (!d.ok) throw new Error(d.message || 'import failed');
       if (input) input.value = '';
-      return refreshPresetGrid();
+      return refreshPresetGrid().then(() => {
+        loadCommunityPresetList();
+        closeManageModal();
+      });
     })
     .catch(err => alert('Импорт: ' + err.message))
     .finally(() => {

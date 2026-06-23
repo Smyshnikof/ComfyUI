@@ -13,8 +13,7 @@ download_status: OrderedDict = OrderedDict()
 MAX_DOWNLOAD_TASKS = 50
 import requests
 import json
-import base64
-import binascii
+import zlib
 from huggingface_hub import hf_hub_download, login
 import tempfile
 from services._downloader import fetch, probe_url, estimate_size, check_disk_space
@@ -27,6 +26,13 @@ from services._presets import (
     save_community_preset,
     export_preset_to_json,
     ensure_community_category,
+    encode_preset_share_code,
+    decode_preset_share_code,
+    is_builtin_preset_id,
+    list_community_presets,
+    get_community_preset_raw,
+    delete_community_preset,
+    is_community_preset_id,
     slug_id,
     unique_community_id,
 )
@@ -172,19 +178,41 @@ INDEX_HTML = """
     .progress-text { margin-top:8px; color:var(--muted); font-size:14px; text-align:center; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
     .preset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 20px 0; }
-    .preset-card { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .preset-card { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; gap: 0; }
     .preset-card:hover { border-color: var(--accent); background: #222; }
     .preset-card.selected { border-color: var(--accent); background: rgba(255,255,255,0.1); }
-    .preset-name { font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+    .preset-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      min-height: 24px;
+      margin-bottom: 10px;
+    }
+    .preset-install-slot { flex: 1; min-width: 0; }
+    .preset-card-top-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .preset-name { font-weight: 700; margin-bottom: 8px; color: var(--accent); padding-right: 8px; }
     .preset-desc { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
     .preset-info { font-size: 12px; color: var(--muted); }
+    .preset-guide-link {
+      display: inline-block;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(156, 163, 175, 0.35);
+    }
+    .preset-guide-link:hover {
+      color: #d1d5db;
+      border-bottom-color: rgba(209, 213, 219, 0.6);
+    }
     .preset-install-badge {
       display: inline-block;
       font-size: 11px;
       font-weight: 700;
       padding: 3px 8px;
       border-radius: 999px;
-      margin-bottom: 8px;
     }
     .preset-install-badge.full { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
     .preset-community-badge {
@@ -252,31 +280,7 @@ INDEX_HTML = """
       padding: 4px 10px;
       border-radius: 999px;
     }
-    .video-guide-icon { 
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 22px; 
-      height: 22px; 
-      background: white; 
-      border-radius: 50%; 
-      display: inline-flex; 
-      align-items: center; 
-      justify-content: center; 
-      color: black; 
-      font-weight: bold; 
-      font-size: 14px; 
-      text-decoration: none; 
-      transition: all 0.2s;
-      border: 1px solid rgba(255,255,255,0.3);
-      z-index: 10;
-    }
-    .video-guide-icon:hover { 
-      background: var(--accent); 
-      color: var(--bg); 
-      transform: scale(1.15);
-      box-shadow: 0 0 10px rgba(255,255,255,0.4);
-    }
+    .video-guide-icon { display: none; }
     .tabs { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
     .tab { padding: 8px 16px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
     .tab.active { background: var(--accent); color: var(--bg); }
@@ -302,13 +306,185 @@ INDEX_HTML = """
     .preset-variant-label { flex: 1; font-size: 13px; color: var(--muted); }
     .preset-variant-label strong { color: var(--text); }
     .preset-variant-info { font-size: 11px; color: var(--muted); }
-    .preset-expand-icon { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); font-size: 18px; color: var(--muted); transition: transform 0.2s; cursor: pointer; z-index: 5; }
-    .preset-card.expanded .preset-expand-icon { transform: translateY(-50%) rotate(180deg); }
+    .preset-expand-icon { font-size: 16px; color: var(--muted); transition: transform 0.2s; cursor: pointer; line-height: 1; flex-shrink: 0; }
+    .preset-card.expanded .preset-expand-icon { transform: rotate(180deg); }
     .preset-expand-icon:hover { color: var(--accent); }
-    .preset-actions { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; z-index: 6; }
-    .preset-action-btn { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 14px; line-height: 1; color: var(--text); }
-    .preset-action-btn:hover { border-color: var(--accent); background: #222; }
+    .preset-card-footer {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid #2a2a2a;
+    }
+    .preset-action-btn {
+      background: #111;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1.3;
+      color: var(--muted);
+    }
+    .preset-action-btn:hover { border-color: var(--accent); color: var(--text); background: #1a1a1a; }
+    a.preset-action-btn {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    a.preset-action-btn:hover { color: var(--text); }
     .import-secondary { font-size: 12px; color: var(--muted); }
+    .presets-toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .presets-toolbar .search-container { flex: 1; min-width: 200px; margin-bottom: 0; }
+    .community-count-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      background: #7c3aed;
+      color: #fff;
+      vertical-align: middle;
+      line-height: 1.2;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #1e1e1e;
+      border: 1px solid #3a3a3a;
+      border-radius: 12px;
+      width: min(640px, 92vw);
+      max-height: 86vh;
+      overflow: auto;
+      padding: 20px;
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-actions-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-import-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-import-row input[type=text] {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 12px;
+      background: #111;
+      border: 1px solid #3a3a3a;
+      color: var(--text);
+      border-radius: 8px;
+    }
+    .modal-section-title {
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0 0 12px;
+      padding-top: 8px;
+      border-top: 1px solid #2a2a2a;
+    }
+    .community-preset-list {
+      margin-bottom: 20px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .community-preset-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: #141414;
+      border: 1px solid #333;
+      border-radius: 8px;
+    }
+    .community-preset-item:hover { border-color: #444; }
+    .community-preset-meta { flex: 1; min-width: 0; }
+    .community-preset-name {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .community-preset-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .community-preset-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .community-preset-empty {
+      padding: 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      border: 1px dashed #333;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .np-edit-banner {
+      display: none;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: rgba(167, 139, 250, 0.12);
+      border: 1px solid rgba(167, 139, 250, 0.35);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #c4b5fd;
+    }
+    .np-edit-banner.visible { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sticky-progress {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 900;
+      background: #161616;
+      border-top: 1px solid #3a3a3a;
+      padding: 12px 20px;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .sticky-progress[hidden] { display: none; }
+    .sticky-progress .progress-text { text-align: left; margin-bottom: 8px; }
+    body.preset-download-active { padding-bottom: 88px; }
   </style>
 </head>
 <body>
@@ -326,12 +502,15 @@ INDEX_HTML = """
       <div class="card tab-content active" id="presets-tab">
         <h3>Выберите пресеты для скачивания</h3>
         
-        <!-- Поиск -->
-        <div class="search-container">
-          <input type="text" class="search-input" id="preset-search" placeholder="Поиск пресетов..." oninput="filterPresets()">
+        <div class="presets-toolbar">
+          <div class="search-container">
+            <input type="text" class="search-input" id="preset-search" placeholder="Поиск пресетов..." oninput="filterPresets()">
+          </div>
+          <button type="button" class="btn" onclick="openManageModal()" id="manage-presets-btn">
+            ⚙️ Свои пресеты<span id="community-count-badge" class="community-count-badge"{{ community_badge_hidden }}>{{ community_count }}</span>
+          </button>
         </div>
         
-        <!-- Фильтры категорий -->
         <div class="category-filters" id="category-filters">
           {{ category_filters_html }}
         </div>
@@ -339,52 +518,12 @@ INDEX_HTML = """
         <div class="preset-grid" id="preset-grid">
           {{ presets_html }}
         </div>
-        <div class="row-full" style="margin-top: 12px; gap: 8px; display: flex; flex-wrap: wrap; align-items: center;">
-          <button type="button" class="btn" onclick="reloadPresets()" id="reload-presets-btn" title="Подхватить JSON из /workspace/presets/community/">
-            🔄 Обновить пресеты
-          </button>
-          <input type="file" id="import-preset-file" accept=".json,application/json" style="display:none" onchange="importPresetFile(this)" />
-          <button type="button" class="btn btn-preset" onclick="document.getElementById('import-preset-file').click()">
-            📂 Загрузить пресет
-          </button>
-          <input type="text" id="import-preset-input" placeholder="Код пресета или ссылка https://..." style="flex:1; min-width:220px;" />
-          <button type="button" class="btn" onclick="importPresetSmart()" id="import-preset-btn">Импорт</button>
-          <span class="import-secondary">или по ссылке / коду</span>
-        </div>
-        <details class="add-preset" id="add-preset-block">
-          <summary>➕ Добавить свой пресет</summary>
-          <div class="np-field">
-            <input id="np-name" type="text" placeholder="Название пресета" />
-          </div>
-          <div class="np-field">
-            <select id="np-category" onchange="onCategoryChange()"></select>
-          </div>
-          <div class="np-field" id="np-new-cat" style="display:none;">
-            <input id="np-new-cat-name" type="text" placeholder="Название своей категории" />
-            <input id="np-new-cat-icon" type="text" placeholder="эмодзи (необязательно)" maxlength="4" />
-          </div>
-          <div class="np-field">
-            <input id="np-desc" type="text" placeholder="Описание (необязательно)" />
-          </div>
-          <div id="np-files"></div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
-            <button type="button" class="btn" onclick="addFileRow()">+ добавить файл</button>
-            <button type="button" class="btn btn-preset" onclick="createPreset()">Сохранить пресет</button>
-          </div>
-          <div class="result" id="np-result" style="margin-top:12px;"></div>
-        </details>
-        <div class="row-full">
+        <div class="row-full" style="margin-top: 16px;">
           <button class="btn btn-preset" onclick="downloadPresets()" id="download-presets-btn" disabled>
             📥 Скачать выбранные пресеты
           </button>
         </div>
         <div class="result" id="preset-result"></div>
-        <div class="progress" id="preset-progress" style="display:none;">
-          <div class="progress-bar">
-            <div class="progress-fill" id="preset-progress-fill"></div>
-          </div>
-          <div class="progress-text" id="preset-progress-text">Загрузка...</div>
-        </div>
       </div>
       
       <!-- HuggingFace -->
@@ -689,6 +828,66 @@ INDEX_HTML = """
       });
     }
   </script>
+
+  <div id="preset-progress" class="sticky-progress" hidden>
+    <div id="preset-progress-text" class="progress-text">Загрузка...</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="preset-progress-fill"></div>
+    </div>
+  </div>
+
+  <div id="manage-modal" class="modal-overlay" onclick="if(event.target===this)closeManageModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <span>Свои пресеты</span>
+        <button type="button" class="modal-close" onclick="closeManageModal()" title="Закрыть">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-actions-row">
+          <input type="file" id="import-preset-file" accept=".json,application/json" style="display:none" onchange="importPresetFile(this)" />
+          <button type="button" class="btn btn-preset" onclick="document.getElementById('import-preset-file').click()">
+            📂 Загрузить пресет
+          </button>
+          <button type="button" class="btn" onclick="reloadPresets()" id="reload-presets-btn" title="Подхватить JSON из /workspace/presets/community/">
+            🔄 Обновить
+          </button>
+        </div>
+        <div class="modal-import-row">
+          <input type="text" id="import-preset-input" placeholder="Файл .json, код пресета или ссылка https://..." />
+          <button type="button" class="btn" onclick="importPresetSmart()" id="import-preset-btn">Импорт</button>
+        </div>
+        <p class="import-secondary" style="margin:-8px 0 16px;">Импорт из файла .json или кода пресета <code>CUIP1:ref:...</code> / <code>CUIP1:z:...</code>.</p>
+        <div class="modal-section-title" style="border-top:none; padding-top:0;">📋 Мои пресеты</div>
+        <div id="community-preset-list" class="community-preset-list"></div>
+        <div class="add-preset" id="add-preset-block">
+          <div class="modal-section-title">➕ Создать свой пресет</div>
+          <div id="np-edit-banner" class="np-edit-banner">
+            <span>Редактирование: <strong id="np-edit-label"></strong></span>
+            <button type="button" class="btn" onclick="resetPresetForm()">Отмена</button>
+          </div>
+          <div class="np-field">
+            <input id="np-name" type="text" placeholder="Название пресета" />
+          </div>
+          <div class="np-field">
+            <select id="np-category" onchange="onCategoryChange()"></select>
+          </div>
+          <div class="np-field" id="np-new-cat" style="display:none;">
+            <input id="np-new-cat-name" type="text" placeholder="Название своей категории" />
+            <input id="np-new-cat-icon" type="text" placeholder="эмодзи (необязательно)" maxlength="4" />
+          </div>
+          <div class="np-field">
+            <input id="np-desc" type="text" placeholder="Описание (необязательно)" />
+          </div>
+          <div id="np-files"></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <button type="button" class="btn" onclick="addFileRow()">+ добавить файл</button>
+            <button type="button" class="btn btn-preset" onclick="savePreset()" id="np-save-btn">Сохранить пресет</button>
+          </div>
+          <div class="result" id="np-result" style="margin-top:12px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
 """
@@ -704,11 +903,55 @@ def generate_category_filters_html():
         '''
     return html
 
-def _preset_actions_html(preset_id: str) -> str:
+def _preset_card_top_html(expand_html: str = "") -> str:
+    if expand_html:
+        return f'''
+              <div class="preset-card-top">
+                <div class="preset-install-slot"></div>
+                <div class="preset-card-top-right">{expand_html}</div>
+              </div>'''
+    return '<div class="preset-card-top"><div class="preset-install-slot"></div></div>'
+
+def _preset_guide_html(video_guide: str | None) -> str:
+    if not video_guide:
+        return ""
+    return (
+        f'<a href="{video_guide}" target="_blank" rel="noopener noreferrer" '
+        f'class="preset-guide-link" onclick="event.stopPropagation();" title="Видео-гайд на YouTube">'
+        f'▶ Видео-гайд</a>'
+    )
+
+def _preset_size_time_html(size: str, time: str) -> str:
+    size = (size or "").strip()
+    time = (time or "").strip()
+    if not size and not time:
+        return ""
+    parts = []
+    if size:
+        parts.append(f"Размер: {size}")
+    if time:
+        parts.append(f"Время: {time}")
+    return f'<div class="preset-info">{" • ".join(parts)}</div>'
+
+
+def _variant_meta_html(size: str, time: str) -> str:
+    bits = [x for x in ((size or "").strip(), (time or "").strip()) if x]
+    if not bits:
+        return ""
+    return f'<span class="preset-variant-info"> • {" • ".join(bits)}</span>'
+
+
+def _preset_actions_html(preset_id: str, is_community: bool = False) -> str:
+    code_btn = ""
+    if is_community:
+        code_btn = (
+            f'<button type="button" class="preset-action-btn" '
+            f'onclick="copyPresetCode(\'{preset_id}\', event)">📋 Код пресета</button>'
+        )
     return f'''
-              <div class="preset-actions" onclick="event.stopPropagation();">
-                <button type="button" class="preset-action-btn" onclick="downloadPresetFile('{preset_id}', event)" title="Скачать пресет">💾</button>
-                <button type="button" class="preset-action-btn" onclick="copyPresetCode('{preset_id}', event)" title="Поделиться кодом">📋</button>
+              <div class="preset-card-footer" onclick="event.stopPropagation();">
+                <button type="button" class="preset-action-btn" onclick="downloadPresetFile('{preset_id}', event)">💾 Скачать .json</button>
+                {code_btn}
               </div>'''
 
 def generate_presets_html():
@@ -718,12 +961,11 @@ def generate_presets_html():
         community_badge = ""
         if preset_info.get("source") == "community":
             community_badge = '<span class="preset-community-badge">community</span>'
-        video_guide_html = ""
-        if preset_info.get('video_guide'):
-            video_guide_html = f'<a href="{preset_info["video_guide"]}" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>'
-        actions_html = _preset_actions_html(preset_id)
-        size_str = preset_info.get('size', '—')
-        time_str = preset_info.get('time', '—')
+        video_guide_url = preset_info.get('video_guide') or None
+        guide_html = _preset_guide_html(video_guide_url)
+        is_community = preset_info.get("source") == "community"
+        actions_html = _preset_actions_html(preset_id, is_community)
+        info_html = _preset_size_time_html(preset_info.get("size", ""), preset_info.get("time", ""))
         # Проверяем, есть ли варианты (для Qwen пресетов)
         if preset_info.get('has_variants') and preset_info.get('variant_groups'):
             variants_html = ""
@@ -735,35 +977,37 @@ def generate_presets_html():
                       <input type="checkbox" id="variant-{variant_id}" data-variant="{variant_id}" data-parent="{preset_id}" onchange="toggleVariant('{preset_id}', '{variant_id}')">
                       <label for="variant-{variant_id}" class="preset-variant-label">
                         <strong>{variant_info['name']}</strong>
-                        <span class="preset-variant-info"> • {variant_info['size']} • {variant_info['time']}</span>
+                        {_variant_meta_html(variant_info.get('size', ''), variant_info.get('time', ''))}
                       </label>
                     </div>
                     '''
                 variants_html += f'<div class="preset-variant-group">{group_html}</div>'
             
+            expand_html = f'<span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard(\'{preset_id}\', event)">▼</span>'
             html += f'''
             <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePresetCard('{preset_id}', event)">
-              {actions_html}
-              {video_guide_html}
-              <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('{preset_id}', event)">▼</span>
+              {_preset_card_top_html(expand_html)}
               <div class="preset-name">{preset_info['name']}{community_badge}</div>
               <div class="preset-desc">{preset_info['description']}</div>
-              <div class="preset-info">Размер: {size_str} • Время: {time_str}</div>
+              {guide_html}
+              {info_html}
               <div class="preset-variants">
                 <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
                 {variants_html}
               </div>
+              {actions_html}
             </div>
             '''
         else:
             # Обычная карточка без вариантов (Wan пресеты)
             html += f'''
             <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePreset('{preset_id}')">
-              {actions_html}
-              {video_guide_html}
+              {_preset_card_top_html()}
               <div class="preset-name">{preset_info['name']}{community_badge}</div>
               <div class="preset-desc">{preset_info['description']}</div>
-              <div class="preset-info">Размер: {size_str} • Время: {time_str}</div>
+              {guide_html}
+              {info_html}
+              {actions_html}
             </div>
             '''
     return html
@@ -830,12 +1074,36 @@ def _manifest_obj_for(pid: str) -> dict | None:
     return export_preset_to_json(pid, PRESETS[pid], PRESET_FILES)
 
 
+@app.get("/api/community-presets")
+def api_community_presets_list():
+    return {"presets": list_community_presets()}
+
+
+@app.get("/api/community-presets/{pid}")
+def api_community_preset_get(pid: str):
+    obj = get_community_preset_raw(pid)
+    if not obj:
+        return JSONResponse({"ok": False, "message": "Пресет не найден"}, status_code=404)
+    return {"ok": True, "preset": obj}
+
+
+@app.delete("/presets/community/{pid}")
+def presets_community_delete(pid: str):
+    ok, msg = delete_community_preset(pid)
+    if ok:
+        reload_presets_data()
+        return {"ok": True, "message": "Пресет удалён", "id": msg}
+    return JSONResponse({"ok": False, "message": msg})
+
+
 @app.get("/api/presets/fragment")
 def presets_fragment():
+    community_count = sum(1 for p in PRESETS.values() if p.get("source") == "community")
     return JSONResponse({
         "presets_html": generate_presets_html(),
         "category_filters_html": generate_category_filters_html(),
         "count": len(PRESETS),
+        "community_count": community_count,
     })
 
 
@@ -873,8 +1141,15 @@ def presets_code(pid: str):
     obj = _manifest_obj_for(pid)
     if not obj:
         return JSONResponse({"ok": False, "message": "Пресет не найден"}, status_code=404)
-    code = base64.urlsafe_b64encode(json.dumps(obj, ensure_ascii=False).encode()).decode()
-    return {"ok": True, "code": code}
+    code = encode_preset_share_code(obj)
+    if code is None:
+        return JSONResponse({
+            "ok": False,
+            "kind": "too_large",
+            "message": "Пресет слишком большой для кода — отправь .json файл (кнопка «Скачать .json»)",
+        })
+    kind = "ref" if code.startswith("CUIP1:ref:") else "compressed"
+    return {"ok": True, "code": code, "kind": kind}
 
 
 @app.post("/presets/import_code")
@@ -883,10 +1158,30 @@ def presets_import_code(code: str = Form(...)):
     if not code or len(code) > 350_000:
         return JSONResponse({"ok": False, "message": "Пустой или слишком длинный код"})
     try:
-        obj = json.loads(base64.urlsafe_b64decode(code.encode()))
-    except (binascii.Error, ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        kind, payload = decode_preset_share_code(code)
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError, zlib.error):
         return JSONResponse({"ok": False, "message": "Битый код пресета"})
-    ok, msg = save_community_preset(obj)
+    if kind == "ref":
+        ref_id = payload
+        if ref_id not in PRESETS:
+            return JSONResponse({
+                "ok": False,
+                "message": f"Пресет {ref_id} не найден — нужна актуальная версия загрузчика",
+            })
+        name = PRESETS[ref_id].get("name", ref_id)
+        if is_builtin_preset_id(ref_id):
+            return JSONResponse({
+                "ok": True,
+                "message": f"«{name}» — встроенный пресет, уже есть в списке",
+                "id": ref_id,
+            })
+        obj = export_preset_to_json(ref_id, PRESETS[ref_id], PRESET_FILES)
+        ok, msg = save_community_preset(obj)
+        if ok:
+            reload_presets_data()
+            return JSONResponse({"ok": True, "message": "Пресет добавлен", "id": msg})
+        return JSONResponse({"ok": False, "message": msg})
+    ok, msg = save_community_preset(payload)
     if ok:
         reload_presets_data()
         return JSONResponse({"ok": True, "message": "Пресет добавлен", "id": msg})
@@ -926,6 +1221,29 @@ def presets_create(
     description: str = Form(""),
     files_json: str = Form(...),
 ):
+    return _save_preset_from_form(None, name, category, category_icon, description, files_json)
+
+
+@app.post("/presets/update")
+def presets_update(
+    preset_id: str = Form(...),
+    name: str = Form(...),
+    category: str = Form(...),
+    category_icon: str = Form(""),
+    description: str = Form(""),
+    files_json: str = Form(...),
+):
+    return _save_preset_from_form(preset_id.strip(), name, category, category_icon, description, files_json)
+
+
+def _save_preset_from_form(
+    preset_id: str | None,
+    name: str,
+    category: str,
+    category_icon: str,
+    description: str,
+    files_json: str,
+):
     try:
         files = json.loads(files_json)
     except Exception:
@@ -935,7 +1253,12 @@ def presets_create(
     cat_id = ensure_community_category(category.strip(), category_icon.strip() or None)
     if not cat_id:
         return JSONResponse({"ok": False, "message": "Укажи категорию"})
-    pid = unique_community_id(slug_id(name.strip()))
+    if preset_id:
+        if not is_community_preset_id(preset_id):
+            return JSONResponse({"ok": False, "message": "Можно редактировать только свои community-пресеты"})
+        pid = preset_id
+    else:
+        pid = unique_community_id(slug_id(name.strip()))
     obj = {
         "schema": 1,
         "id": pid,
@@ -949,7 +1272,8 @@ def presets_create(
     ok, msg = save_community_preset(obj)
     if ok:
         reload_presets_data()
-        return JSONResponse({"ok": True, "message": "Пресет добавлен", "id": msg})
+        action = "обновлён" if preset_id else "добавлен"
+        return JSONResponse({"ok": True, "message": f"Пресет {action}", "id": msg})
     return JSONResponse({"ok": False, "message": msg})
 
 
@@ -963,12 +1287,16 @@ def tokens_status():
 def index():
     presets_html = generate_presets_html()
     category_filters_html = generate_category_filters_html()
+    community_count = sum(1 for p in PRESETS.values() if p.get("source") == "community")
+    community_badge_hidden = " hidden" if community_count == 0 else ""
     try:
         static_version = str(int(os.path.getmtime(os.path.join(static_dir, "script.js"))))
     except OSError:
         static_version = "1"
     return HTMLResponse(INDEX_HTML.replace("{{ presets_html }}", presets_html)
                        .replace("{{ category_filters_html }}", category_filters_html)
+                       .replace("{{ community_count }}", str(community_count))
+                       .replace("{{ community_badge_hidden }}", community_badge_hidden)
                        .replace("{{ static_version }}", static_version)
                        .replace("{{ hf_repo_value }}", "")
                        .replace("{{ hf_file_value }}", "")
