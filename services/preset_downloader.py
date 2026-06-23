@@ -845,8 +845,8 @@ INDEX_HTML = """
       <div class="modal-body">
         <div class="modal-actions-row">
           <input type="file" id="import-preset-file" accept=".json,application/json" style="display:none" onchange="importPresetFile(this)" />
-          <button type="button" class="btn btn-preset" onclick="document.getElementById('import-preset-file').click()">
-            📂 Загрузить пресет
+          <button type="button" class="btn" onclick="document.getElementById('import-preset-file').click()" title="Только файл манифеста пресета (.json)">
+            📂 Загрузить пресет (.json)
           </button>
           <button type="button" class="btn" onclick="reloadPresets()" id="reload-presets-btn" title="Подхватить JSON из /workspace/presets/community/">
             🔄 Обновить
