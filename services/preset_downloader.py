@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+from fastapi import FastAPI, Form, Request, UploadFile, File
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 import os
 import re
@@ -13,6 +13,8 @@ download_status: OrderedDict = OrderedDict()
 MAX_DOWNLOAD_TASKS = 50
 import requests
 import json
+import base64
+import binascii
 from huggingface_hub import hf_hub_download, login
 import tempfile
 from services._downloader import fetch, probe_url, estimate_size, check_disk_space
@@ -23,6 +25,8 @@ from services._presets import (
     ALLOWED_IMPORT_HOSTS,
     load_presets,
     save_community_preset,
+    export_preset_to_json,
+    ensure_community_category,
     slug_id,
     unique_community_id,
 )
@@ -301,6 +305,10 @@ INDEX_HTML = """
     .preset-expand-icon { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); font-size: 18px; color: var(--muted); transition: transform 0.2s; cursor: pointer; z-index: 5; }
     .preset-card.expanded .preset-expand-icon { transform: translateY(-50%) rotate(180deg); }
     .preset-expand-icon:hover { color: var(--accent); }
+    .preset-actions { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; z-index: 6; }
+    .preset-action-btn { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 14px; line-height: 1; color: var(--text); }
+    .preset-action-btn:hover { border-color: var(--accent); background: #222; }
+    .import-secondary { font-size: 12px; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -335,8 +343,13 @@ INDEX_HTML = """
           <button type="button" class="btn" onclick="reloadPresets()" id="reload-presets-btn" title="Подхватить JSON из /workspace/presets/community/">
             🔄 Обновить пресеты
           </button>
-          <input type="text" id="import-preset-url" placeholder="https://raw.githubusercontent.com/.../preset.json" style="flex:1; min-width:220px;" />
-          <button type="button" class="btn" onclick="importPresetByUrl()" id="import-preset-btn">📥 Импорт пресета</button>
+          <input type="file" id="import-preset-file" accept=".json,application/json" style="display:none" onchange="importPresetFile(this)" />
+          <button type="button" class="btn btn-preset" onclick="document.getElementById('import-preset-file').click()">
+            📂 Загрузить пресет
+          </button>
+          <input type="text" id="import-preset-input" placeholder="Код пресета или ссылка https://..." style="flex:1; min-width:220px;" />
+          <button type="button" class="btn" onclick="importPresetSmart()" id="import-preset-btn">Импорт</button>
+          <span class="import-secondary">или по ссылке / коду</span>
         </div>
         <details class="add-preset" id="add-preset-block">
           <summary>➕ Добавить свой пресет</summary>
@@ -344,7 +357,11 @@ INDEX_HTML = """
             <input id="np-name" type="text" placeholder="Название пресета" />
           </div>
           <div class="np-field">
-            <select id="np-category"></select>
+            <select id="np-category" onchange="onCategoryChange()"></select>
+          </div>
+          <div class="np-field" id="np-new-cat" style="display:none;">
+            <input id="np-new-cat-name" type="text" placeholder="Название своей категории" />
+            <input id="np-new-cat-icon" type="text" placeholder="эмодзи (необязательно)" maxlength="4" />
           </div>
           <div class="np-field">
             <input id="np-desc" type="text" placeholder="Описание (необязательно)" />
@@ -500,7 +517,7 @@ INDEX_HTML = """
     </div>
   </div>
   
-  <script src="/static/script.js"></script>
+  <script src="/static/script.js?v={{ static_version }}"></script>
   <script>
     // Дополнительный JavaScript код для HuggingFace функций
     
@@ -687,6 +704,13 @@ def generate_category_filters_html():
         '''
     return html
 
+def _preset_actions_html(preset_id: str) -> str:
+    return f'''
+              <div class="preset-actions" onclick="event.stopPropagation();">
+                <button type="button" class="preset-action-btn" onclick="downloadPresetFile('{preset_id}', event)" title="Скачать пресет">💾</button>
+                <button type="button" class="preset-action-btn" onclick="copyPresetCode('{preset_id}', event)" title="Поделиться кодом">📋</button>
+              </div>'''
+
 def generate_presets_html():
     html = ""
     for preset_id, preset_info in PRESETS.items():
@@ -697,7 +721,9 @@ def generate_presets_html():
         video_guide_html = ""
         if preset_info.get('video_guide'):
             video_guide_html = f'<a href="{preset_info["video_guide"]}" target="_blank" rel="noopener noreferrer" class="video-guide-icon" onclick="event.stopPropagation();" title="Видео-гайд">i</a>'
-        
+        actions_html = _preset_actions_html(preset_id)
+        size_str = preset_info.get('size', '—')
+        time_str = preset_info.get('time', '—')
         # Проверяем, есть ли варианты (для Qwen пресетов)
         if preset_info.get('has_variants') and preset_info.get('variant_groups'):
             variants_html = ""
@@ -717,11 +743,12 @@ def generate_presets_html():
             
             html += f'''
             <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePresetCard('{preset_id}', event)">
+              {actions_html}
               {video_guide_html}
               <span class="preset-expand-icon" onclick="event.stopPropagation(); togglePresetCard('{preset_id}', event)">▼</span>
               <div class="preset-name">{preset_info['name']}{community_badge}</div>
               <div class="preset-desc">{preset_info['description']}</div>
-              <div class="preset-info">Размер: {preset_info['size']} • Время: {preset_info['time']}</div>
+              <div class="preset-info">Размер: {size_str} • Время: {time_str}</div>
               <div class="preset-variants">
                 <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Выберите версию и формат:</div>
                 {variants_html}
@@ -732,10 +759,11 @@ def generate_presets_html():
             # Обычная карточка без вариантов (Wan пресеты)
             html += f'''
             <div class="preset-card" data-preset="{preset_id}" data-category="{category}" onclick="togglePreset('{preset_id}')">
+              {actions_html}
               {video_guide_html}
               <div class="preset-name">{preset_info['name']}{community_badge}</div>
               <div class="preset-desc">{preset_info['description']}</div>
-              <div class="preset-info">Размер: {preset_info['size']} • Время: {preset_info['time']}</div>
+              <div class="preset-info">Размер: {size_str} • Время: {time_str}</div>
             </div>
             '''
     return html
@@ -796,6 +824,12 @@ def reload_presets_endpoint():
     return {"ok": True, "count": len(PRESETS)}
 
 
+def _manifest_obj_for(pid: str) -> dict | None:
+    if pid not in PRESETS:
+        return None
+    return export_preset_to_json(pid, PRESETS[pid], PRESET_FILES)
+
+
 @app.get("/api/presets/fragment")
 def presets_fragment():
     return JSONResponse({
@@ -803,6 +837,60 @@ def presets_fragment():
         "category_filters_html": generate_category_filters_html(),
         "count": len(PRESETS),
     })
+
+
+@app.get("/presets/export/{pid}")
+def presets_export(pid: str):
+    obj = _manifest_obj_for(pid)
+    if not obj:
+        return JSONResponse({"ok": False, "message": "Пресет не найден"}, status_code=404)
+    body = json.dumps(obj, ensure_ascii=False, indent=2)
+    return Response(
+        content=body,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{pid}.json"'},
+    )
+
+
+@app.post("/presets/import_file")
+async def presets_import_file(file: UploadFile = File(...)):
+    raw = await file.read()
+    if len(raw) > 256 * 1024:
+        return JSONResponse({"ok": False, "message": "Файл слишком большой для пресета"})
+    try:
+        obj = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return JSONResponse({"ok": False, "message": "Это не похоже на файл пресета (.json)"})
+    ok, msg = save_community_preset(obj)
+    if ok:
+        reload_presets_data()
+        return JSONResponse({"ok": True, "message": "Пресет загружен", "id": msg})
+    return JSONResponse({"ok": False, "message": msg})
+
+
+@app.get("/presets/code/{pid}")
+def presets_code(pid: str):
+    obj = _manifest_obj_for(pid)
+    if not obj:
+        return JSONResponse({"ok": False, "message": "Пресет не найден"}, status_code=404)
+    code = base64.urlsafe_b64encode(json.dumps(obj, ensure_ascii=False).encode()).decode()
+    return {"ok": True, "code": code}
+
+
+@app.post("/presets/import_code")
+def presets_import_code(code: str = Form(...)):
+    code = code.strip()
+    if not code or len(code) > 350_000:
+        return JSONResponse({"ok": False, "message": "Пустой или слишком длинный код"})
+    try:
+        obj = json.loads(base64.urlsafe_b64decode(code.encode()))
+    except (binascii.Error, ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return JSONResponse({"ok": False, "message": "Битый код пресета"})
+    ok, msg = save_community_preset(obj)
+    if ok:
+        reload_presets_data()
+        return JSONResponse({"ok": True, "message": "Пресет добавлен", "id": msg})
+    return JSONResponse({"ok": False, "message": msg})
 
 
 @app.post("/presets/import")
@@ -834,6 +922,7 @@ def presets_import(url: str = Form(...)):
 def presets_create(
     name: str = Form(...),
     category: str = Form(...),
+    category_icon: str = Form(""),
     description: str = Form(""),
     files_json: str = Form(...),
 ):
@@ -843,12 +932,15 @@ def presets_create(
         return JSONResponse({"ok": False, "message": "Битый список файлов"})
     if not isinstance(files, list) or not files:
         return JSONResponse({"ok": False, "message": "Нужен хотя бы один файл"})
+    cat_id = ensure_community_category(category.strip(), category_icon.strip() or None)
+    if not cat_id:
+        return JSONResponse({"ok": False, "message": "Укажи категорию"})
     pid = unique_community_id(slug_id(name.strip()))
     obj = {
         "schema": 1,
         "id": pid,
         "name": name.strip(),
-        "category": category.strip(),
+        "category": cat_id,
         "description": description.strip(),
         "size": "",
         "time": "",
@@ -871,8 +963,13 @@ def tokens_status():
 def index():
     presets_html = generate_presets_html()
     category_filters_html = generate_category_filters_html()
+    try:
+        static_version = str(int(os.path.getmtime(os.path.join(static_dir, "script.js"))))
+    except OSError:
+        static_version = "1"
     return HTMLResponse(INDEX_HTML.replace("{{ presets_html }}", presets_html)
                        .replace("{{ category_filters_html }}", category_filters_html)
+                       .replace("{{ static_version }}", static_version)
                        .replace("{{ hf_repo_value }}", "")
                        .replace("{{ hf_file_value }}", "")
                        .replace("{{ hf_result }}", ""))
@@ -1053,24 +1150,6 @@ def download_presets(presets: str = Form(...), force: str = Form("0")):
         
         def run_download():
             try:
-                # Собираем все файлы для скачивания
-                all_files = []
-                for preset_id in presets_list:
-                    if preset_id in PRESET_FILES:
-                        all_files.extend(PRESET_FILES[preset_id])
-                
-                total_files = len(all_files)
-                
-                # Инициализируем статус
-                download_status[task_id] = {
-                    "status": "running",
-                    "message": f"🚀 Начато скачивание пресетов: {', '.join(presets_list)}\n📦 Всего файлов: {total_files}",
-                    "progress": 0,
-                    "total_files": total_files,
-                    "current_file": 0,
-                    "current_filename": ""
-                }
-                
                 # Списки для итоговой сводки
                 downloaded_files = []
                 skipped_files = []
@@ -1150,16 +1229,26 @@ def download_presets(presets: str = Form(...), force: str = Form("0")):
                     "current_filename": download_status[task_id].get("current_filename", "")
                 }
         
+        all_files = []
+        for preset_id in presets_list:
+            if preset_id in PRESET_FILES:
+                all_files.extend(PRESET_FILES[preset_id])
+        total_files = len(all_files)
+
+        download_status[task_id] = {
+            "status": "running",
+            "kind": "preset",
+            "message": f"🚀 Начато скачивание пресетов: {', '.join(presets_list)}\n📦 Всего файлов: {total_files}",
+            "progress": 0,
+            "total_files": total_files,
+            "current_file": 0,
+            "current_filename": "",
+        }
+
         # Запускаем в отдельном потоке
         thread = threading.Thread(target=run_download)
         thread.daemon = True
         thread.start()
-        
-        # Сохраняем статус
-        download_status[task_id] = {
-            "status": "running",
-            "message": f"🚀 Начато скачивание пресетов: {', '.join(presets_list)}"
-        }
         
         return {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
             
@@ -1288,17 +1377,17 @@ def download_hf(
                     "progress": download_status[task_id].get("progress", 0)
                 }
         
+        download_status[task_id] = {
+            "status": "running",
+            "kind": "hf",
+            "message": f"🚀 Начато скачивание с HuggingFace: {repo}",
+            "progress": 0
+        }
+
         # Запускаем в отдельном потоке
         thread = threading.Thread(target=run_hf_download)
         thread.daemon = True
         thread.start()
-        
-        # Сохраняем статус
-        download_status[task_id] = {
-            "status": "running",
-            "message": f"🚀 Начато скачивание с HuggingFace: {repo}",
-            "progress": 0
-        }
         
         return {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
         
@@ -1415,17 +1504,17 @@ def download_url(url: str = Form(...), folder: str = Form("diffusion_models")):
                     "progress": download_status[task_id].get("progress", 0)
                 }
         
+        download_status[task_id] = {
+            "status": "running",
+            "kind": "url",
+            "message": f"🚀 Начато скачивание по ссылке: {url}",
+            "progress": 0
+        }
+
         # Запускаем в отдельном потоке
         thread = threading.Thread(target=run_url_download)
         thread.daemon = True
         thread.start()
-        
-        # Сохраняем статус
-        download_status[task_id] = {
-            "status": "running",
-            "message": f"🚀 Начато скачивание по ссылке: {url}",
-            "progress": 0
-        }
         
         return {"message": f"🚀 Скачивание начато! ID задачи: {task_id}", "task_id": task_id}
         

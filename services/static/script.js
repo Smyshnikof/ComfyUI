@@ -469,14 +469,34 @@ window.resumeActiveDownloads = function() {
       const tasks = (data.tasks || []).filter(t => t.status === 'running');
       if (!tasks.length) return;
 
-      const presetTask = tasks.find(t => t.total_files !== undefined);
-      const hfTask = tasks.find(t => t.total_files === undefined);
+      const isPresetTask = t => t.kind === 'preset' || (!t.kind && t.total_files !== undefined);
+      const isHfTask = t => t.kind === 'hf' || t.kind === 'url' || (!t.kind && t.total_files === undefined);
+      const presetTask = tasks.find(isPresetTask);
+      const hfTask = tasks.find(isHfTask);
 
       if (presetTask) {
         const p = document.getElementById('preset-progress');
+        const fill = document.getElementById('preset-progress-fill');
+        const text = document.getElementById('preset-progress-text');
         const b = document.getElementById('download-presets-btn');
         const result = document.getElementById('preset-result');
+        const pct = presetTask.progress || 0;
         if (p) p.style.display = 'block';
+        if (fill) fill.style.width = pct + '%';
+        if (text) {
+          let msg = presetTask.message || 'Загрузка...';
+          if (presetTask.total_files && presetTask.current_file !== undefined) {
+            msg = `📥 Файл ${presetTask.current_file} из ${presetTask.total_files}`;
+            if (presetTask.current_filename) {
+              const short = presetTask.current_filename.length > 50
+                ? presetTask.current_filename.substring(0, 47) + '...'
+                : presetTask.current_filename;
+              msg += `: ${short}`;
+            }
+            msg += ` (${Math.round(pct)}%)`;
+          }
+          text.textContent = msg;
+        }
         if (b) { b.disabled = true; b.textContent = 'Загрузка...'; }
         if (result && presetTask.message) result.textContent = presetTask.message;
         pollStatus(presetTask.task_id);
@@ -484,9 +504,14 @@ window.resumeActiveDownloads = function() {
 
       if (hfTask) {
         const p = document.getElementById('hf-progress');
+        const fill = document.getElementById('hf-progress-fill');
+        const text = document.getElementById('hf-progress-text');
         const hfForm = document.getElementById('hf-repo-form');
         const urlForm = document.getElementById('hf-url-form');
+        const pct = hfTask.progress || 0;
         if (p) p.style.display = 'block';
+        if (fill) fill.style.width = pct + '%';
+        if (text) text.textContent = hfTask.message || 'Загрузка...';
         [hfForm, urlForm].forEach(form => {
           const btn = form && form.querySelector('button[type="submit"]');
           if (btn) { btn.disabled = true; btn.textContent = 'Загрузка...'; }
@@ -532,7 +557,7 @@ window.initPresetForm = async function() {
     if (cat && formMeta.categories) {
       cat.innerHTML = formMeta.categories.map(c =>
         `<option value="${c.id}">${c.icon} ${c.name}</option>`
-      ).join('');
+      ).join('') + '<option value="__new__">➕ Своя категория</option>';
     }
     const filesWrap = document.getElementById('np-files');
     if (filesWrap && !filesWrap.querySelector('.np-file-row')) {
@@ -541,6 +566,12 @@ window.initPresetForm = async function() {
   } catch (e) {
     console.warn('initPresetForm failed', e);
   }
+};
+
+window.onCategoryChange = function() {
+  const isNew = document.getElementById('np-category')?.value === '__new__';
+  const block = document.getElementById('np-new-cat');
+  if (block) block.style.display = isNew ? 'block' : 'none';
 };
 
 window.addFileRow = function() {
@@ -561,7 +592,12 @@ window.addFileRow = function() {
 
 window.createPreset = function() {
   const name = (document.getElementById('np-name')?.value || '').trim();
-  const category = document.getElementById('np-category')?.value || '';
+  const sel = document.getElementById('np-category')?.value || '';
+  const category = sel === '__new__'
+    ? (document.getElementById('np-new-cat-name')?.value || '').trim()
+    : sel;
+  const category_icon = sel === '__new__'
+    ? (document.getElementById('np-new-cat-icon')?.value || '').trim() : '';
   const description = (document.getElementById('np-desc')?.value || '').trim();
   const res = document.getElementById('np-result');
   const files = [...document.querySelectorAll('.np-file-row')].map(r => ({
@@ -574,10 +610,15 @@ window.createPreset = function() {
     if (res) res.textContent = '❌ Нужно название и хотя бы один файл';
     return;
   }
+  if (!category) {
+    if (res) res.textContent = '❌ Укажи категорию';
+    return;
+  }
 
   const fd = new FormData();
   fd.append('name', name);
   fd.append('category', category);
+  fd.append('category_icon', category_icon);
   fd.append('description', description);
   fd.append('files_json', JSON.stringify(files));
 
@@ -644,24 +685,58 @@ window.reloadPresets = function() {
     });
 };
 
-window.importPresetByUrl = function() {
-  const input = document.getElementById('import-preset-url');
+window.downloadPresetFile = function(pid, event) {
+  if (event) event.stopPropagation();
+  window.location = `/presets/export/${pid}`;
+};
+
+window.copyPresetCode = function(pid, event) {
+  if (event) event.stopPropagation();
+  fetch(`/presets/code/${pid}`)
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) { alert(d.message); return; }
+      navigator.clipboard.writeText(d.code)
+        .then(() => alert('Код пресета скопирован — вставь его другу в чат'))
+        .catch(() => prompt('Скопируй код пресета:', d.code));
+    })
+    .catch(e => alert('❌ ' + e.message));
+};
+
+window.importPresetFile = function(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  fetch('/presets/import_file', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      alert(d.message);
+      if (d.ok) refreshPresetGrid();
+    })
+    .catch(e => alert('❌ ' + e.message))
+    .finally(() => { input.value = ''; });
+};
+
+window.importPresetSmart = function() {
+  const input = document.getElementById('import-preset-input');
   const btn = document.getElementById('import-preset-btn');
-  const url = (input && input.value || '').trim();
-  if (!url) {
-    alert('Вставьте ссылку на JSON пресета');
+  const val = (input && input.value || '').trim();
+  if (!val) {
+    alert('Вставь код пресета или ссылку https://...');
     return;
   }
+  const isUrl = /^https?:\/\//i.test(val);
+  const fd = new FormData();
+  fd.append(isUrl ? 'url' : 'code', val);
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Импорт...';
   }
-  const formData = new FormData();
-  formData.append('url', url);
-  fetch('/presets/import', { method: 'POST', body: formData })
+  fetch(isUrl ? '/presets/import' : '/presets/import_code', { method: 'POST', body: fd })
     .then(r => r.json())
-    .then(data => {
-      if (!data.ok) throw new Error(data.message || 'import failed');
+    .then(d => {
+      if (!d.ok) throw new Error(d.message || 'import failed');
       if (input) input.value = '';
       return refreshPresetGrid();
     })
@@ -669,7 +744,9 @@ window.importPresetByUrl = function() {
     .finally(() => {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = '📥 Импорт пресета';
+        btn.textContent = 'Импорт';
       }
     });
 };
+
+window.importPresetByUrl = window.importPresetSmart;

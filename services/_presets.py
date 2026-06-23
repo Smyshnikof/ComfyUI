@@ -14,6 +14,10 @@ _REPO_ROOT = os.path.abspath(os.path.join(_SERVICES_DIR, ".."))
 BUILTIN_DIR = os.path.join(_REPO_ROOT, "presets", "manifest")
 COMMUNITY_DIR = os.environ.get("COMMUNITY_PRESETS_DIR", "/workspace/presets/community")
 CATEGORIES_FILE = os.path.join(_REPO_ROOT, "presets", "categories.json")
+COMMUNITY_CATEGORIES_FILE = os.environ.get(
+    "COMMUNITY_CATEGORIES_FILE", "/workspace/presets/community_categories.json")
+_DEFAULT_CAT_ICON = "📦"
+_DEFAULT_CAT_COLOR = "#9ca3af"
 
 ALLOWED_MODEL_FOLDERS = frozenset({
     "diffusion_models", "loras", "vae", "text_encoders", "upscale_models",
@@ -72,6 +76,70 @@ def unique_community_id(base: str) -> str:
 def _load_json(path: str) -> Any:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_categories() -> dict:
+    """Built-in categories plus community (community never overrides built-in)."""
+    cats = _load_json(CATEGORIES_FILE) if os.path.isfile(CATEGORIES_FILE) else {}
+    if os.path.isfile(COMMUNITY_CATEGORIES_FILE):
+        try:
+            for cid, meta in (_load_json(COMMUNITY_CATEGORIES_FILE) or {}).items():
+                if cid not in cats:
+                    cats[cid] = meta
+        except Exception:
+            pass
+    return cats
+
+
+def ensure_community_category(
+    name: str,
+    icon: str | None = None,
+    color: str | None = None,
+) -> str:
+    """Return category id; create in community store if new."""
+    name = (name or "").strip()
+    if not name:
+        return name
+    cats = load_categories()
+    for cid, meta in cats.items():
+        if cid == name or meta.get("name", "").lower() == name.lower():
+            return cid
+    cid = slug_id(name)
+    base = cid
+    i = 2
+    while cid in cats:
+        cid = f"{base}-{i}"
+        i += 1
+    store: dict = {}
+    if os.path.isfile(COMMUNITY_CATEGORIES_FILE):
+        try:
+            store = _load_json(COMMUNITY_CATEGORIES_FILE) or {}
+        except Exception:
+            store = {}
+    store[cid] = {
+        "name": name.strip()[:40] or cid,
+        "icon": (icon or _DEFAULT_CAT_ICON)[:4],
+        "color": color or _DEFAULT_CAT_COLOR,
+    }
+    os.makedirs(os.path.dirname(COMMUNITY_CATEGORIES_FILE), exist_ok=True)
+    tmp = COMMUNITY_CATEGORIES_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(store, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    os.replace(tmp, COMMUNITY_CATEGORIES_FILE)
+    return cid
+
+
+def _ensure_category_from_import(obj: dict) -> dict:
+    obj = dict(obj)
+    cat = obj.get("category")
+    known = load_categories()
+    if cat and cat not in known:
+        cm = obj.get("category_meta") or {}
+        obj["category"] = ensure_community_category(
+            cm.get("name", cat), cm.get("icon"), cm.get("color")
+        )
+    return obj
 
 
 def _files_to_tuples(files: list[dict]) -> list[tuple[str, str, str | None]]:
@@ -215,9 +283,7 @@ def _ingest_preset(
 
 def load_presets(*, log_skips: bool = True) -> tuple[dict, dict, dict]:
     """Returns (PRESETS, PRESET_FILES, PRESET_CATEGORIES) in legacy format."""
-    categories: dict = {}
-    if os.path.isfile(CATEGORIES_FILE):
-        categories = _load_json(CATEGORIES_FILE)
+    categories = load_categories()
 
     presets: dict = {}
     files: dict = {}
@@ -250,7 +316,8 @@ def _safe_preset_id(pid: str) -> str | None:
 
 def save_community_preset(obj: dict) -> tuple[bool, str]:
     """Validate and write preset JSON to community dir. Returns (ok, id_or_error)."""
-    categories = _load_json(CATEGORIES_FILE) if os.path.isfile(CATEGORIES_FILE) else {}
+    obj = _ensure_category_from_import(obj)
+    categories = load_categories()
     builtin_ids = _collect_ids(sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json"))))
     ok, err = validate_preset(obj, categories, seen=builtin_ids)
     if not ok:
@@ -287,6 +354,10 @@ def export_preset_to_json(
         "size": meta.get("size", ""),
         "time": meta.get("time", ""),
     }
+    cats = load_categories()
+    cat = meta["category"]
+    if cat in cats:
+        obj["category_meta"] = cats[cat]
     if meta.get("video_guide"):
         obj["video_guide"] = meta["video_guide"]
     if meta.get("has_variants") and meta.get("variant_groups"):
