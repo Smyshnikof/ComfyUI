@@ -463,7 +463,6 @@ window.applyFilters = function() {
 }
 
 // Инициализация
-// Инициализация
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof applyFilters === 'function') {
     applyFilters();
@@ -475,3 +474,70 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTokenSavedStatus();
   }
 });
+
+window.reloadPresets = function() {
+  const btn = document.getElementById('reload-presets-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Обновление...';
+  }
+  fetch('/reload_presets', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) throw new Error('reload failed');
+      return fetch('/api/presets/fragment');
+    })
+    .then(r => r.json())
+    .then(data => {
+      const grid = document.getElementById('preset-grid');
+      const filters = document.getElementById('category-filters');
+      if (grid) grid.innerHTML = data.presets_html;
+      if (filters) filters.innerHTML = data.category_filters_html;
+      selectedPresets = [];
+      selectedVariants = {};
+      if (typeof applyFilters === 'function') applyFilters();
+      if (typeof loadInstalledStatus === 'function') loadInstalledStatus();
+      const dlBtn = document.getElementById('download-presets-btn');
+      if (dlBtn) {
+        dlBtn.disabled = true;
+        dlBtn.textContent = '📥 Скачать выбранные пресеты';
+      }
+    })
+    .catch(err => alert('Не удалось обновить пресеты: ' + err.message))
+    .finally(() => {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🔄 Обновить пресеты';
+      }
+    });
+};
+
+window.importPresetByUrl = function() {
+  const input = document.getElementById('import-preset-url');
+  const btn = document.getElementById('import-preset-btn');
+  const url = (input && input.value || '').trim();
+  if (!url) {
+    alert('Вставьте ссылку на JSON пресета');
+    return;
+  }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Импорт...';
+  }
+  const formData = new FormData();
+  formData.append('url', url);
+  fetch('/presets/import', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) throw new Error(data.message || 'import failed');
+      if (input) input.value = '';
+      return window.reloadPresets();
+    })
+    .catch(err => alert('Импорт: ' + err.message))
+    .finally(() => {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '📥 Импорт пресета';
+      }
+    });
+};

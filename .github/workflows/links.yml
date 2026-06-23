@@ -2,6 +2,13 @@ name: Preset link health
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "presets/**"
+      - "services/_presets.py"
+      - "services/preset_downloader.py"
+      - "scripts/check_links.py"
+      - "scripts/validate_presets.py"
   schedule:
     - cron: "0 6 * * 1"
 
@@ -22,10 +29,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Validate preset manifests
+        run: python scripts/validate_presets.py
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install requests fastapi huggingface_hub
 
       - name: Check preset URLs
         id: check

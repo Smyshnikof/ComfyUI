@@ -2,6 +2,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
+import re
 import subprocess
 import threading
 import uuid
@@ -180,6 +181,17 @@ INDEX_HTML = """
       margin-bottom: 8px;
     }
     .preset-install-badge.full { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .preset-community-badge {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      color: #a78bfa;
+      background: rgba(167, 139, 250, 0.15);
+      vertical-align: middle;
+    }
     .preset-install-badge.partial { background: rgba(234, 179, 8, 0.2); color: #eab308; }
     .preset-variant-badge {
       margin-left: 8px;
@@ -709,6 +721,77 @@ def _preset_install_state(preset_id: str) -> dict:
 def installed():
     """Installed preset files status (read-only)."""
     return {preset_id: _preset_install_state(preset_id) for preset_id in PRESET_FILES}
+
+
+@app.post("/reload_presets")
+def reload_presets_endpoint():
+    reload_presets_data()
+    return {"ok": True, "count": len(PRESETS)}
+
+
+@app.get("/api/presets/fragment")
+def presets_fragment():
+    return JSONResponse({
+        "presets_html": generate_presets_html(),
+        "category_filters_html": generate_category_filters_html(),
+        "count": len(PRESETS),
+    })
+
+
+@app.post("/presets/import")
+def presets_import(url: str = Form(...)):
+    from urllib.parse import urlparse
+
+    url = url.strip()
+    host = urlparse(url).netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if not url.startswith("https://") or host not in ALLOWED_IMPORT_HOSTS:
+        return JSONResponse({"ok": False, "message": "Ссылка должна быть https с доверенного хоста"})
+    try:
+        resp = requests.get(url, timeout=20, headers={"User-Agent": "ComfyUI-preset-import/1.0"})
+        resp.raise_for_status()
+        if len(resp.content) > 256 * 1024:
+            return JSONResponse({"ok": False, "message": "Файл слишком большой для пресета"})
+        obj = resp.json()
+    except Exception as exc:
+        return JSONResponse({"ok": False, "message": f"Не удалось загрузить JSON: {exc}"})
+    ok, msg = save_community_preset(obj)
+    if ok:
+        reload_presets_data()
+        return JSONResponse({"ok": True, "message": "Пресет импортирован", "id": msg})
+    return JSONResponse({"ok": False, "message": msg})
+
+
+@app.post("/presets/create")
+def presets_create(
+    name: str = Form(...),
+    category: str = Form(...),
+    description: str = Form(""),
+    files_json: str = Form(...),
+):
+    try:
+        files = json.loads(files_json)
+    except Exception:
+        return JSONResponse({"ok": False, "message": "Битый список файлов"})
+    if not isinstance(files, list) or not files:
+        return JSONResponse({"ok": False, "message": "Нужен хотя бы один файл"})
+    pid = re.sub(r"[^A-Za-z0-9_-]", "_", name.strip())[:64] or "PRESET"
+    obj = {
+        "schema": 1,
+        "id": pid,
+        "name": name.strip(),
+        "category": category.strip(),
+        "description": description.strip(),
+        "size": "",
+        "time": "",
+        "files": files,
+    }
+    ok, msg = save_community_preset(obj)
+    if ok:
+        reload_presets_data()
+        return JSONResponse({"ok": True, "message": "Пресет добавлен", "id": msg})
+    return JSONResponse({"ok": False, "message": msg})
 
 
 @app.get("/tokens/status")
