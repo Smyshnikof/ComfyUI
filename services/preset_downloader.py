@@ -23,6 +23,8 @@ from services._presets import (
     ALLOWED_IMPORT_HOSTS,
     load_presets,
     save_community_preset,
+    slug_id,
+    unique_community_id,
 )
 
 PRESETS, PRESET_FILES, PRESET_CATEGORIES = load_presets()
@@ -192,6 +194,42 @@ INDEX_HTML = """
       background: rgba(167, 139, 250, 0.15);
       vertical-align: middle;
     }
+    .add-preset {
+      margin: 16px 0;
+      padding: 16px;
+      background: #1a1a1a;
+      border: 1px dashed #3a3a3a;
+      border-radius: 8px;
+    }
+    .add-preset summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .add-preset .np-field {
+      margin-bottom: 12px;
+    }
+    .add-preset input[type=text],
+    .add-preset select {
+      width: 100%;
+      padding: 10px 12px;
+      background: #111;
+      border: 1px solid #3a3a3a;
+      color: var(--text);
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    .np-file-row {
+      display: grid;
+      grid-template-columns: 1fr 160px 140px auto;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    @media (max-width: 720px) {
+      .np-file-row { grid-template-columns: 1fr; }
+    }
     .preset-install-badge.partial { background: rgba(234, 179, 8, 0.2); color: #eab308; }
     .preset-variant-badge {
       margin-left: 8px;
@@ -300,6 +338,24 @@ INDEX_HTML = """
           <input type="text" id="import-preset-url" placeholder="https://raw.githubusercontent.com/.../preset.json" style="flex:1; min-width:220px;" />
           <button type="button" class="btn" onclick="importPresetByUrl()" id="import-preset-btn">📥 Импорт пресета</button>
         </div>
+        <details class="add-preset" id="add-preset-block">
+          <summary>➕ Добавить свой пресет</summary>
+          <div class="np-field">
+            <input id="np-name" type="text" placeholder="Название пресета" />
+          </div>
+          <div class="np-field">
+            <select id="np-category"></select>
+          </div>
+          <div class="np-field">
+            <input id="np-desc" type="text" placeholder="Описание (необязательно)" />
+          </div>
+          <div id="np-files"></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <button type="button" class="btn" onclick="addFileRow()">+ добавить файл</button>
+            <button type="button" class="btn btn-preset" onclick="createPreset()">Сохранить пресет</button>
+          </div>
+          <div class="result" id="np-result" style="margin-top:12px;"></div>
+        </details>
         <div class="row-full">
           <button class="btn btn-preset" onclick="downloadPresets()" id="download-presets-btn" disabled>
             📥 Скачать выбранные пресеты
@@ -723,6 +779,17 @@ def installed():
     return {preset_id: _preset_install_state(preset_id) for preset_id in PRESET_FILES}
 
 
+@app.get("/api/form-meta")
+def form_meta():
+    return {
+        "categories": [
+            {"id": k, "name": v.get("name", k), "icon": v.get("icon", "")}
+            for k, v in PRESET_CATEGORIES.items()
+        ],
+        "folders": sorted(ALLOWED_MODEL_FOLDERS),
+    }
+
+
 @app.post("/reload_presets")
 def reload_presets_endpoint():
     reload_presets_data()
@@ -776,7 +843,7 @@ def presets_create(
         return JSONResponse({"ok": False, "message": "Битый список файлов"})
     if not isinstance(files, list) or not files:
         return JSONResponse({"ok": False, "message": "Нужен хотя бы один файл"})
-    pid = re.sub(r"[^A-Za-z0-9_-]", "_", name.strip())[:64] or "PRESET"
+    pid = unique_community_id(slug_id(name.strip()))
     obj = {
         "schema": 1,
         "id": pid,

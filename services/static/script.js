@@ -473,7 +473,113 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof loadTokenSavedStatus === 'function') {
     loadTokenSavedStatus();
   }
+  if (typeof initPresetForm === 'function') {
+    initPresetForm();
+  }
 });
+
+window.refreshInstalled = window.loadInstalledStatus;
+
+let formMeta = { categories: [], folders: [] };
+
+window.initPresetForm = async function() {
+  try {
+    const resp = await fetch('/api/form-meta');
+    formMeta = await resp.json();
+    const cat = document.getElementById('np-category');
+    if (cat && formMeta.categories) {
+      cat.innerHTML = formMeta.categories.map(c =>
+        `<option value="${c.id}">${c.icon} ${c.name}</option>`
+      ).join('');
+    }
+    const filesWrap = document.getElementById('np-files');
+    if (filesWrap && !filesWrap.querySelector('.np-file-row')) {
+      addFileRow();
+    }
+  } catch (e) {
+    console.warn('initPresetForm failed', e);
+  }
+};
+
+window.addFileRow = function() {
+  const wrap = document.getElementById('np-files');
+  if (!wrap) return;
+  const row = document.createElement('div');
+  row.className = 'np-file-row';
+  const folders = (formMeta.folders || []).map(f =>
+    `<option value="${f}">${f}</option>`
+  ).join('');
+  row.innerHTML = `
+    <input class="np-url" type="text" placeholder="https://huggingface.co/.../model.safetensors" />
+    <select class="np-folder">${folders}</select>
+    <input class="np-filename" type="text" placeholder="имя (необяз.)" />
+    <button type="button" class="btn" onclick="this.parentNode.remove()">✕</button>`;
+  wrap.appendChild(row);
+};
+
+window.createPreset = function() {
+  const name = (document.getElementById('np-name')?.value || '').trim();
+  const category = document.getElementById('np-category')?.value || '';
+  const description = (document.getElementById('np-desc')?.value || '').trim();
+  const res = document.getElementById('np-result');
+  const files = [...document.querySelectorAll('.np-file-row')].map(r => ({
+    url: (r.querySelector('.np-url')?.value || '').trim(),
+    folder: r.querySelector('.np-folder')?.value || '',
+    filename: (r.querySelector('.np-filename')?.value || '').trim() || null,
+  })).filter(f => f.url);
+
+  if (!name || !files.length) {
+    if (res) res.textContent = '❌ Нужно название и хотя бы один файл';
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('category', category);
+  fd.append('description', description);
+  fd.append('files_json', JSON.stringify(files));
+
+  fetch('/presets/create', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      if (res) res.textContent = d.message || (d.ok ? 'OK' : 'Ошибка');
+      if (d.ok) {
+        document.getElementById('np-name').value = '';
+        document.getElementById('np-desc').value = '';
+        const filesWrap = document.getElementById('np-files');
+        if (filesWrap) {
+          filesWrap.innerHTML = '';
+          addFileRow();
+        }
+        const block = document.getElementById('add-preset-block');
+        if (block) block.open = false;
+        refreshPresetGrid();
+      }
+    })
+    .catch(e => {
+      if (res) res.textContent = '❌ ' + e.message;
+    });
+};
+
+window.refreshPresetGrid = function() {
+  return fetch('/api/presets/fragment')
+    .then(r => r.json())
+    .then(d => {
+      const grid = document.getElementById('preset-grid');
+      const filters = document.getElementById('category-filters');
+      if (grid) grid.innerHTML = d.presets_html;
+      if (filters) filters.innerHTML = d.category_filters_html;
+      selectedPresets = [];
+      selectedVariants = {};
+      if (typeof applyFilters === 'function') applyFilters();
+      if (typeof loadInstalledStatus === 'function') loadInstalledStatus();
+      const dlBtn = document.getElementById('download-presets-btn');
+      if (dlBtn) {
+        dlBtn.disabled = true;
+        dlBtn.textContent = '📥 Скачать выбранные пресеты';
+      }
+    });
+};
 
 window.reloadPresets = function() {
   const btn = document.getElementById('reload-presets-btn');
@@ -485,23 +591,7 @@ window.reloadPresets = function() {
     .then(r => r.json())
     .then(data => {
       if (!data.ok) throw new Error('reload failed');
-      return fetch('/api/presets/fragment');
-    })
-    .then(r => r.json())
-    .then(data => {
-      const grid = document.getElementById('preset-grid');
-      const filters = document.getElementById('category-filters');
-      if (grid) grid.innerHTML = data.presets_html;
-      if (filters) filters.innerHTML = data.category_filters_html;
-      selectedPresets = [];
-      selectedVariants = {};
-      if (typeof applyFilters === 'function') applyFilters();
-      if (typeof loadInstalledStatus === 'function') loadInstalledStatus();
-      const dlBtn = document.getElementById('download-presets-btn');
-      if (dlBtn) {
-        dlBtn.disabled = true;
-        dlBtn.textContent = '📥 Скачать выбранные пресеты';
-      }
+      return refreshPresetGrid();
     })
     .catch(err => alert('Не удалось обновить пресеты: ' + err.message))
     .finally(() => {
@@ -531,7 +621,7 @@ window.importPresetByUrl = function() {
     .then(data => {
       if (!data.ok) throw new Error(data.message || 'import failed');
       if (input) input.value = '';
-      return window.reloadPresets();
+      return refreshPresetGrid();
     })
     .catch(err => alert('Импорт: ' + err.message))
     .finally(() => {

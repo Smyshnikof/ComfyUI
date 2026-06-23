@@ -40,6 +40,34 @@ ALLOWED_IMPORT_HOSTS = frozenset({
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
+_TRANSLIT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
+    "ж": "zh", "з": "z", "и": "i", "й": "i", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "h", "ц": "c", "ч": "ch", "ш": "sh", "щ": "sch",
+    "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
+
+
+def slug_id(name: str) -> str:
+    s = (name or "").lower()
+    s = "".join(_TRANSLIT.get(ch, ch) for ch in s)
+    s = re.sub(r"[^A-Za-z0-9_-]", "_", s).strip("_")[:48]
+    return s or "preset"
+
+
+def unique_community_id(base: str) -> str:
+    """base, base-2, base-3… without conflicting with builtin or existing community."""
+    builtin = _collect_ids(sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json"))))
+    community = _collect_ids(sorted(glob.glob(os.path.join(COMMUNITY_DIR, "*.json"))))
+    taken = builtin | community
+    if base not in taken:
+        return base
+    i = 2
+    while f"{base}-{i}" in taken:
+        i += 1
+    return f"{base}-{i}"
+
 
 def _load_json(path: str) -> Any:
     with open(path, encoding="utf-8") as f:
