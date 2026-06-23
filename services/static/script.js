@@ -454,9 +454,9 @@ window.applyFilters = function() {
   
   cards.forEach(card => {
     const presetCategory = card.getAttribute('data-category');
-    const presetName = card.querySelector('.preset-name').textContent.toLowerCase();
-    const presetDesc = card.querySelector('.preset-desc').textContent.toLowerCase();
-    const presetInfo = card.querySelector('.preset-info').textContent.toLowerCase();
+    const presetName = (card.querySelector('.preset-name')?.textContent || '').toLowerCase();
+    const presetDesc = (card.querySelector('.preset-desc')?.textContent || '').toLowerCase();
+    const presetInfo = (card.querySelector('.preset-info')?.textContent || '').toLowerCase();
     
     // Проверяем категорию
     const categoryMatch = currentCategory === 'all' || presetCategory === currentCategory;
@@ -851,7 +851,9 @@ window.reloadPresets = function() {
     .then(r => r.json())
     .then(data => {
       if (!data.ok) throw new Error('reload failed');
-      return refreshPresetGrid();
+      return refreshPresetGrid().then(() => {
+        if (typeof loadCommunityPresetList === 'function') loadCommunityPresetList();
+      });
     })
     .catch(err => alert('Не удалось обновить пресеты: ' + err.message))
     .finally(() => {
