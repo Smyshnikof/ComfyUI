@@ -608,7 +608,7 @@ INDEX_HTML = """
       console.log('HF handlers attached successfully');
     });
     
-    function pollHFStatus(taskId) {
+    window.pollHFStatus = function pollHFStatus(taskId) {
       const progress = document.getElementById('hf-progress');
       const progressFill = document.getElementById('hf-progress-fill');
       const progressText = document.getElementById('hf-progress-text');
