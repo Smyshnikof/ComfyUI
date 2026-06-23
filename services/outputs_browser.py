@@ -21,9 +21,10 @@ VIDEO_EXT = {".mp4", ".webm", ".avi", ".mov", ".mkv"}
 
 def safe_path(base: str, *parts: str) -> str:
     """Resolve path and ensure it stays under base."""
-    full = os.path.normpath(os.path.join(base, *parts))
-    if not full.startswith(os.path.normpath(base)):
-        return base
+    base_n = os.path.normpath(base)
+    full = os.path.normpath(os.path.join(base_n, *parts))
+    if full != base_n and not full.startswith(base_n + os.sep):
+        return base_n
     return full
 
 

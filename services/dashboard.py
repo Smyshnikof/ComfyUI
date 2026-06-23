@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Tuple
 import os
 import subprocess
+import sys
 import threading
 import time
 import shutil
@@ -137,6 +138,9 @@ def schedule_shutdown(request: ShutdownRequest) -> None:
     """Schedule a shutdown for the specified time."""
     global shutdown_scheduled, shutdown_time, shutdown_thread
 
+    if request.value <= 0:
+        raise HTTPException(status_code=400, detail="Value must be greater than 0")
+
     multipliers = {"seconds": 1, "minutes": 60, "hours": 3600}
     if request.unit not in multipliers:
         raise HTTPException(
@@ -150,8 +154,9 @@ def schedule_shutdown(request: ShutdownRequest) -> None:
         shutdown_scheduled = True
         shutdown_time = time.time() + delay_seconds
 
-        shutdown_thread = threading.Thread(target=shutdown_worker, daemon=True)
-        shutdown_thread.start()
+        if shutdown_thread is None or not shutdown_thread.is_alive():
+            shutdown_thread = threading.Thread(target=shutdown_worker, daemon=True)
+            shutdown_thread.start()
 
 
 def cancel_shutdown() -> None:
@@ -312,6 +317,14 @@ SERVICES = [
 service_pids: dict = {}
 
 
+def _service_python() -> str:
+    """Python for managed aux services — same venv as start.sh."""
+    for path in ("/workspace/venv/bin/python", "/venv/bin/python"):
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return sys.executable
+
+
 def find_process_by_port(port: int) -> Optional[int]:
     """Find PID of process listening on a port."""
     try:
@@ -357,7 +370,7 @@ def start_service(name: str) -> dict:
         log_file = open(f"{log_dir}/{name}.log", "a")
         
         proc = subprocess.Popen(
-            ["python", "-m", "uvicorn", svc["module"], "--host", "0.0.0.0", "--port", str(svc["port"])],
+            [_service_python(), "-m", "uvicorn", svc["module"], "--host", "0.0.0.0", "--port", str(svc["port"])],
             stdout=log_file,
             stderr=log_file,
             start_new_session=True,
@@ -553,8 +566,19 @@ class NetworkSpeed(BaseModel):
     duration: float  # seconds
 
 
+_network_speed_cache: Optional[NetworkSpeed] = None
+_network_speed_cache_at: float = 0
+_NETWORK_SPEED_CACHE_SEC = 60
+
+
 def test_network_speed() -> NetworkSpeed:
     """Test network download speed."""
+    global _network_speed_cache, _network_speed_cache_at
+
+    now = time.time()
+    if _network_speed_cache and (now - _network_speed_cache_at) < _NETWORK_SPEED_CACHE_SEC:
+        return _network_speed_cache
+
     import urllib.request
     import ssl
     
@@ -574,17 +598,18 @@ def test_network_speed() -> NetworkSpeed:
         ("https://www.google.com/generate_204", 0, True),  # Just for latency
     ]
     
-    # Measure latency first with a simple request
+    # Measure latency with a lightweight endpoint
     for url, _, is_latency in test_configs:
-        if is_latency or True:  # Try any URL for latency
-            try:
-                latency_start = time.time()
-                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                urllib.request.urlopen(req, timeout=10, context=ctx if url.startswith('https') else None)
-                latency = (time.time() - latency_start) * 1000
-                break
-            except Exception:
-                continue
+        if not is_latency:
+            continue
+        try:
+            latency_start = time.time()
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            urllib.request.urlopen(req, timeout=5, context=ctx if url.startswith('https') else None)
+            latency = (time.time() - latency_start) * 1000
+            break
+        except Exception:
+            continue
     
     # Speed test with larger files
     for url, expected_size, is_latency in test_configs:
@@ -593,7 +618,7 @@ def test_network_speed() -> NetworkSpeed:
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             start_time = time.time()
-            response = urllib.request.urlopen(req, timeout=60, context=ctx if url.startswith('https') else None)
+            response = urllib.request.urlopen(req, timeout=30, context=ctx if url.startswith('https') else None)
             data = response.read()
             duration = time.time() - start_time
             
@@ -603,23 +628,29 @@ def test_network_speed() -> NetworkSpeed:
                 
             speed_mbps = (file_size / 1024 / 1024) / duration if duration > 0 else 0
             
-            return NetworkSpeed(
+            result = NetworkSpeed(
                 download_speed=round(speed_mbps, 2),
                 latency=round(latency, 1),
                 test_url=url.split("/")[-1],
                 file_size=file_size,
                 duration=round(duration, 3),
             )
+            _network_speed_cache = result
+            _network_speed_cache_at = time.time()
+            return result
         except Exception:
             continue
     
-    return NetworkSpeed(
+    result = NetworkSpeed(
         download_speed=0,
         latency=round(latency, 1) if latency > 0 else 0,
         test_url="failed",
         file_size=0,
         duration=0,
     )
+    _network_speed_cache = result
+    _network_speed_cache_at = time.time()
+    return result
 
 
 # ============================================================================
@@ -881,6 +912,7 @@ INDEX_HTML = """
     .download-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .download-name { font-weight: 600; font-size: 14px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .download-status { font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+    .download-status.running,
     .download-status.downloading { background: rgba(59,130,246,0.2); color: #3b82f6; }
     .download-status.completed { background: rgba(34,197,94,0.2); color: #22c55e; }
     .download-status.error { background: rgba(239,68,68,0.2); color: #ef4444; }
@@ -1252,7 +1284,7 @@ INDEX_HTML = """
         list.innerHTML = data.tasks.map(task => {
           const statusClass = task.status || 'unknown';
           const statusText = {
-            'downloading': 'Загрузка',
+            'running': 'Загрузка',
             'completed': 'Завершено',
             'error': 'Ошибка'
           }[task.status] || task.status;
@@ -1267,7 +1299,7 @@ INDEX_HTML = """
                 <span class="download-name" title="${filename}">${filename}</span>
                 <span class="download-status ${statusClass}">${statusText}</span>
               </div>
-              ${task.status === 'downloading' ? `
+              ${task.status === 'running' ? `
                 <div class="download-progress">
                   <div class="bar-wrap"><div class="bar-fill" style="width:${progress}%"></div></div>
                 </div>

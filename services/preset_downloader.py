@@ -5,19 +5,101 @@ import os
 import subprocess
 import threading
 import uuid
+from collections import OrderedDict
 
 # Глобальный словарь для отслеживания статуса загрузок
-download_status = {}
+download_status: OrderedDict = OrderedDict()
+MAX_DOWNLOAD_TASKS = 50
 import requests
 import json
 from huggingface_hub import hf_hub_download, login
 import tempfile
+from services._downloader import fetch, probe_url, estimate_size, check_disk_space
+from services._tokens import resolve_token, save_token, tokens_saved_status
 
 app = FastAPI(title="Preset & Model Downloader")
 
 # Подключаем статические файлы
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+MODELS_ROOT = "/workspace/ComfyUI/models"
+
+ALLOWED_MODEL_FOLDERS = frozenset({
+    "diffusion_models", "loras", "vae", "text_encoders", "upscale_models",
+    "latent_upscale_models", "clip_vision", "audio_encoders", "checkpoints",
+    "clip", "configs", "controlnet", "diffusers", "embeddings", "gligen",
+    "hypernetworks", "ipadapter", "model_patches", "onnx", "photomaker",
+    "sams", "style_models", "unet", "vae_approx", "vibevoice", "detection",
+})
+
+
+def validate_model_folder(folder: str) -> str | None:
+    if folder not in ALLOWED_MODEL_FOLDERS:
+        return f"❌ Недопустимая папка: {folder}"
+    return None
+
+
+def sanitize_filename(filename: str) -> str | None:
+    safe = os.path.basename((filename or "").strip())
+    if not safe or safe in (".", ".."):
+        return None
+    return safe
+
+
+def _path_under_models(path: str) -> bool:
+    models_root = os.path.realpath(MODELS_ROOT)
+    parent = os.path.realpath(os.path.dirname(path))
+    try:
+        return os.path.commonpath([models_root, parent]) == models_root
+    except ValueError:
+        return False
+
+
+def resolve_models_dir(folder: str) -> tuple[str | None, str | None]:
+    err = validate_model_folder(folder)
+    if err:
+        return None, err
+    os.makedirs(os.path.join(MODELS_ROOT, folder), exist_ok=True)
+    models_root = os.path.realpath(MODELS_ROOT)
+    dest_dir = os.path.realpath(os.path.join(MODELS_ROOT, folder))
+    if not _path_under_models(os.path.join(dest_dir, "placeholder")):
+        return None, "❌ Путь выходит за пределы models/"
+    return dest_dir, None
+
+
+def resolve_models_file(folder: str, filename: str) -> tuple[str | None, str | None, str | None]:
+    dest_dir, err = resolve_models_dir(folder)
+    if err:
+        return None, None, err
+    safe_name = sanitize_filename(filename)
+    if not safe_name:
+        return None, None, "❌ Недопустимое имя файла"
+    file_path = os.path.join(dest_dir, safe_name)
+    if not _path_under_models(file_path):
+        return None, None, "❌ Путь выходит за пределы models/"
+    return file_path, safe_name, None
+
+
+def resolve_hf_file_path(folder: str, filename: str) -> tuple[str | None, str | None, str | None]:
+    """HF filename may include subfolders, e.g. subdir/model.safetensors."""
+    dest_dir, err = resolve_models_dir(folder)
+    if err:
+        return None, None, err
+    parts = [p for p in filename.strip().replace("\\", "/").split("/") if p and p != "."]
+    if not parts or ".." in parts:
+        return None, None, "❌ Недопустимое имя файла"
+    rel_path = os.path.join(*parts)
+    file_path = os.path.join(dest_dir, rel_path)
+    if not _path_under_models(file_path):
+        return None, None, "❌ Путь выходит за пределы models/"
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    return file_path, rel_path, None
+
+
+def _trim_download_status() -> None:
+    while len(download_status) > MAX_DOWNLOAD_TASKS:
+        download_status.popitem(last=False)
 
 # Структура файлов для каждого пресета
 PRESET_FILES = {
@@ -356,7 +438,20 @@ PRESET_FILES = {
         ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/vae/flux2-vae.safetensors", "vae", None),
         ("https://huggingface.co/Comfy-Org/ERNIE-Image/resolve/main/diffusion_models/ernie-image-turbo.safetensors", "diffusion_models", None),
     ],
+    # Ideogram 4.0 (Comfy-Org) — gemma encoder из отдельного репо Comfy-Org/gemma-4
+    "IDEOGRAM_4": [
+        ("https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_fp8_scaled.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/text_encoders/qwen3vl_8b_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors", "text_encoders", None),
+        ("https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/vae/flux2-vae.safetensors", "vae", None),
+    ],
     # Anima (circlestone-labs) — общие text_encoders + vae, различается только diffusion
+    "ANIMA_BASE": [
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors", "diffusion_models", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors", "text_encoders", None),
+        ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae", None),
+    ],
     "ANIMA_PREVIEW": [
         ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview.safetensors", "diffusion_models", None),
         ("https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors", "text_encoders", None),
@@ -537,6 +632,11 @@ PRESET_CATEGORIES = {
         "icon": "📝",
         "color": "#14b8a6"
     },
+    "Ideogram": {
+        "name": "Ideogram",
+        "icon": "🎭",
+        "color": "#6366f1"
+    },
     "Flux": {
         "name": "Flux",
         "icon": "⚡",
@@ -562,6 +662,13 @@ PRESETS = {
         "size": "~40GB",
         "time": "15-20 мин",
         "category": "Wan",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия": {
+                "WAN_T2V": {"name": "Стандарт", "size": "~40GB", "time": "15-20 мин"},
+                "WAN_T2V_LIGHTNING": {"name": "Lightning LoRA", "size": "~2GB", "time": "2-5 мин"},
+            }
+        },
         "video_guide": "https://youtu.be/9Yg02eaFHJI?si=sJeT5NunkyzdDxqp"
     },
     "WAN_T2I": {
@@ -578,6 +685,13 @@ PRESETS = {
         "size": "~40GB", 
         "time": "15-20 мин",
         "category": "Wan",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия": {
+                "WAN_I2V": {"name": "Стандарт", "size": "~40GB", "time": "15-20 мин"},
+                "WAN_I2V_LIGHTNING": {"name": "Lightning LoRA", "size": "~2GB", "time": "2-5 мин"},
+            }
+        },
         "video_guide": "https://youtu.be/SUh_25b4zeU?si=p8P-aXOYh5HIaIEW"
     },
     "WAN_I2V_LOOP": {
@@ -613,7 +727,14 @@ PRESETS = {
         "description": "Генерация видео с помощью первого и последнего кадра",
         "size": "~40GB",
         "time": "15-20 мин",
-        "category": "Wan"
+        "category": "Wan",
+        "has_variants": True,
+        "variant_groups": {
+            "Версия": {
+                "WAN_FLF": {"name": "Стандарт", "size": "~40GB", "time": "15-20 мин"},
+                "WAN_FLF_LIGHTNING": {"name": "Lightning LoRA", "size": "~2GB", "time": "2-5 мин"},
+            }
+        },
     },
     "WAN_LIGHTX2V": {
         "name": "Wan LightX2V",
@@ -692,6 +813,9 @@ PRESETS = {
                 "QWEN_IMAGE": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
                 "QWEN_IMAGE_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
             },
+            "Lightning LoRA": {
+                "QWEN_IMAGE_LIGHTNING": {"name": "Lightning", "size": "~5GB", "time": "3-8 мин"},
+            },
             "Версия 2512": {
                 "QWEN_IMAGE_2512_FP8": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
                 "QWEN_IMAGE_2512_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"},
@@ -709,11 +833,13 @@ PRESETS = {
         "variant_groups": {
             "Базовая версия": {
                 "QWEN_EDIT": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
-                "QWEN_EDIT_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+                "QWEN_EDIT_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"},
+                "QWEN_EDIT_LIGHTNING": {"name": "Lightning", "size": "~2GB", "time": "3-8 мин"},
             },
             "Версия 2509": {
                 "QWEN_EDIT_2509_FP8": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
-                "QWEN_EDIT_2509_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"}
+                "QWEN_EDIT_2509_BF16": {"name": "BF16", "size": "~40GB", "time": "10-20 мин"},
+                "QWEN_EDIT_2509_LIGHTNING": {"name": "Lightning", "size": "~2GB", "time": "3-8 мин"},
             },
             "Версия 2511": {
                 "QWEN_EDIT_2511_FP8": {"name": "FP8", "size": "~15GB", "time": "8-12 мин"},
@@ -763,6 +889,13 @@ PRESETS = {
             }
         }
     },
+    "IDEOGRAM_4": {
+        "name": "Ideogram 4.0",
+        "description": "T2I: типографика, композиция, prompt enhancement (Qwen3VL + Gemma 4)",
+        "size": "~36GB",
+        "time": "15-25 мин",
+        "category": "Ideogram",
+    },
     "ANIMA": {
         "name": "Anima",
         "description": "Генерация изображений (circlestone-labs / Qwen-бэкенд)",
@@ -772,6 +905,7 @@ PRESETS = {
         "has_variants": True,
         "variant_groups": {
             "Версия модели": {
+                "ANIMA_BASE": {"name": "base v1.0 (релизная)", "size": "~6GB", "time": "5-10 мин"},
                 "ANIMA_PREVIEW": {"name": "preview (исходная)", "size": "~6GB", "time": "5-10 мин"},
                 "ANIMA_PREVIEW2": {"name": "preview 2", "size": "~6GB", "time": "5-10 мин"},
                 "ANIMA_PREVIEW3_BASE": {"name": "preview3-base", "size": "~6GB", "time": "5-10 мин"},
@@ -939,6 +1073,33 @@ INDEX_HTML = """
     .preset-name { font-weight: 700; margin-bottom: 8px; color: var(--accent); }
     .preset-desc { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
     .preset-info { font-size: 12px; color: var(--muted); }
+    .preset-install-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .preset-install-badge.full { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .preset-install-badge.partial { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .preset-variant-badge {
+      margin-left: 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .preset-variant-badge.full { color: #22c55e; }
+    .preset-variant-badge.partial { color: #eab308; }
+    .token-saved-badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
     .video-guide-icon { 
       position: absolute;
       top: 12px;
@@ -1098,11 +1259,16 @@ INDEX_HTML = """
           </div>
           <div class="row">
             <label for="hf_file">Файл (опционально)</label>
-            <input id="hf_file" type="text" name="filename" placeholder="model.safetensors" value="{{ hf_file_value }}" />
+            <input id="hf_file" type="text" name="filename" placeholder="model.safetensors или subdir/model.safetensors" value="{{ hf_file_value }}" />
+          </div>
+          <div class="row">
+            <label for="hf_revision">Ветка / revision</label>
+            <input id="hf_revision" type="text" name="revision" placeholder="main" value="main" />
           </div>
           <div class="row">
             <label for="hf_token">API токен (опционально)</label>
-            <input id="hf_token" type="password" name="token" placeholder="hf_..." value="{{ hf_token_value }}" autocomplete="current-password" />
+            <input id="hf_token" type="password" name="token" placeholder="hf_..." value="" autocomplete="current-password" />
+            <span id="hf-token-saved-badge" class="token-saved-badge" hidden>токен сохранён ✓</span>
             <div style="margin-top: 8px; padding: 12px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; font-size: 12px; word-wrap: break-word;">
               <div style="color: #4a9eff; font-weight: 600; margin-bottom: 8px;">📋 Как создать токен:</div>
               <div style="color: #ccc; line-height: 1.4;">
@@ -1302,6 +1468,9 @@ INDEX_HTML = """
             btn.disabled = false;
             btn.textContent = btn.textContent.includes('HuggingFace') ? '🤗 Скачать с HuggingFace' : '🔗 Скачать по ссылке';
           }
+          if (data.status === 'completed' && typeof loadTokenSavedStatus === 'function') {
+            loadTokenSavedStatus();
+          }
         } else if (data.status === 'running') {
           // Обновляем прогресс-бар
           const progressPercent = data.progress || 0;
@@ -1395,6 +1564,51 @@ def generate_presets_html():
             '''
     return html
 
+def _expected_preset_file_path(url: str, folder: str, custom_filename: str | None) -> str | None:
+    if folder not in ALLOWED_MODEL_FOLDERS:
+        return None
+    if custom_filename:
+        name = sanitize_filename(custom_filename)
+    else:
+        url_name = url.split("?")[0] if "?" in url else url
+        name = sanitize_filename(os.path.basename(url_name))
+    if not name:
+        return None
+    path = os.path.join(MODELS_ROOT, folder, name)
+    if not _path_under_models(path):
+        return None
+    return path
+
+
+def _preset_install_state(preset_id: str) -> dict:
+    files = PRESET_FILES.get(preset_id, [])
+    have = 0
+    for url, folder, custom in files:
+        path = _expected_preset_file_path(url, folder, custom)
+        if path and os.path.isfile(path) and os.path.getsize(path) > 0:
+            have += 1
+    total = len(files)
+    if total > 0 and have == total:
+        state = "full"
+    elif have > 0:
+        state = "partial"
+    else:
+        state = "none"
+    return {"have": have, "total": total, "state": state}
+
+
+@app.get("/installed")
+def installed():
+    """Installed preset files status (read-only)."""
+    return {preset_id: _preset_install_state(preset_id) for preset_id in PRESET_FILES}
+
+
+@app.get("/tokens/status")
+def tokens_status():
+    """Whether HF/CivitAI tokens are saved (values never returned)."""
+    return tokens_saved_status()
+
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     presets_html = generate_presets_html()
@@ -1403,7 +1617,6 @@ def index():
                        .replace("{{ category_filters_html }}", category_filters_html)
                        .replace("{{ hf_repo_value }}", "")
                        .replace("{{ hf_file_value }}", "")
-                       .replace("{{ hf_token_value }}", "")
                        .replace("{{ hf_result }}", ""))
 
 @app.get("/health")
@@ -1421,6 +1634,7 @@ def get_status(task_id: str):
 @app.get("/api/tasks")
 def get_all_tasks():
     """Get all download tasks (for dashboard integration)."""
+    _trim_download_status()
     # Filter to show only active/recent tasks
     active_tasks = []
     for task_id, status in download_status.items():
@@ -1430,10 +1644,10 @@ def get_all_tasks():
         }
         active_tasks.append(task_info)
     
-    # Sort by most recent (downloading first, then completed)
+    # Sort by most recent (running first, then completed)
     def sort_key(t):
         s = t.get("status", "")
-        if s == "downloading":
+        if s == "running":
             return 0
         elif s == "completed":
             return 1
@@ -1445,14 +1659,31 @@ def get_all_tasks():
     return {"tasks": active_tasks[:20]}  # Limit to 20 most recent
 
 
+def _collect_preset_urls(presets_list: list[str]) -> list[str]:
+    urls = []
+    for preset_id in presets_list:
+        if preset_id in PRESET_FILES:
+            for url, _folder, _custom_filename in PRESET_FILES[preset_id]:
+                urls.append(url)
+    return urls
+
+
 @app.post("/download_presets")
-def download_presets(presets: str = Form(...)):
+def download_presets(presets: str = Form(...), force: str = Form("0")):
     try:
         # Парсим строку пресетов
         presets_list = [p.strip() for p in presets.split(',') if p.strip()]
         
         if not presets_list:
             return {"message": "❌ Не выбрано ни одного пресета"}
+
+        force_download = force.strip().lower() in ("1", "true", "yes")
+        if not force_download:
+            urls = _collect_preset_urls(presets_list)
+            needed_bytes = estimate_size(urls)
+            disk_warning = check_disk_space(needed_bytes, force=False)
+            if disk_warning:
+                return disk_warning
         
         # Запускаем скрипт скачивания пресетов в фоне
         import threading
@@ -1460,6 +1691,7 @@ def download_presets(presets: str = Form(...)):
         
         # Создаем уникальный ID для отслеживания
         task_id = str(uuid.uuid4())
+        _trim_download_status()
         
         def download_file_with_progress(url, dest_dir, custom_filename, current_file, total_files, task_id):
             """Скачивает файл с отслеживанием прогресса в реальном времени, как в LoRA загрузчике"""
@@ -1467,27 +1699,36 @@ def download_presets(presets: str = Form(...)):
             
             # Определяем имя файла
             if custom_filename:
-                filename = custom_filename
+                filename = sanitize_filename(custom_filename)
             else:
-                filename = os.path.basename(url)
-                # Убираем параметры запроса
-                if '?' in filename:
-                    filename = filename.split('?')[0]
-            
+                url_name = url.split('?')[0] if '?' in url else url
+                filename = sanitize_filename(os.path.basename(url_name))
+
+            if not filename:
+                return "FAILED", custom_filename or url
+
             filepath = os.path.join(dest_dir, filename)
+            if not _path_under_models(filepath):
+                return "FAILED", filename
             os.makedirs(dest_dir, exist_ok=True)
-            
+
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            _, expected_size = probe_url(url, headers=headers)
+
             # Проверяем, существует ли файл
             if os.path.isfile(filepath) and os.path.getsize(filepath) > 0:
-                download_status[task_id] = {
-                    "status": "running",
-                    "message": f"⏭️ Пропущено (уже существует): {filename} ({current_file}/{total_files})",
-                    "progress": (current_file / total_files * 100),
-                    "total_files": total_files,
-                    "current_file": current_file,
-                    "current_filename": filename
-                }
-                return "SKIP", filename
+                if expected_size <= 0 or os.path.getsize(filepath) == expected_size:
+                    download_status[task_id] = {
+                        "status": "running",
+                        "message": f"⏭️ Пропущено (уже существует): {filename} ({current_file}/{total_files})",
+                        "progress": (current_file / total_files * 100),
+                        "total_files": total_files,
+                        "current_file": current_file,
+                        "current_filename": filename
+                    }
+                    return "SKIP", filename
             
             # Обновляем статус - начало скачивания
             download_status[task_id] = {
@@ -1500,55 +1741,30 @@ def download_presets(presets: str = Form(...)):
             }
             
             try:
-                # Скачиваем файл с отслеживанием прогресса
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-                response = requests.get(url, stream=True, headers=headers, timeout=300)
-                response.raise_for_status()
-                
-                # Получаем размер файла
-                total_size = int(response.headers.get('content-length', 0))
-                downloaded = 0
-                last_update = 0
-                update_interval = 1024 * 1024 * 5  # Обновляем каждые 5MB
-                
-                # Скачиваем по частям и обновляем прогресс
-                with open(filepath, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
-                        if chunk:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                            
-                            # Обновляем прогресс каждые 5MB или если это последний chunk
-                            if downloaded - last_update >= update_interval or (total_size > 0 and downloaded >= total_size):
-                                last_update = downloaded
-                                
-                                # Обновляем прогресс
-                                if total_size > 0:
-                                    file_percent = int((downloaded / total_size) * 100)
-                                    # Вычисляем общий прогресс: (current-1)/total + file_percent/(100*total)
-                                    overall_progress = ((current_file - 1) / total_files * 100) + (file_percent / total_files)
-                                    
-                                    download_status[task_id] = {
-                                        "status": "running",
-                                        "message": f"📥 Скачивание файла {current_file} из {total_files}: {filename} ({file_percent}%)",
-                                        "progress": min(overall_progress, 100),
-                                        "total_files": total_files,
-                                        "current_file": current_file,
-                                        "current_filename": filename
-                                    }
-                                else:
-                                    # Если размер неизвестен, показываем только что идет скачивание
-                                    size_mb = downloaded / (1024 * 1024)
-                                    download_status[task_id] = {
-                                        "status": "running",
-                                        "message": f"📥 Скачивание файла {current_file} из {total_files}: {filename} ({size_mb:.1f} MB)",
-                                        "progress": ((current_file - 1) / total_files * 100) + 0.1,  # Минимальный прогресс
-                                        "total_files": total_files,
-                                        "current_file": current_file,
-                                        "current_filename": filename
-                                    }
+                def on_progress(pct):
+                    if expected_size > 0:
+                        file_percent = pct
+                        overall_progress = ((current_file - 1) / total_files * 100) + (file_percent / total_files)
+                        download_status[task_id] = {
+                            "status": "running",
+                            "message": f"📥 Скачивание файла {current_file} из {total_files}: {filename} ({file_percent}%)",
+                            "progress": min(overall_progress, 100),
+                            "total_files": total_files,
+                            "current_file": current_file,
+                            "current_filename": filename
+                        }
+                    else:
+                        size_mb = os.path.getsize(filepath) / (1024 * 1024) if os.path.isfile(filepath) else 0
+                        download_status[task_id] = {
+                            "status": "running",
+                            "message": f"📥 Скачивание файла {current_file} из {total_files}: {filename} ({size_mb:.1f} MB)",
+                            "progress": ((current_file - 1) / total_files * 100) + 0.1,
+                            "total_files": total_files,
+                            "current_file": current_file,
+                            "current_filename": filename
+                        }
+
+                fetch(url, filepath, on_progress=on_progress, headers=headers)
                 
                 # Финальное обновление - файл скачан
                 download_status[task_id] = {
@@ -1604,7 +1820,10 @@ def download_presets(presets: str = Form(...)):
                 
                 # Скачиваем каждый файл
                 for idx, (url, folder, custom_filename) in enumerate(all_files, 1):
-                    dest_dir = f"/workspace/ComfyUI/models/{folder}"
+                    dest_dir, dir_err = resolve_models_dir(folder)
+                    if dir_err:
+                        failed_files.append(f"{folder}: {dir_err}")
+                        continue
                     result, filename = download_file_with_progress(
                         url, dest_dir, custom_filename, idx, total_files, task_id
                     )
@@ -1690,20 +1909,39 @@ def download_presets(presets: str = Form(...)):
         return {"message": f"❌ Ошибка: {str(e)}"}
 
 @app.post("/download_hf")
-def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Form(""), folder: str = Form("diffusion_models")):
+def download_hf(
+    repo: str = Form(...),
+    filename: str = Form(""),
+    token: str = Form(""),
+    folder: str = Form("diffusion_models"),
+    revision: str = Form("main"),
+):
     try:
+        form_token = (token or "").strip()
+        effective_token = resolve_token("hf", form_token)
+
+        target_dir, dir_err = resolve_models_dir(folder)
+        if dir_err:
+            return {"message": dir_err}
+
+        hf_revision = (revision or "main").strip() or "main"
+
+        safe_filename = None
+        file_path = None
+        if filename:
+            file_path, safe_filename, file_err = resolve_hf_file_path(folder, filename)
+            if file_err:
+                return {"message": file_err}
+
         # Создаем уникальный ID для отслеживания
         task_id = str(uuid.uuid4())
+        _trim_download_status()
         
         def run_hf_download():
             try:
-                target_dir = f"/workspace/ComfyUI/models/{folder}"
-                os.makedirs(target_dir, exist_ok=True)
-                
-                if filename:
+                if safe_filename:
                     # Скачиваем конкретный файл с прогрессом
-                    # Формируем прямую ссылку на файл
-                    hf_url = f"https://huggingface.co/{repo}/resolve/main/{filename}"
+                    hf_url = f"https://huggingface.co/{repo}/resolve/{hf_revision}/{safe_filename}"
                     
                     # Обновляем статус - начало скачивания
                     download_status[task_id] = {
@@ -1716,57 +1954,40 @@ def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Fo
                     headers = {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                     }
-                    if token:
-                        headers['Authorization'] = f'Bearer {token}'
-                    
-                    response = requests.get(hf_url, stream=True, headers=headers, timeout=300)
-                    response.raise_for_status()
-                    
-                    file_path = os.path.join(target_dir, filename)
-                    
-                    # Получаем размер файла
-                    total_size = int(response.headers.get('content-length', 0))
-                    downloaded = 0
-                    last_update = 0
-                    update_interval = 1024 * 1024 * 5  # Обновляем каждые 5MB
-                    
-                    # Скачиваем файл с отслеживанием прогресса
-                    with open(file_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
-                            if chunk:
-                                f.write(chunk)
-                                downloaded += len(chunk)
-                                
-                                # Обновляем прогресс каждые 5MB
-                                if downloaded - last_update >= update_interval or (total_size > 0 and downloaded >= total_size):
-                                    last_update = downloaded
-                                    
-                                    if total_size > 0:
-                                        percent = int((downloaded / total_size) * 100)
-                                        size_mb = downloaded / (1024 * 1024)
-                                        total_mb = total_size / (1024 * 1024)
-                                        download_status[task_id] = {
-                                            "status": "running",
-                                            "message": f"📥 Скачивание: {filename} ({percent}%) - {size_mb:.1f} MB / {total_mb:.1f} MB",
-                                            "progress": percent
-                                        }
-                                    else:
-                                        size_mb = downloaded / (1024 * 1024)
-                                        download_status[task_id] = {
-                                            "status": "running",
-                                            "message": f"📥 Скачивание: {filename} ({size_mb:.1f} MB)",
-                                            "progress": 0
-                                        }
+                    probe_headers = dict(headers)
+                    if effective_token:
+                        probe_headers['Authorization'] = f'Bearer {effective_token}'
+                    _, expected_size = probe_url(hf_url, headers=probe_headers)
+
+                    def on_progress(pct):
+                        size_mb = os.path.getsize(file_path) / (1024 * 1024) if os.path.isfile(file_path) else 0
+                        if expected_size > 0:
+                            total_mb = expected_size / (1024 * 1024)
+                            download_status[task_id] = {
+                                "status": "running",
+                                "message": f"📥 Скачивание: {safe_filename} ({pct}%) - {size_mb:.1f} MB / {total_mb:.1f} MB",
+                                "progress": pct
+                            }
+                        else:
+                            download_status[task_id] = {
+                                "status": "running",
+                                "message": f"📥 Скачивание: {safe_filename} ({size_mb:.1f} MB)",
+                                "progress": pct if pct > 0 else 0
+                            }
+
+                    fetch(hf_url, file_path, on_progress=on_progress, token=effective_token, headers=headers)
                     
                     # Финальное обновление
                     size_mb = os.path.getsize(file_path) / (1024 * 1024)
-                    success_msg = f"✅ Успешно загружено!\n📁 Файл: {filename}\n💾 Размер: {size_mb:.1f} MB\n📂 Путь: {target_dir}"
+                    success_msg = f"✅ Успешно загружено!\n📁 Файл: {safe_filename}\n💾 Размер: {size_mb:.1f} MB\n📂 Путь: {target_dir}"
                     
                     download_status[task_id] = {
                         "status": "completed",
                         "message": success_msg,
                         "progress": 100
                     }
+                    if form_token:
+                        save_token("hf", form_token)
                 else:
                     # Скачиваем весь репозиторий (используем huggingface_hub, так как это сложнее)
                     download_status[task_id] = {
@@ -1776,15 +1997,14 @@ def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Fo
                     }
                     
                     # Если есть токен, логинимся
-                    if token:
-                        login(token=token)
+                    if effective_token:
+                        login(token=effective_token)
                     
                     from huggingface_hub import snapshot_download
                     snapshot_download(
                         repo_id=repo,
-                        cache_dir=target_dir,
+                        revision=hf_revision,
                         local_dir=target_dir,
-                        local_dir_use_symlinks=False
                     )
                     
                     success_msg = f"✅ Успешно загружено!\n📁 Репозиторий: {repo}\n📂 Путь: {target_dir}"
@@ -1794,6 +2014,8 @@ def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Fo
                         "message": success_msg,
                         "progress": 100
                     }
+                    if form_token:
+                        save_token("hf", form_token)
                 
             except Exception as e:
                 error_msg = f"❌ Ошибка: {str(e)}"
@@ -1828,13 +2050,24 @@ def download_hf(repo: str = Form(...), filename: str = Form(""), token: str = Fo
 @app.post("/download_url")
 def download_url(url: str = Form(...), folder: str = Form("diffusion_models")):
     try:
+        _, dir_err = resolve_models_dir(folder)
+        if dir_err:
+            return {"message": dir_err}
+
         # Создаем уникальный ID для отслеживания
         task_id = str(uuid.uuid4())
+        _trim_download_status()
         
         def run_url_download():
             try:
-                target_dir = f"/workspace/ComfyUI/models/{folder}"
-                os.makedirs(target_dir, exist_ok=True)
+                target_dir, dir_err = resolve_models_dir(folder)
+                if dir_err:
+                    download_status[task_id] = {
+                        "status": "error",
+                        "message": dir_err,
+                        "progress": 0,
+                    }
+                    return
                 
                 # Скачиваем файл по прямой ссылке с отслеживанием прогресса
                 headers = {
@@ -1847,70 +2080,64 @@ def download_url(url: str = Form(...), folder: str = Form("diffusion_models")):
                     "message": f"📥 Подключение к серверу...",
                     "progress": 0
                 }
-                
-                response = requests.get(url, stream=True, headers=headers, timeout=300)
-                response.raise_for_status()
-                
-                # Получаем имя файла из URL
+
+                import re
+                import urllib.parse
+
                 filename = url.split('/')[-1]
-                # Убираем параметры запроса (?download=true и т.д.)
                 if '?' in filename:
                     filename = filename.split('?')[0]
-                
-                # Пытаемся получить имя файла из заголовков Content-Disposition
-                if 'content-disposition' in response.headers:
-                    import re
-                    import urllib.parse
-                    content_disposition = response.headers['content-disposition']
-                    
-                    # Ищем filename* (RFC 5987) для UTF-8 имен
-                    utf8_match = re.search(r"filename\*=UTF-8''([^;]+)", content_disposition)
-                    if utf8_match:
-                        filename = urllib.parse.unquote(utf8_match.group(1))
-                    else:
-                        # Обычный filename
-                        filename_match = re.search(r'filename[^;=\n]*=(([\'"]).*?\2|[^;\n]*)', content_disposition)
-                        if filename_match:
-                            filename = filename_match.group(1).strip('\'"')
-                
+
+                try:
+                    head = requests.head(url, headers=headers, timeout=30, allow_redirects=True)
+                    if head.ok and 'content-disposition' in head.headers:
+                        import urllib.parse
+                        content_disposition = head.headers['content-disposition']
+                        utf8_match = re.search(r"filename\*=UTF-8''([^;]+)", content_disposition)
+                        if utf8_match:
+                            filename = urllib.parse.unquote(utf8_match.group(1))
+                        else:
+                            filename_match = re.search(
+                                r'filename[^;=\n]*=(([\'"]).*?\2|[^;\n]*)',
+                                content_disposition,
+                            )
+                            if filename_match:
+                                filename = filename_match.group(1).strip('\'"')
+                except Exception:
+                    pass
+
                 if not filename or '.' not in filename:
                     filename = "downloaded_file"
-                
-                file_path = os.path.join(target_dir, filename)
-                
-                # Получаем размер файла
-                total_size = int(response.headers.get('content-length', 0))
-                downloaded = 0
-                last_update = 0
-                update_interval = 1024 * 1024 * 5  # Обновляем каждые 5MB
-                
-                # Скачиваем файл с отслеживанием прогресса
-                with open(file_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
-                        if chunk:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                            
-                            # Обновляем прогресс каждые 5MB
-                            if downloaded - last_update >= update_interval or (total_size > 0 and downloaded >= total_size):
-                                last_update = downloaded
-                                
-                                if total_size > 0:
-                                    percent = int((downloaded / total_size) * 100)
-                                    size_mb = downloaded / (1024 * 1024)
-                                    total_mb = total_size / (1024 * 1024)
-                                    download_status[task_id] = {
-                                        "status": "running",
-                                        "message": f"📥 Скачивание: {filename} ({percent}%) - {size_mb:.1f} MB / {total_mb:.1f} MB",
-                                        "progress": percent
-                                    }
-                                else:
-                                    size_mb = downloaded / (1024 * 1024)
-                                    download_status[task_id] = {
-                                        "status": "running",
-                                        "message": f"📥 Скачивание: {filename} ({size_mb:.1f} MB)",
-                                        "progress": 0
-                                    }
+
+                file_path, safe_filename, file_err = resolve_models_file(folder, filename)
+                if file_err:
+                    download_status[task_id] = {
+                        "status": "error",
+                        "message": file_err,
+                        "progress": 0,
+                    }
+                    return
+                filename = safe_filename
+
+                _, expected_size = probe_url(url, headers=headers)
+
+                def on_progress(pct):
+                    size_mb = os.path.getsize(file_path) / (1024 * 1024) if os.path.isfile(file_path) else 0
+                    if expected_size > 0:
+                        total_mb = expected_size / (1024 * 1024)
+                        download_status[task_id] = {
+                            "status": "running",
+                            "message": f"📥 Скачивание: {filename} ({pct}%) - {size_mb:.1f} MB / {total_mb:.1f} MB",
+                            "progress": pct
+                        }
+                    else:
+                        download_status[task_id] = {
+                            "status": "running",
+                            "message": f"📥 Скачивание: {filename} ({size_mb:.1f} MB)",
+                            "progress": pct if pct > 0 else 0
+                        }
+
+                fetch(url, file_path, on_progress=on_progress, headers=headers)
                 
                 # Финальное обновление
                 size_mb = os.path.getsize(file_path) / (1024 * 1024)

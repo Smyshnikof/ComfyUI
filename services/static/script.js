@@ -1,6 +1,7 @@
 console.log('JavaScript loaded');
 let selectedPresets = [];
 let selectedVariants = {}; // {presetId: [variantId1, variantId2, ...]}
+let installedStatus = {};
 console.log('selectedPresets initialized:', selectedPresets);
 
 // Убеждаемся, что функции доступны глобально
@@ -153,7 +154,7 @@ window.toggleVariant = function(parentId, variantId) {
 }
 
 
-window.downloadPresets = function() {
+window.downloadPresets = function(forceDownload) {
   // Собираем все выбранные пресеты (обычные + варианты)
   let allSelectedPresets = [...selectedPresets];
   Object.values(selectedVariants).forEach(variants => {
@@ -172,12 +173,14 @@ window.downloadPresets = function() {
   // Показываем прогресс
   progress.style.display = 'block';
   result.textContent = '';
+  result.innerHTML = '';
   btn.disabled = true;
   btn.textContent = 'Загрузка...';
   
   // Отправляем запрос
   const formData = new FormData();
   formData.append('presets', allSelectedPresets.join(','));
+  formData.append('force', forceDownload ? '1' : '0');
   
   fetch('/download_presets', {
     method: 'POST',
@@ -185,23 +188,143 @@ window.downloadPresets = function() {
   })
   .then(response => response.json())
   .then(data => {
+    if (data.warning) {
+      progress.style.display = 'none';
+      btn.disabled = false;
+      window.updatePresetDownloadButtonLabel();
+      window.showDiskSpaceWarning(data);
+      return;
+    }
     if (data.task_id) {
       result.textContent = data.message;
-      // Начинаем опрос статуса
       pollStatus(data.task_id);
     } else {
       result.textContent = data.message;
       progress.style.display = 'none';
       btn.disabled = false;
-      btn.textContent = '📥 Скачать выбранные пресеты';
+      window.updatePresetDownloadButtonLabel();
     }
   })
   .catch(error => {
     result.textContent = '❌ Ошибка: ' + error.message;
     progress.style.display = 'none';
     btn.disabled = false;
-    btn.textContent = '📥 Скачать выбранные пресеты';
+    window.updatePresetDownloadButtonLabel();
   });
+}
+
+window.updatePresetDownloadButtonLabel = function() {
+  const btn = document.getElementById('download-presets-btn');
+  if (!btn) return;
+  let totalSelected = selectedPresets.length;
+  Object.values(selectedVariants).forEach(variants => {
+    totalSelected += variants.length;
+  });
+  btn.disabled = totalSelected === 0;
+  if (totalSelected === 0) {
+    btn.textContent = '📥 Скачать выбранные пресеты';
+    return;
+  }
+  const allIds = [...selectedPresets];
+  Object.values(selectedVariants).forEach(variants => allIds.push(...variants));
+  const allFull = allIds.length > 0 && allIds.every(id => installedStatus[id]?.state === 'full');
+  btn.textContent = allFull ?
+    `🔄 Перекачать (${totalSelected})` :
+    `📥 Скачать выбранные пресеты (${totalSelected})`;
+}
+
+window.loadTokenSavedStatus = function() {
+  fetch('/tokens/status')
+    .then(response => response.json())
+    .then(data => {
+      const badge = document.getElementById('hf-token-saved-badge');
+      if (badge) {
+        badge.hidden = !data.hf;
+      }
+    })
+    .catch(() => {});
+}
+
+window.loadInstalledStatus = function() {
+  fetch('/installed')
+    .then(response => response.json())
+    .then(data => {
+      installedStatus = data || {};
+      applyInstalledBadges();
+      updatePresetDownloadButtonLabel();
+    })
+    .catch(() => {});
+}
+
+window.applyInstalledBadges = function() {
+  document.querySelectorAll('.preset-card[data-preset]').forEach(card => {
+    const presetId = card.dataset.preset;
+    let badge = card.querySelector('.preset-install-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'preset-install-badge';
+      card.insertBefore(badge, card.firstChild);
+    }
+    const info = installedStatus[presetId];
+    if (!info || info.state === 'none') {
+      badge.textContent = '';
+      badge.className = 'preset-install-badge';
+      badge.hidden = true;
+      return;
+    }
+    badge.hidden = false;
+    badge.className = `preset-install-badge ${info.state}`;
+    badge.textContent = info.state === 'full'
+      ? `✅ установлен (${info.have}/${info.total})`
+      : `🟡 частично (${info.have}/${info.total})`;
+  });
+
+  document.querySelectorAll('.preset-variant-item input[data-variant]').forEach(input => {
+    const variantId = input.dataset.variant;
+    const item = input.closest('.preset-variant-item');
+    if (!item) return;
+    let badge = item.querySelector('.preset-variant-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'preset-variant-badge';
+      item.querySelector('label')?.appendChild(badge);
+    }
+    const info = installedStatus[variantId];
+    if (!info || info.state === 'none') {
+      badge.textContent = '';
+      badge.className = 'preset-variant-badge';
+      return;
+    }
+    badge.className = `preset-variant-badge ${info.state}`;
+    badge.textContent = info.state === 'full' ? ' ✅' : ` 🟡 ${info.have}/${info.total}`;
+  });
+}
+
+window.showDiskSpaceWarning = function(data) {
+  const result = document.getElementById('preset-result');
+  result.innerHTML = '';
+
+  const needed = data.needed_gb > 0 ? data.needed_gb : 'неизвестно';
+  const free = data.free_gb !== undefined ? data.free_gb : '?';
+  const text = document.createElement('div');
+  text.textContent = `⚠️ Не хватит места: нужно ~${needed} GB, свободно ${free} GB`;
+  result.appendChild(text);
+
+  if (data.message) {
+    const detail = document.createElement('div');
+    detail.style.cssText = 'margin-top:8px;color:var(--muted);font-size:14px;';
+    detail.textContent = data.message;
+    result.appendChild(detail);
+  }
+
+  const forceBtn = document.createElement('button');
+  forceBtn.className = 'btn btn-preset';
+  forceBtn.style.marginTop = '12px';
+  forceBtn.textContent = 'Всё равно скачать';
+  forceBtn.onclick = function() {
+    downloadPresets(true);
+  };
+  result.appendChild(forceBtn);
 }
 
 window.pollStatus = function(taskId) {
@@ -218,7 +341,8 @@ window.pollStatus = function(taskId) {
       result.textContent = data.message;
       progress.style.display = 'none';
       btn.disabled = false;
-      btn.textContent = '📥 Скачать выбранные пресеты';
+      window.updatePresetDownloadButtonLabel();
+      window.loadInstalledStatus();
     } else if (data.status === 'running') {
       // Обновляем прогресс-бар
       const progressPercent = data.progress || 0;
@@ -246,14 +370,14 @@ window.pollStatus = function(taskId) {
       result.textContent = '❌ Неизвестный статус: ' + data.message;
       progress.style.display = 'none';
       btn.disabled = false;
-      btn.textContent = '📥 Скачать выбранные пресеты';
+      window.updatePresetDownloadButtonLabel();
     }
   })
   .catch(error => {
     result.textContent = '❌ Ошибка проверки статуса: ' + error.message;
     progress.style.display = 'none';
     btn.disabled = false;
-    btn.textContent = '📥 Скачать выбранные пресеты';
+    window.updatePresetDownloadButtonLabel();
   });
 }
 
@@ -341,8 +465,13 @@ window.applyFilters = function() {
 // Инициализация
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
-  // Инициализируем фильтры
   if (typeof applyFilters === 'function') {
     applyFilters();
+  }
+  if (typeof loadInstalledStatus === 'function') {
+    loadInstalledStatus();
+  }
+  if (typeof loadTokenSavedStatus === 'function') {
+    loadTokenSavedStatus();
   }
 });

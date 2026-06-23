@@ -1,11 +1,27 @@
 from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse
+import html
 import os
 import re
 import requests
 import zipfile
+import threading
+import uuid
+from services._downloader import fetch, probe_url
+from services._tokens import resolve_token, save_token, tokens_saved_status
 
 app = FastAPI(title="CivitAI LoRA Downloader")
+
+download_status = {}
+
+
+def render_index(result: str = "", url_value: str = "") -> str:
+    """Подстановка в HTML с экранированием; токен в форму не возвращаем."""
+    return (
+        INDEX_HTML
+        .replace("{{ result }}", html.escape(result, quote=True))
+        .replace("{{ url_value }}", html.escape(url_value, quote=True))
+    )
 
 INDEX_HTML = """
 <!doctype html>
@@ -35,6 +51,16 @@ INDEX_HTML = """
     .progress-fill { height:100%; background:var(--accent); width:0%; transition:width 0.3s; }
     .progress-text { margin-top:8px; color:var(--muted); font-size:14px; text-align:center; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+    .token-saved-badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
   </style>
 </head>
 <body>
@@ -47,7 +73,8 @@ INDEX_HTML = """
         <form method=\"post\" action=\"/download\" style=\"margin-top:12px\">
           <div class=\"row\">
             <label for=\"token\">Токен</label>
-            <input id=\"token\" type=\"password\" name=\"token\" placeholder=\"Скопируйте токен с CivitAI\" value=\"{{ token_value }}\" required />
+            <input id=\"token\" type=\"password\" name=\"token\" placeholder=\"Скопируйте токен с CivitAI\" value=\"\" />
+            <span id=\"civitai-token-saved-badge\" class=\"token-saved-badge\" hidden>токен сохранён ✓</span>
           </div>
           <div class=\"row\">
             <label for=\"url\">Ссылка на модель</label>
@@ -68,38 +95,116 @@ INDEX_HTML = """
     </div>
   </div>
   <script>
+    function updateTokenSavedBadge(saved) {
+      const badge = document.getElementById('civitai-token-saved-badge');
+      if (badge) badge.hidden = !saved;
+    }
+
+    fetch('/tokens/status')
+      .then(response => response.json())
+      .then(data => updateTokenSavedBadge(!!data.civitai))
+      .catch(() => {});
+
     document.querySelector('form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const tokenInput = document.getElementById('token');
+      const tokenValue = (tokenInput && tokenInput.value || '').trim();
+      if (!tokenValue) {
+        fetch('/tokens/status')
+          .then(response => response.json())
+          .then(data => {
+            if (!data.civitai) {
+              document.getElementById('result').textContent = '❌ Введите токен CivitAI';
+              return;
+            }
+            startDownload(this);
+          })
+          .catch(() => {
+            document.getElementById('result').textContent = '❌ Введите токен CivitAI';
+          });
+        return;
+      }
+      startDownload(this);
+    });
+
+    function startDownload(form) {
+
       const progress = document.getElementById('progress');
       const result = document.getElementById('result');
       const btn = document.querySelector('.btn');
-      
-      // Показываем прогресс
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+
       progress.style.display = 'block';
       result.textContent = '';
       btn.disabled = true;
       btn.textContent = 'Загрузка...';
-      
-      // Анимация прогресса
-      let progressValue = 0;
+      progressFill.style.width = '0%';
+      progressText.textContent = 'Загрузка...';
+
+      fetch('/download', {
+        method: 'POST',
+        body: new FormData(form)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.task_id) {
+          result.textContent = data.message;
+          pollDownloadStatus(data.task_id);
+        } else {
+          result.textContent = data.message || '❌ Ошибка';
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = 'Скачать LoRA';
+        }
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка: ' + error.message;
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Скачать LoRA';
+      });
+    }
+
+    function pollDownloadStatus(taskId) {
+      const progress = document.getElementById('progress');
       const progressFill = document.getElementById('progress-fill');
       const progressText = document.getElementById('progress-text');
-      
-      const interval = setInterval(() => {
-        progressValue += Math.random() * 10;
-        if (progressValue > 90) progressValue = 90;
-        progressFill.style.width = progressValue + '%';
-        progressText.textContent = `Загрузка... ${Math.round(progressValue)}%`;
-      }, 200);
-      
-      // Очищаем интервал через 30 секунд (максимальное время ожидания)
-      setTimeout(() => {
-        clearInterval(interval);
-        if (progressValue < 100) {
-          progressFill.style.width = '100%';
-          progressText.textContent = 'Завершение...';
+      const result = document.getElementById('result');
+      const btn = document.querySelector('.btn');
+
+      fetch('/status/' + taskId)
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'completed' || data.status === 'error') {
+          result.textContent = data.message;
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = 'Скачать LoRA';
+          if (data.status === 'completed') {
+            updateTokenSavedBadge(true);
+          }
+        } else if (data.status === 'running') {
+          const progressPercent = data.progress || 0;
+          progressFill.style.width = progressPercent + '%';
+          progressText.textContent = data.message || 'Загрузка...';
+          result.textContent = data.message || 'Загрузка...';
+          setTimeout(() => pollDownloadStatus(taskId), 500);
+        } else {
+          result.textContent = data.message || '❌ Неизвестный статус';
+          progress.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = 'Скачать LoRA';
         }
-      }, 30000);
-    });
+      })
+      .catch(error => {
+        result.textContent = '❌ Ошибка проверки статуса: ' + error.message;
+        progress.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Скачать LoRA';
+      });
+    }
   </script>
 </body>
 </html>
@@ -136,56 +241,101 @@ def unzip_file(zip_path, extract_to=None):
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return HTMLResponse(INDEX_HTML.replace("{{ result }}", "").replace("{{ token_value }}", "").replace("{{ url_value }}", ""))
+    return HTMLResponse(render_index())
 
-@app.post("/download")
-def download(token: str = Form(...), url: str = Form(...)):
+
+@app.get("/status/{task_id}")
+def get_status(task_id: str):
+    if task_id not in download_status:
+        return {"status": "not_found", "message": "Задача не найдена"}
+    return download_status[task_id]
+
+
+def _run_civitai_download(token: str, api_url: str, task_id: str, form_token: str = "") -> None:
     target_dir = "/workspace/ComfyUI/models/loras"
     os.makedirs(target_dir, exist_ok=True)
 
     try:
-        api_url = url
-        if "civitai.com/api/download/models/" not in api_url:
-            maybe = civitai_api_url_from_page(url)
-            if not maybe:
-                html_with_error = INDEX_HTML.replace("{{ result }}", "❌ Ошибка: Не удалось извлечь ID модели из URL")
-                html_with_error = html_with_error.replace("{{ token_value }}", token)
-                html_with_error = html_with_error.replace("{{ url_value }}", url)
-                return HTMLResponse(html_with_error)
+        download_status[task_id] = {
+            "status": "running",
+            "message": "📥 Подключение к CivitAI...",
+            "progress": 0,
+        }
 
         headers = {"Authorization": f"Bearer {token}"}
-        r = requests.get(api_url, headers=headers, stream=True, timeout=120)
-        
-        if r.status_code != 200:
-            error_msg = f"❌ Ошибка {r.status_code}: {r.text[:200]}"
-            if r.status_code == 401:
-                error_msg = "❌ Ошибка авторизации: Проверьте API-ключ"
-            elif r.status_code == 404:
-                error_msg = "❌ Модель не найдена: Проверьте URL"
-            html_with_error = INDEX_HTML.replace("{{ result }}", error_msg)
-            html_with_error = html_with_error.replace("{{ token_value }}", token)
-            html_with_error = html_with_error.replace("{{ url_value }}", url)
-            return HTMLResponse(html_with_error)
+        status_code, expected_size = probe_url(api_url, headers=headers)
 
-        # Получаем размер файла
-        total_size = int(r.headers.get('content-length', 0))
-        
-        filename = re.findall('filename="?([^";]+)"?', r.headers.get('content-disposition', ''))
-        fname = filename[0] if filename else os.path.basename(api_url)
+        head = None
+        try:
+            head = requests.head(api_url, headers=headers, timeout=30, allow_redirects=True)
+            if not status_code:
+                status_code = head.status_code
+        except Exception:
+            pass
+
+        if status_code and status_code != 200:
+            error_msg = f"❌ Ошибка {status_code}"
+            if status_code == 401:
+                error_msg = "❌ Ошибка авторизации: Проверьте API-ключ"
+            elif status_code == 404:
+                error_msg = "❌ Модель не найдена: Проверьте URL"
+            download_status[task_id] = {
+                "status": "error",
+                "message": error_msg,
+                "progress": 0,
+            }
+            return
+
+        try:
+            content_type = head.headers.get("content-type", "").lower() if head is not None else ""
+        except Exception:
+            content_type = ""
+
+        if "text/html" in content_type:
+            download_status[task_id] = {
+                "status": "error",
+                "message": "❌ Ошибка: получена страница, а не файл. Проверьте URL и API-токен",
+                "progress": 0,
+            }
+            return
+
+        cd = head.headers.get("content-disposition", "") if head is not None else ""
+        filename = re.findall('filename="?([^";]+)"?', cd)
+        fname = os.path.basename(filename[0] if filename else api_url.split("?")[0].rstrip("/").split("/")[-1])
         path = os.path.join(target_dir, fname)
 
-        downloaded = 0
-        with open(path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024*1024):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
+        def on_progress(pct):
+            size_mb = os.path.getsize(path) / (1024 * 1024) if os.path.isfile(path) else 0
+            if expected_size > 0:
+                total_mb = expected_size / (1024 * 1024)
+                download_status[task_id] = {
+                    "status": "running",
+                    "message": f"📥 Скачивание: {fname} ({pct}%) - {size_mb:.1f} MB / {total_mb:.1f} MB",
+                    "progress": pct,
+                }
+            else:
+                download_status[task_id] = {
+                    "status": "running",
+                    "message": f"📥 Скачивание: {fname} ({size_mb:.1f} MB)",
+                    "progress": pct if pct > 0 else 0,
+                }
 
-        # Форматируем размер файла
-        size_mb = downloaded / (1024 * 1024)
+        fetch(api_url, path, on_progress=on_progress, token=token)
+
+        with open(path, "rb") as sniff_file:
+            sniff = sniff_file.read(512).lstrip().lower()
+        if sniff.startswith(b"<!doctype") or sniff.startswith(b"<html"):
+            os.remove(path)
+            download_status[task_id] = {
+                "status": "error",
+                "message": "❌ Ошибка: получена страница, а не файл. Проверьте URL и API-токен",
+                "progress": 0,
+            }
+            return
+
+        size_mb = os.path.getsize(path) / (1024 * 1024)
         success_msg = f"✅ Успешно загружено!\n📁 Файл: {fname}\n💾 Размер: {size_mb:.1f} MB\n📂 Путь: {path}"
-        
-        # Автоматическая распаковка zip-файлов
+
         if fname.endswith(".zip"):
             try:
                 extracted_files = unzip_file(path, target_dir)
@@ -196,28 +346,72 @@ def download(token: str = Form(...), url: str = Form(...)):
                         success_msg += f" и еще {len(extracted_files) - 3} файлов"
             except Exception as e:
                 success_msg += f"\n⚠️ Ошибка распаковки: {str(e)}"
-        
-        # Сохраняем значения формы
-        html_with_result = INDEX_HTML.replace("{{ result }}", success_msg)
-        html_with_result = html_with_result.replace("{{ token_value }}", token)
-        html_with_result = html_with_result.replace("{{ url_value }}", url)
-        
-        return HTMLResponse(html_with_result)
-        
+
+        download_status[task_id] = {
+            "status": "completed",
+            "message": success_msg,
+            "progress": 100,
+        }
+        if (form_token or "").strip():
+            save_token("civitai", form_token)
+
     except requests.exceptions.Timeout:
-        html_with_error = INDEX_HTML.replace("{{ result }}", "❌ Таймаут: Загрузка заняла слишком много времени")
-        html_with_error = html_with_error.replace("{{ token_value }}", token)
-        html_with_error = html_with_error.replace("{{ url_value }}", url)
-        return HTMLResponse(html_with_error)
+        download_status[task_id] = {
+            "status": "error",
+            "message": "❌ Таймаут: Загрузка заняла слишком много времени",
+            "progress": download_status[task_id].get("progress", 0),
+        }
     except requests.exceptions.ConnectionError:
-        html_with_error = INDEX_HTML.replace("{{ result }}", "❌ Ошибка соединения: Проверьте интернет-соединение")
-        html_with_error = html_with_error.replace("{{ token_value }}", token)
-        html_with_error = html_with_error.replace("{{ url_value }}", url)
-        return HTMLResponse(html_with_error)
+        download_status[task_id] = {
+            "status": "error",
+            "message": "❌ Ошибка соединения: Проверьте интернет-соединение",
+            "progress": download_status[task_id].get("progress", 0),
+        }
     except Exception as e:
-        html_with_error = INDEX_HTML.replace("{{ result }}", f"❌ Неожиданная ошибка: {str(e)}")
-        html_with_error = html_with_error.replace("{{ token_value }}", token)
-        html_with_error = html_with_error.replace("{{ url_value }}", url)
-        return HTMLResponse(html_with_error)
+        download_status[task_id] = {
+            "status": "error",
+            "message": f"❌ Неожиданная ошибка: {str(e)}",
+            "progress": download_status[task_id].get("progress", 0),
+        }
+
+
+@app.get("/tokens/status")
+def tokens_status():
+    return tokens_saved_status()
+
+
+@app.post("/download")
+def download(token: str = Form(""), url: str = Form(...)):
+    try:
+        form_token = (token or "").strip()
+        effective_token = resolve_token("civitai", form_token)
+        if not effective_token:
+            return {"message": "❌ Введите токен CivitAI или сохраните его ранее на этом поде"}
+
+        api_url = url
+        if "civitai.com/api/download/models/" not in api_url:
+            maybe = civitai_api_url_from_page(url)
+            if not maybe:
+                return {"message": "❌ Ошибка: Не удалось извлечь ID модели из URL"}
+            api_url = maybe
+
+        task_id = str(uuid.uuid4())
+        thread = threading.Thread(
+            target=_run_civitai_download,
+            args=(effective_token, api_url, task_id, form_token),
+            daemon=True,
+        )
+        thread.start()
+
+        download_status[task_id] = {
+            "status": "running",
+            "message": "🚀 Начата загрузка с CivitAI",
+            "progress": 0,
+        }
+
+        return {"message": f"🚀 Загрузка начата! ID задачи: {task_id}", "task_id": task_id}
+
+    except Exception as e:
+        return {"message": f"❌ Ошибка: {str(e)}"}
 
 

@@ -4,3 +4,4 @@
 Dockerfile
 .dockerignore
 .env
+.downloader_tokens.json

@@ -11,10 +11,6 @@ fi
 
 cd /workspace/ComfyUI
 
-echo "**** Displays the available arguments for running ComfyUI. ****" 
-
-python main.py --help
-
 echo "**** Starts ComfyUI on 0.0.0.0:3000 + CORS (RunPod / внешние ссылки). Extra: COMFYUI_EXTRA_ARGS ****"
 
 # Явный 0.0.0.0: иначе по умолчанию 127.0.0.1 — ссылка RunPod не откроется («нет прав» / пустая страница).

@@ -1,0 +1,6 @@
+.downloader_tokens.json
+__pycache__/
+*.pyc
+nul
+audit/
+test_output/

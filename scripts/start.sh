@@ -11,13 +11,18 @@ start_nginx() {
     service nginx start
 }
 
-# Execute script if exists
+# Execute script if exists; optional third arg "optional" continues startup on failure
 execute_script() {
     local script_path=$1
     local script_msg=$2
+    local optional=${3:-}
     if [[ -f ${script_path} ]]; then
         echo "${script_msg}"
-        bash ${script_path}
+        if [[ "${optional}" == "optional" ]]; then
+            bash ${script_path} || echo "**** Warning: ${script_path} failed (continuing startup) ****"
+        else
+            bash ${script_path}
+        fi
     fi
 }
 
@@ -133,7 +138,7 @@ start_code_server() {
 
 start_nginx
 
-execute_script "/pre_start.sh" "Running pre-start script..."
+execute_script "/pre_start.sh" "Running pre-start script..." optional
 
 echo "Pod Started"
 
@@ -145,6 +150,14 @@ export_env_vars
 # Start aux web services (Preset downloader, CivitAI LoRA downloader, Outputs browser, and Dashboard)
 if [ -d /services ]; then
     echo "Starting aux web services..."
+    mkdir -p /workspace/logs
+
+    if [ -f /workspace/venv/bin/activate ]; then
+        source /workspace/venv/bin/activate
+    elif [ -f /venv/bin/activate ]; then
+        source /venv/bin/activate
+    fi
+
     nohup uvicorn services.preset_downloader:app --host 0.0.0.0 --port 8081 &> /workspace/logs/preset_downloader.log &
     nohup uvicorn services.civitai_downloader:app --host 0.0.0.0 --port 8082 &> /workspace/logs/civitai_downloader.log &
     nohup uvicorn services.outputs_browser:app --host 0.0.0.0 --port 8083 &> /workspace/logs/outputs_browser.log &
