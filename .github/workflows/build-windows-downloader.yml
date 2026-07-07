@@ -1,0 +1,57 @@
+name: Build Windows Preset Downloader
+
+on:
+  push:
+    tags:
+      - "downloader-v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -r requirements.txt
+          pip install -r desktop/build/requirements-build.txt
+
+      - name: Build PyInstaller bundle
+        run: python desktop/build/build.py --pyinstaller
+        env:
+          PYTHONUTF8: "1"
+
+      - name: Build portable zip
+        run: python desktop/build/build.py --portable
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" desktop\build\installer.iss
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-downloader
+          path: |
+            desktop/dist/SmyshnikovComfyUIHub-portable.zip
+            desktop/dist/SmyshnikovComfyUIHub-setup.exe
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/downloader-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/SmyshnikovComfyUIHub-portable.zip
+            desktop/dist/SmyshnikovComfyUIHub-setup.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

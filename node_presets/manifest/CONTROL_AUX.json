@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "id": "CONTROL_AUX",
+  "name": "Control & Aux",
+  "description": "ControlNet aux, Florence, SAM2, GGUF",
+  "category": "Control",
+  "repos": [
+    {
+      "url": "https://github.com/city96/ComfyUI-GGUF.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-Florence2.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-segment-anything-2",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/1038lab/ComfyUI-RMBG",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-DepthAnythingV2",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Fannovel16/comfyui_controlnet_aux",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    }
+  ]
+}

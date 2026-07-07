@@ -4,3 +4,7 @@ __pycache__/
 nul
 audit/
 test_output/
+desktop/config.json
+desktop/dist/
+desktop/build/pyinstaller_work/
+desktop/dist/_build_venv/

@@ -10,10 +10,9 @@ app = FastAPI(title="ComfyUI Outputs Gallery")
 # Для >500MB используется ZIP_STORED — мало памяти.
 MAX_ARCHIVE_SIZE_MB = int(os.environ.get("OUTPUT_ARCHIVE_MAX_MB", "0"))
 
-# Support both RunPod (/workspace) and Vast.ai (/opt/workspace-internal)
-ROOT = os.environ.get("OUTPUT_ROOT") or (
-    "/opt/workspace-internal/ComfyUI/output" if os.path.exists("/opt/workspace-internal") else "/workspace/ComfyUI/output"
-)
+from services._config import OUTPUT_ROOT
+
+ROOT = os.environ.get("OUTPUT_ROOT") or str(OUTPUT_ROOT)
 
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 VIDEO_EXT = {".mp4", ".webm", ".avi", ".mov", ".mkv"}

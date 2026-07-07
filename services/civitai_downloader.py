@@ -7,8 +7,12 @@ import requests
 import zipfile
 import threading
 import uuid
+from pathlib import Path
 from services._downloader import fetch, probe_url
 from services._tokens import resolve_token, save_token, tokens_saved_status
+from services._config import MODELS_ROOT
+
+_LORAS_DIR = str(Path(MODELS_ROOT) / "loras")
 
 app = FastAPI(title="CivitAI LoRA Downloader")
 
@@ -21,6 +25,7 @@ def render_index(result: str = "", url_value: str = "") -> str:
         INDEX_HTML
         .replace("{{ result }}", html.escape(result, quote=True))
         .replace("{{ url_value }}", html.escape(url_value, quote=True))
+        .replace("{{ loras_dir }}", html.escape(_LORAS_DIR, quote=True))
     )
 
 INDEX_HTML = """
@@ -66,7 +71,7 @@ INDEX_HTML = """
 <body>
   <div class=\"wrap\">
     <h1 class=\"title\">Загрузчик LoRA</h1>
-    <p class=\"subtitle\">Загрузчик LoRA · сохранение в <span class=\"mono\">/workspace/ComfyUI/models/loras</span></p>
+    <p class=\"subtitle\">Загрузчик LoRA · сохранение в <span class=\"mono\">{{ loras_dir }}</span></p>
     <div class=\"grid\">
       <div class=\"card\">
         <div class=\"hint\"><b>Где взять API-токен?</b> Создайте токен на странице аккаунта CivitAI: <a href=\"https://civitai.com/user/account\" target=\"_blank\">civitai.com/user/account</a>.</div>
@@ -252,7 +257,7 @@ def get_status(task_id: str):
 
 
 def _run_civitai_download(token: str, api_url: str, task_id: str, form_token: str = "") -> None:
-    target_dir = "/workspace/ComfyUI/models/loras"
+    target_dir = _LORAS_DIR
     os.makedirs(target_dir, exist_ok=True)
 
     try:

@@ -18,6 +18,11 @@ from huggingface_hub import hf_hub_download, login
 import tempfile
 from services._downloader import fetch, probe_url, estimate_size, check_disk_space
 from services._tokens import resolve_token, save_token, tokens_saved_status
+from services._config import COMMUNITY_DIR, MODELS_ROOT as _MODELS_ROOT, ensure_dirs
+
+MODELS_ROOT = str(_MODELS_ROOT)
+COMMUNITY_DIR = str(COMMUNITY_DIR)
+ensure_dirs()
 
 from services._presets import (
     ALLOWED_MODEL_FOLDERS,
@@ -51,9 +56,6 @@ app = FastAPI(title="Preset & Model Downloader")
 # Подключаем статические файлы
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-MODELS_ROOT = "/workspace/ComfyUI/models"
-
 
 
 def validate_model_folder(folder: str) -> str | None:
@@ -848,7 +850,7 @@ INDEX_HTML = """
           <button type="button" class="btn" onclick="document.getElementById('import-preset-file').click()" title="Только файл манифеста пресета (.json)">
             📂 Загрузить пресет (.json)
           </button>
-          <button type="button" class="btn" onclick="reloadPresets()" id="reload-presets-btn" title="Подхватить JSON из /workspace/presets/community/">
+          <button type="button" class="btn" onclick="reloadPresets()" id="reload-presets-btn" title="Подхватить JSON из {{ community_dir }}/">
             🔄 Обновить
           </button>
         </div>
@@ -1297,6 +1299,8 @@ def index():
                        .replace("{{ category_filters_html }}", category_filters_html)
                        .replace("{{ community_count }}", str(community_count))
                        .replace("{{ community_badge_hidden }}", community_badge_hidden)
+                       .replace("{{ community_dir }}", COMMUNITY_DIR)
+                       .replace("{{ models_root }}", MODELS_ROOT)
                        .replace("{{ static_version }}", static_version)
                        .replace("{{ hf_repo_value }}", "")
                        .replace("{{ hf_file_value }}", "")

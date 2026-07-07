@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "id": "UPSCALE_DETAIL",
+  "name": "Upscale & Detail",
+  "description": "Апскейл и детализация",
+  "category": "Upscale",
+  "repos": [
+    {
+      "url": "https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Jonseed/ComfyUI-Detail-Daemon",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    }
+  ]
+}

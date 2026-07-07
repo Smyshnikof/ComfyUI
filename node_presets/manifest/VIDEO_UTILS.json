@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "id": "VIDEO_UTILS",
+  "name": "Video Utils",
+  "description": "Видео, интерполяция, апскейл видео",
+  "category": "Video",
+  "repos": [
+    {
+      "url": "https://github.com/kijai/ComfyUI-WanVideoWrapper.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/alt-key-project/comfyui-dream-video-batches.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/GACLove/ComfyUI-VFI",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-MelBandRoFormer",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-MMAudio",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/vrgamegirl19/comfyui-vrgamedevgirl",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    }
+  ]
+}

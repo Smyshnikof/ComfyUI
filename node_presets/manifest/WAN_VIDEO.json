@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "id": "WAN_VIDEO",
+  "name": "Wan Video",
+  "description": "Ноды для Wan T2V/I2V и видео-workflows",
+  "category": "Wan",
+  "repos": [
+    {
+      "url": "https://github.com/kijai/ComfyUI-WanVideoWrapper.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/orssorbit/ComfyUI-wanBlockswap.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/alt-key-project/comfyui-dream-video-batches.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/wallen0322/ComfyUI-Wan22FMLF",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/princepainter/ComfyUI-PainterI2V",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-WanAnimatePreprocess",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    }
+  ]
+}

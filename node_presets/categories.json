@@ -1,0 +1,37 @@
+{
+  "Wan": {
+    "name": "Wan",
+    "icon": "🎬",
+    "color": "#22c55e"
+  },
+  "Qwen": {
+    "name": "Qwen",
+    "icon": "🤖",
+    "color": "#3b82f6"
+  },
+  "Video": {
+    "name": "Video",
+    "icon": "🎞️",
+    "color": "#ec4899"
+  },
+  "Essentials": {
+    "name": "Essentials",
+    "icon": "🧰",
+    "color": "#f59e0b"
+  },
+  "Upscale": {
+    "name": "Upscale",
+    "icon": "🔍",
+    "color": "#8b5cf6"
+  },
+  "Control": {
+    "name": "Control",
+    "icon": "🎛️",
+    "color": "#14b8a6"
+  },
+  "Full": {
+    "name": "Полные наборы",
+    "icon": "📦",
+    "color": "#6366f1"
+  }
+}

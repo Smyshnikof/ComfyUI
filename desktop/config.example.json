@@ -1,0 +1,8 @@
+{
+  "comfyui_path": "C:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI",
+  "comfyui_launcher": "nvidia_gpu",
+  "hub_port": 8084,
+  "host": "127.0.0.1",
+  "open_browser": true,
+  "auto_start_services": true
+}

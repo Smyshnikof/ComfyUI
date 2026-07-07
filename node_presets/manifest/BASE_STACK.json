@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "id": "BASE_STACK",
+  "name": "Базовый набор",
+  "description": "Урезанный набор из custom_nodes_base.txt",
+  "category": "Full",
+  "repos": [
+    {
+      "url": "https://github.com/kijai/ComfyUI-KJNodes.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/city96/ComfyUI-GGUF.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/yolain/ComfyUI-Easy-Use.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Smirnov75/ComfyUI-mxToolkit.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/pollockjj/ComfyUI-MultiGPU.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/receyuki/comfyui-prompt-reader-node.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/cubiq/ComfyUI_essentials.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/jags111/efficiency-nodes-comfyui.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/JPS-GER/ComfyUI_JPS-Nodes.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/chrisgoringe/cg-use-everywhere.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/crystian/ComfyUI-Crystools.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/rgthree/rgthree-comfy.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/alexopus/ComfyUI-Image-Saver.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/jupo-ai/comfy-ex-tagcomplete.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/chibiace/ComfyUI-Chibi-Nodes.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/PGCRT/CRT-Nodes.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/gseth/ControlAltAI-Nodes.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/chflame163/ComfyUI_LayerStyle",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/M1kep/ComfyLiterals",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/tritant/ComfyUI_CreaPrompt",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/mr-pepe69/ComfyUI-SelectStringFromListWithIndex",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/ClownsharkBatwing/RES4LYF",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/jamesWalker55/comfyui-various",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Smyshnikof/ComfyUI-PresetDownloadManager",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/ltdrdata/was-node-suite-comfyui",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/MeeeyoAI/ComfyUI_StringOps",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/spacepxl/ComfyUI-VAE-Utils",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/LAOGOU-666/Comfyui-Memory_Cleanup",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/BadCafeCode/masquerade-nodes-comfyui",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Jonseed/ComfyUI-Detail-Daemon",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/WASasquatch/was-node-suite-comfyui",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/digitaljohn/comfyui-propost",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/ltdrdata/ComfyUI-Inspire-Pack",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/Fannovel16/comfyui_controlnet_aux",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/kijai/ComfyUI-Florence2.git",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    }
+  ]
+}

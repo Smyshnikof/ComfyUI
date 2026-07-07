@@ -15,8 +15,21 @@ import threading
 import time
 import shutil
 import httpx
+from pathlib import Path
 
-app = FastAPI(title="Dashboard Service")
+from services._config import (
+    AUTO_START_SERVICES,
+    BIND_HOST,
+    COMFYUI_PORT,
+    COMFYUI_ROOT,
+    HOST,
+    LOGS_DIR,
+    HUB_PORT,
+    is_desktop_mode,
+    service_url,
+)
+
+app = FastAPI(title="Smyshnikov ComfyUI Hub")
 
 # ============================================================================
 # Pydantic Models
@@ -66,6 +79,7 @@ class ServiceEntry(BaseModel):
     display: str
     port: int
     running: bool
+    state: str = "stopped"  # running | starting | stopped
     managed: bool = False
     url: Optional[str] = None
 
@@ -192,7 +206,7 @@ def get_shutdown_status() -> ShutdownStatus:
 # ============================================================================
 
 def get_meminfo():
-    """Get memory information from /proc/meminfo."""
+    """Get memory information (Linux /proc or Windows)."""
     meminfo = {}
     try:
         with open("/proc/meminfo") as f:
@@ -200,7 +214,31 @@ def get_meminfo():
                 key, val = line.split(":", 1)
                 meminfo[key.strip()] = int(val.strip().split()[0]) * 1024
     except FileNotFoundError:
-        pass
+        if os.name == "nt":
+            try:
+                import ctypes
+
+                class MEMORYSTATUSEX(ctypes.Structure):
+                    _fields_ = [
+                        ("dwLength", ctypes.c_ulong),
+                        ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                    ]
+
+                stat = MEMORYSTATUSEX()
+                stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat)):
+                    total = int(stat.ullTotalPhys)
+                    free = int(stat.ullAvailPhys)
+                    return total, max(total - free, 0), free
+            except Exception:
+                pass
     total = meminfo.get("MemTotal", 0)
     free = meminfo.get("MemAvailable", meminfo.get("MemFree", 0))
     used = max(total - free, 0)
@@ -258,9 +296,12 @@ def get_gpus() -> List[GPUInfo]:
 
 def get_telemetry() -> Telemetry:
     """Collect all telemetry data."""
-    host = os.environ.get("RUNPOD_POD_ID") or os.environ.get("RUNPOD_HOST_ID") or "local"
+    import socket
 
-    # Container uptime
+    host = os.environ.get("RUNPOD_POD_ID") or os.environ.get("RUNPOD_HOST_ID") or ""
+    if not host:
+        host = socket.gethostname() if is_desktop_mode() else "local"
+
     uptime_seconds = 0.0
     try:
         with open("/proc/uptime") as f:
@@ -272,20 +313,29 @@ def get_telemetry() -> Telemetry:
         start_secs = start_ticks / hz
         uptime_seconds = max(host_uptime - start_secs, 0.0)
     except Exception:
-        uptime_seconds = 0.0
+        if is_desktop_mode():
+            try:
+                uptime_seconds = float(time.time() - ps_boot_time())
+            except Exception:
+                uptime_seconds = 0.0
 
     load_avg = list(os.getloadavg()) if hasattr(os, "getloadavg") else [0.0, 0.0, 0.0]
     cpu_count = os.cpu_count() or 1
 
-    # Memory
     mem_total, mem_used, mem_free = get_meminfo()
 
-    # Disks
-    disks = [disk_usage("/")]
-    if os.path.exists("/workspace"):
-        disks.append(disk_usage("/workspace"))
+    disks = []
+    if is_desktop_mode():
+        for path in (str(COMFYUI_ROOT), str(COMFYUI_ROOT / "models"), str(LOGS_DIR.parent)):
+            if os.path.exists(path):
+                disks.append(disk_usage(path))
+        if not disks:
+            disks.append(disk_usage(os.path.expanduser("~")))
+    else:
+        disks = [disk_usage("/")]
+        if os.path.exists("/workspace"):
+            disks.append(disk_usage("/workspace"))
 
-    # GPUs
     gpus = get_gpus()
 
     return Telemetry(
@@ -301,113 +351,357 @@ def get_telemetry() -> Telemetry:
     )
 
 
+def ps_boot_time() -> float:
+    """Approximate system boot time (Windows-friendly)."""
+    if os.name == "nt":
+        try:
+            import ctypes
+
+            tick_ms = ctypes.windll.kernel32.GetTickCount64()
+            return time.time() - tick_ms / 1000.0
+        except Exception:
+            pass
+    return time.time()
+
+
 # ============================================================================
 # Services Status
 # ============================================================================
 
-SERVICES = [
-    {"name": "preset_downloader", "display": "Preset Downloader", "port": 8081, "module": "services.preset_downloader:app", "managed": True},
-    {"name": "civitai_downloader", "display": "CivitAI Downloader", "port": 8082, "module": "services.civitai_downloader:app", "managed": True},
-    {"name": "outputs_browser", "display": "Outputs Browser", "port": 8083, "module": "services.outputs_browser:app", "managed": True},
-    {"name": "comfyui", "display": "ComfyUI", "port": 3000, "module": None, "managed": False},
-    {"name": "jupyter", "display": "JupyterLab", "port": 8888, "module": None, "managed": False},
+_SERVICE_DEFS = [
+    {
+        "name": "comfyui",
+        "display": "ComfyUI Web UI",
+        "port": COMFYUI_PORT,
+        "module": None,
+        "managed": False,
+        "icon": "🎨",
+        "description": "Генерация изображений и видео",
+    },
+    {
+        "name": "preset_downloader",
+        "display": "Загрузчик пресетов и моделей",
+        "port": 8081,
+        "module": "services.preset_downloader:app",
+        "managed": True,
+        "icon": "📦",
+        "description": "Каталог Wan / Qwen / Flux пресетов",
+    },
+    {
+        "name": "civitai_downloader",
+        "display": "CivitAI LoRA downloader",
+        "port": 8082,
+        "module": "services.civitai_downloader:app",
+        "managed": True,
+        "icon": "🧩",
+        "description": "Скачивание LoRA с CivitAI",
+    },
+    {
+        "name": "outputs_browser",
+        "display": "Обзор и скачивание output",
+        "port": 8083,
+        "module": "services.outputs_browser:app",
+        "managed": True,
+        "icon": "🖼️",
+        "description": "Галерея результатов ComfyUI",
+    },
+    {
+        "name": "custom_nodes_installer",
+        "display": "Установщик custom nodes",
+        "port": 8085,
+        "module": "services.custom_nodes_installer:app",
+        "managed": True,
+        "icon": "🔌",
+        "description": "Git clone наборов нод + перезапуск ComfyUI",
+    },
+    {
+        "name": "jupyter",
+        "display": "JupyterLab",
+        "port": 8888,
+        "module": None,
+        "managed": False,
+        "icon": "📓",
+        "description": "Облачная среда (RunPod)",
+    },
 ]
+
+
+def get_services_registry() -> list[dict]:
+    services = [dict(s) for s in _SERVICE_DEFS]
+    if is_desktop_mode():
+        for svc in services:
+            if svc["name"] == "comfyui":
+                svc["managed"] = True
+        services = [s for s in services if s["name"] != "jupyter"]
+    return services
+
+
+SERVICES = get_services_registry()
 
 # Track service PIDs
 service_pids: dict = {}
 
 
+def is_process_alive(pid: int) -> bool:
+    """Return True if a process with this PID exists."""
+    if pid <= 0:
+        return False
+    try:
+        if os.name == "nt":
+            result = subprocess.run(
+                ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            out = result.stdout or ""
+            if "No tasks" in out or "нет задач" in out.lower():
+                return False
+            return str(pid) in out
+        os.kill(pid, 0)
+        return True
+    except (OSError, ProcessLookupError, subprocess.SubprocessError):
+        return False
+
+
+def kill_process(pid: int, *, tree: bool = True) -> None:
+    """Terminate a process (optionally with its child tree on Windows)."""
+    if pid <= 0:
+        return
+    try:
+        if os.name == "nt":
+            args = ["taskkill", "/F", "/PID", str(pid)]
+            if tree:
+                args.insert(2, "/T")
+            subprocess.run(args, check=False, capture_output=True, timeout=15)
+        else:
+            try:
+                os.killpg(os.getpgid(pid), 15)
+            except (OSError, ProcessLookupError):
+                os.kill(pid, 15)
+            time.sleep(0.5)
+            if is_process_alive(pid):
+                try:
+                    os.killpg(os.getpgid(pid), 9)
+                except (OSError, ProcessLookupError):
+                    os.kill(pid, 9)
+    except (OSError, ProcessLookupError, subprocess.SubprocessError):
+        pass
+
+
+def find_pids_by_port(port: int) -> List[int]:
+    """Find PIDs listening on a port (locale-safe netstat parsing on Windows)."""
+    pids: list[int] = []
+    try:
+        if os.name == "nt":
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" not in line:
+                    continue
+                upper = line.upper()
+                if "ESTABLISHED" in upper or "УСТАНОВ" in upper:
+                    continue
+                if "TIME_WAIT" in upper or "ОЖИДАН" in upper:
+                    continue
+                parts = line.split()
+                if len(parts) < 5 or parts[0] not in ("TCP", "TCPv6"):
+                    continue
+                try:
+                    pid = int(parts[-1])
+                except ValueError:
+                    continue
+                if pid > 0 and pid not in pids:
+                    pids.append(pid)
+        else:
+            result = subprocess.run(
+                ["lsof", "-i", f":{port}", "-sTCP:LISTEN", "-t"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            for token in result.stdout.strip().split():
+                try:
+                    pid = int(token)
+                    if pid not in pids:
+                        pids.append(pid)
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+    return pids
+
+
+def find_process_by_port(port: int) -> Optional[int]:
+    """Find PID of process listening on a port."""
+    pids = find_pids_by_port(port)
+    return pids[0] if pids else None
+
+
+def wait_port_free(port: int, timeout: float = 8.0) -> bool:
+    """Wait until nothing listens on the port."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if not find_pids_by_port(port):
+            return True
+        time.sleep(0.25)
+    return not find_pids_by_port(port)
+
+
+def _prune_service_pid(name: str) -> None:
+    pid = service_pids.get(name)
+    if pid and not is_process_alive(pid):
+        service_pids.pop(name, None)
+
+
+def service_is_busy(name: str, port: int) -> bool:
+    """True if service is up or still starting (process alive / port in use)."""
+    _prune_service_pid(name)
+    if find_pids_by_port(port):
+        return True
+    tracked = service_pids.get(name)
+    return bool(tracked and is_process_alive(tracked))
+
+
 def _service_python() -> str:
-    """Python for managed aux services — same venv as start.sh."""
-    for path in ("/workspace/venv/bin/python", "/venv/bin/python"):
+    """Python for managed aux services — portable embedded or venv."""
+    from services._comfyui_launch import resolve_install
+
+    install = resolve_install()
+    if install.embedded_python and install.embedded_python.is_file():
+        return str(install.embedded_python)
+    candidates = [
+        str(COMFYUI_ROOT / "venv" / "Scripts" / "python.exe"),
+        str(COMFYUI_ROOT / "venv" / "bin" / "python"),
+        "/workspace/venv/bin/python",
+        "/venv/bin/python",
+    ]
+    for path in candidates:
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
     return sys.executable
 
 
-def find_process_by_port(port: int) -> Optional[int]:
-    """Find PID of process listening on a port."""
+def _log_dir() -> str:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    return str(LOGS_DIR)
+
+
+def _uvicorn_cmd(module: str, port: int) -> list[str]:
+    return [
+        _service_python(),
+        "-m",
+        "uvicorn",
+        module,
+        "--host",
+        BIND_HOST,
+        "--port",
+        str(port),
+    ]
+
+
+def start_comfyui(launcher_id: str | None = None) -> dict:
+    """Start ComfyUI (portable embedded python or venv)."""
+    from services._comfyui_launch import (
+        get_selected_launcher_id,
+        resolve_install,
+        start_comfyui_process,
+    )
+
+    install = resolve_install()
+    if not install.main_py.is_file():
+        return {"success": False, "message": f"ComfyUI не найден: {install.comfy_dir}"}
+
+    if service_is_busy("comfyui", COMFYUI_PORT):
+        pid = find_process_by_port(COMFYUI_PORT) or service_pids.get("comfyui")
+        return {"success": False, "message": f"ComfyUI уже запущен или запускается (PID: {pid})"}
+
+    launcher_id = launcher_id or get_selected_launcher_id()
+    log_path = os.path.join(_log_dir(), "comfyui.log")
     try:
-        if os.name == 'nt':
-            result = subprocess.run(
-                ['netstat', '-ano'],
-                capture_output=True, text=True, timeout=5
-            )
-            for line in result.stdout.splitlines():
-                if f':{port}' in line and 'LISTENING' in line:
-                    parts = line.split()
-                    if parts:
-                        return int(parts[-1])
-        else:
-            result = subprocess.run(
-                ['lsof', '-i', f':{port}', '-t'],
-                capture_output=True, text=True, timeout=5
-            )
-            if result.stdout.strip():
-                return int(result.stdout.strip().split()[0])
-    except Exception:
-        pass
-    return None
+        proc = start_comfyui_process(log_path, launcher_id)
+        service_pids["comfyui"] = proc.pid
+        mode = launcher_id if launcher_id != "standard" else "python main.py"
+        return {
+            "success": True,
+            "message": f"ComfyUI запускается ({mode}, PID: {proc.pid}). Подождите 30–60 с.",
+            "launcher": launcher_id,
+            "pid": proc.pid,
+            "state": "starting",
+        }
+    except Exception as e:
+        return {"success": False, "message": f"Ошибка запуска ComfyUI: {e}"}
 
 
 def start_service(name: str) -> dict:
     """Start a service by name."""
+    global SERVICES
+    SERVICES = get_services_registry()
     svc = next((s for s in SERVICES if s["name"] == name), None)
     if not svc:
         return {"success": False, "message": f"Сервис {name} не найден"}
-    
+
     if not svc.get("managed"):
-        return {"success": False, "message": f"Сервис {name} не управляется через dashboard"}
-    
-    # Check if already running
-    pid = find_process_by_port(svc["port"])
-    if pid:
-        return {"success": False, "message": f"Сервис уже запущен (PID: {pid})"}
-    
+        return {"success": False, "message": f"Сервис {name} не управляется через hub"}
+
+    if name == "comfyui":
+        return start_comfyui()
+
+    if service_is_busy(name, svc["port"]):
+        pid = find_process_by_port(svc["port"]) or service_pids.get(name)
+        return {"success": False, "message": f"Сервис уже запущен или запускается (PID: {pid})"}
+
     try:
-        log_dir = "/workspace/logs" if os.path.exists("/workspace") else "."
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = open(f"{log_dir}/{name}.log", "a")
-        
+        log_dir = _log_dir()
+        log_file = open(os.path.join(log_dir, f"{name}.log"), "a", encoding="utf-8")
+
         proc = subprocess.Popen(
-            [_service_python(), "-m", "uvicorn", svc["module"], "--host", "0.0.0.0", "--port", str(svc["port"])],
+            _uvicorn_cmd(svc["module"], svc["port"]),
             stdout=log_file,
             stderr=log_file,
             start_new_session=True,
         )
         service_pids[name] = proc.pid
-        return {"success": True, "message": f"Сервис {name} запущен (PID: {proc.pid})"}
+        return {
+            "success": True,
+            "message": f"Сервис {name} запускается (PID: {proc.pid})",
+            "pid": proc.pid,
+            "state": "starting",
+        }
     except Exception as e:
         return {"success": False, "message": f"Ошибка запуска: {str(e)}"}
 
 
 def stop_service(name: str) -> dict:
     """Stop a service by name."""
+    global SERVICES
+    SERVICES = get_services_registry()
     svc = next((s for s in SERVICES if s["name"] == name), None)
     if not svc:
         return {"success": False, "message": f"Сервис {name} не найден"}
-    
+
     if not svc.get("managed"):
-        return {"success": False, "message": f"Сервис {name} не управляется через dashboard"}
-    
-    pid = find_process_by_port(svc["port"])
-    if not pid:
+        return {"success": False, "message": f"Сервис {name} не управляется через hub"}
+
+    _prune_service_pid(name)
+    pids: set[int] = set(find_pids_by_port(svc["port"]))
+    tracked = service_pids.get(name)
+    if tracked:
+        pids.add(tracked)
+
+    if not pids:
         return {"success": False, "message": f"Сервис {name} не запущен"}
-    
+
     try:
-        if os.name == 'nt':
-            subprocess.run(['taskkill', '/F', '/PID', str(pid)], check=True, capture_output=True)
-        else:
-            os.kill(pid, 15)  # SIGTERM
-            time.sleep(1)
-            try:
-                os.kill(pid, 0)  # Check if still alive
-                os.kill(pid, 9)  # SIGKILL if still running
-            except ProcessLookupError:
-                pass
-        
-        if name in service_pids:
-            del service_pids[name]
+        for pid in pids:
+            kill_process(pid, tree=True)
+
+        wait_port_free(svc["port"], timeout=10.0)
+        service_pids.pop(name, None)
         return {"success": True, "message": f"Сервис {name} остановлен"}
     except Exception as e:
         return {"success": False, "message": f"Ошибка остановки: {str(e)}"}
@@ -415,13 +709,52 @@ def stop_service(name: str) -> dict:
 
 def restart_service(name: str) -> dict:
     """Restart a service by name."""
+    global SERVICES
+    SERVICES = get_services_registry()
+    svc = next((s for s in SERVICES if s["name"] == name), None)
+    if not svc:
+        return {"success": False, "message": f"Сервис {name} не найден"}
+
+    launcher_id = None
+    if name == "comfyui":
+        from services._comfyui_launch import get_selected_launcher_id
+        launcher_id = get_selected_launcher_id()
+
     stop_result = stop_service(name)
-    time.sleep(1)
-    start_result = start_service(name)
-    
-    if start_result["success"]:
-        return {"success": True, "message": f"Сервис {name} перезапущен"}
+    if not stop_result.get("success") and service_is_busy(name, svc["port"]):
+        return stop_result
+
+    wait_port_free(svc["port"], timeout=12.0)
+    time.sleep(0.5)
+
+    if name == "comfyui":
+        start_result = start_comfyui(launcher_id)
+    else:
+        start_result = start_service(name)
+
+    if start_result.get("success"):
+        return {
+            "success": True,
+            "message": f"Сервис {name} перезапускается. {start_result.get('message', '')}",
+            "state": start_result.get("state", "starting"),
+        }
     return start_result
+
+
+async def resolve_service_state(svc: dict) -> Tuple[str, bool]:
+    """Return (state, running) for a service."""
+    name = svc["name"]
+    port = svc["port"]
+    _prune_service_pid(name)
+
+    healthy = await check_service_health(port)
+    if healthy:
+        return "running", True
+
+    if service_is_busy(name, port):
+        return "starting", False
+
+    return "stopped", False
 
 
 async def check_service_health(port: int) -> bool:
@@ -443,30 +776,71 @@ async def check_service_health(port: int) -> bool:
 async def get_services_status() -> List[ServiceEntry]:
     """Get status of all services."""
     entries = []
-    for svc in SERVICES:
-        running = await check_service_health(svc["port"])
-        # Build external URL
-        pod_id = os.environ.get("RUNPOD_POD_ID", "")
-        if pod_id:
-            url = f"https://{pod_id}-{svc['port']}.proxy.runpod.net/"
-        else:
-            url = f"http://localhost:{svc['port']}/"
-        
+    for svc in get_services_registry():
+        state, running = await resolve_service_state(svc)
         entries.append(ServiceEntry(
             name=svc["name"],
             display=svc["display"],
             port=svc["port"],
             running=running,
+            state=state,
             managed=svc.get("managed", False),
-            url=url,
+            url=service_url(svc["port"]),
         ))
     return entries
 
 
+def start_all_managed_services() -> dict:
+    """Start every managed service that is not already running."""
+    started = []
+    skipped = []
+    errors = []
+    for svc in get_services_registry():
+        if not svc.get("managed"):
+            continue
+        if service_is_busy(svc["name"], svc["port"]):
+            skipped.append(svc["display"])
+            continue
+        result = start_service(svc["name"])
+        if result.get("success"):
+            started.append(svc["display"])
+        else:
+            errors.append(f"{svc['display']}: {result.get('message', 'ошибка')}")
+    return {
+        "success": not errors,
+        "started": started,
+        "skipped": skipped,
+        "errors": errors,
+    }
+
+
+def stop_all_managed_services() -> dict:
+    """Stop every managed service that is running."""
+    stopped = []
+    skipped = []
+    errors = []
+    for svc in reversed(get_services_registry()):
+        if not svc.get("managed"):
+            continue
+        if not service_is_busy(svc["name"], svc["port"]):
+            skipped.append(svc["display"])
+            continue
+        result = stop_service(svc["name"])
+        if result.get("success"):
+            stopped.append(svc["display"])
+        else:
+            errors.append(f"{svc['display']}: {result.get('message', 'ошибка')}")
+    return {
+        "success": not errors,
+        "stopped": stopped,
+        "skipped": skipped,
+        "errors": errors,
+    }
+
+
 def get_service_log(name: str, lines: int = 100) -> dict:
-    """Get service log from /workspace/logs/."""
-    log_dir = "/workspace/logs" if os.path.exists("/workspace/logs") else "."
-    log_path = f"{log_dir}/{name}.log"
+    """Get service log from logs directory."""
+    log_path = os.path.join(_log_dir(), f"{name}.log")
     if not os.path.exists(log_path):
         return {"log": f"Лог-файл не найден: {log_path}", "path": log_path}
     
@@ -677,15 +1051,41 @@ def environment_endpoint():
 
 @app.get("/api/downloads")
 async def downloads_endpoint():
-    """Get active downloads from preset_downloader."""
+    """Get active downloads from preset_downloader and custom_nodes_installer."""
+    tasks: list[dict] = []
+    endpoints = [
+        ("http://127.0.0.1:8081/api/tasks", "presets"),
+        ("http://127.0.0.1:8085/api/tasks", "nodes"),
+    ]
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            response = await client.get("http://127.0.0.1:8081/api/tasks")
-            if response.status_code == 200:
-                return response.json()
+            for url, source in endpoints:
+                try:
+                    response = await client.get(url)
+                    if response.status_code != 200:
+                        continue
+                    data = response.json()
+                    for task in data.get("tasks", []):
+                        item = dict(task)
+                        item.setdefault("source", source)
+                        tasks.append(item)
+                except Exception:
+                    continue
     except Exception:
         pass
-    return {"tasks": []}
+
+    def sort_key(t: dict) -> int:
+        s = t.get("status", "")
+        if s == "running":
+            return 0
+        if s == "completed":
+            return 1
+        if s == "error":
+            return 2
+        return 3
+
+    tasks.sort(key=sort_key)
+    return {"tasks": tasks[:30]}
 
 
 @app.get("/api/services")
@@ -700,9 +1100,152 @@ def service_log_endpoint(name: str, lines: int = 100):
     return get_service_log(name, lines)
 
 
+@app.get("/api/hub/info")
+def hub_info_endpoint():
+    """Hub metadata for UI (desktop vs cloud)."""
+    from services._config import read_desktop_config, validate_comfyui_path
+
+    cfg = read_desktop_config()
+    path_check = validate_comfyui_path(str(COMFYUI_ROOT))
+    config_path = ""
+    if is_desktop_mode():
+        from services._config import REPO_ROOT
+        import sys as _sys
+
+        if getattr(_sys, "frozen", False):
+            config_path = str(Path(_sys.executable).resolve().parent / "config.json")
+        else:
+            config_path = str(REPO_ROOT / "desktop" / "config.json")
+
+    return {
+        "title": "Smyshnikov ComfyUI Hub",
+        "subtitle": (
+            "Панель управления — пресеты, модели, ComfyUI"
+            if is_desktop_mode()
+            else "Мониторинг системы и управление сервисами"
+        ),
+        "mode": "desktop" if is_desktop_mode() else "cloud",
+        "host_label": "ПК" if is_desktop_mode() else "RunPod ID",
+        "comfyui_path": str(COMFYUI_ROOT),
+        "comfyui_path_valid": bool(path_check.get("valid")),
+        "comfyui_path_message": path_check.get("message", ""),
+        "models_path": str(COMFYUI_ROOT / "models"),
+        "config_path": config_path,
+        "show_path_settings": is_desktop_mode(),
+        "show_shutdown": not is_desktop_mode() and bool(os.environ.get("RUNPOD_POD_ID")),
+        "hub_port": HUB_PORT,
+    }
+
+
+@app.get("/api/settings/comfyui")
+def comfyui_settings_get_endpoint():
+    """List detected ComfyUI installs and validate current path (desktop)."""
+    if not is_desktop_mode():
+        raise HTTPException(status_code=404, detail="Только для desktop hub")
+
+    from services._config import detect_comfyui_installations, read_desktop_config, validate_comfyui_path
+
+    cfg = read_desktop_config()
+    current = (cfg.get("comfyui_path") or str(COMFYUI_ROOT)).strip()
+    check = validate_comfyui_path(current)
+    detected = [
+        {"path": str(p), "label": str(p)}
+        for p in detect_comfyui_installations()
+    ]
+    return {
+        "current": current,
+        "current_normalized": check.get("normalized") or current,
+        "valid": bool(check.get("valid")),
+        "message": check.get("message", ""),
+        "portable": bool(check.get("portable")),
+        "detected": detected,
+    }
+
+
+@app.post("/api/settings/comfyui")
+def comfyui_settings_post_endpoint(payload: dict):
+    """Save ComfyUI path from hub UI."""
+    if not is_desktop_mode():
+        raise HTTPException(status_code=404, detail="Только для desktop hub")
+
+    from services._config import apply_comfyui_path
+
+    path = (payload.get("path") or "").strip()
+    if not path:
+        return {"success": False, "message": "Укажите путь к ComfyUI"}
+
+    was_running = service_is_busy("comfyui", COMFYUI_PORT)
+    if was_running:
+        stop_service("comfyui")
+
+    result = apply_comfyui_path(path)
+    if not result.get("success"):
+        return result
+
+    note = "Перезапустите сервисы (кнопка «Запустить все»), чтобы применить новый путь."
+    if was_running:
+        note = "ComfyUI остановлен. " + note
+    return {
+        **result,
+        "message": f"{result['message']}. {note}",
+        "restart_recommended": True,
+    }
+
+
+@app.get("/api/comfyui/launchers")
+def comfyui_launchers_endpoint():
+    from services._comfyui_launch import get_selected_launcher_id, list_launcher_profiles, resolve_install
+
+    install = resolve_install()
+    return {
+        "selected": get_selected_launcher_id(),
+        "profiles": list_launcher_profiles(install),
+        "portable": install.portable_root is not None,
+        "embedded_python": str(install.embedded_python) if install.embedded_python else None,
+    }
+
+
+@app.post("/api/comfyui/launcher")
+def set_comfyui_launcher_endpoint(payload: dict):
+    launcher = (payload.get("launcher") or "").strip()
+    if not launcher:
+        return {"success": False, "message": "Не указан профиль запуска"}
+    from services._config import REPO_ROOT, save_desktop_config
+
+    path = REPO_ROOT / "desktop" / "config.json"
+    data = {}
+    if path.is_file():
+        import json
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            data = {}
+    data["comfyui_launcher"] = launcher
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    return {"success": True, "message": f"Профиль запуска: {launcher}", "launcher": launcher}
+
+
+@app.post("/api/services/start-all")
+def service_start_all_endpoint():
+    """Start all managed services."""
+    return start_all_managed_services()
+
+
+@app.post("/api/services/stop-all")
+def service_stop_all_endpoint():
+    """Stop all managed services."""
+    return stop_all_managed_services()
+
+
 @app.post("/api/services/{name}/start")
-def service_start_endpoint(name: str):
+def service_start_endpoint(name: str, launcher: Optional[str] = None):
     """Start a service."""
+    if name == "comfyui":
+        return start_comfyui(launcher)
     return start_service(name)
 
 
@@ -741,7 +1284,7 @@ def shutdown_status_endpoint():
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "message": "Dashboard service is running"}
+    return {"status": "ok", "message": "Smyshnikov ComfyUI Hub is running"}
 
 
 # ============================================================================
@@ -867,6 +1410,77 @@ INDEX_HTML = """
     .shutdown-meta { position: relative; margin-top: 12px; font-size: 13px; opacity: 0.85; text-align: center; }
     .hidden { display: none !important; }
     
+    /* Services — RunPod Connect style */
+    .services-hero { margin-bottom: 28px; }
+    .services-hero-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .services-hero h2 { margin: 0; font-size: 22px; font-weight: 800; }
+    .btn-hub {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 20px; background: rgba(34, 197, 94, 0.9); color: #fff; font-weight: 700;
+      border: 2px solid rgba(34, 197, 94, 0.5); border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-hub:hover { background: rgb(34, 197, 94); box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35); }
+    .btn-hub:disabled { opacity: 0.55; cursor: wait; box-shadow: none; }
+    .services-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-hub-danger {
+      background: rgba(239, 68, 68, 0.15); color: #ef4444;
+      border: 2px solid rgba(239, 68, 68, 0.45);
+    }
+    .btn-hub-danger:hover { background: rgba(239, 68, 68, 0.28); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2); }
+    .connect-list { display: flex; flex-direction: column; gap: 10px; }
+    .connect-row {
+      display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 14px; align-items: center;
+      background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .connect-row:hover { border-color: rgba(255,255,255,0.25); background: #222; }
+    .connect-port { font-family: monospace; font-weight: 700; color: #a78bfa; min-width: 52px; }
+    .connect-icon { font-size: 20px; }
+    .connect-meta { min-width: 0; }
+    .connect-name { font-weight: 700; margin-bottom: 2px; }
+    .connect-desc { font-size: 12px; color: var(--muted); }
+    .connect-status { font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .connect-status.running { color: #22c55e; }
+    .connect-status.stopped { color: #9ca3af; }
+    .connect-status.starting { color: #3b82f6; animation: pulse-status 1.2s ease-in-out infinite; }
+    .connect-status.stopping { color: #f59e0b; animation: pulse-status 1.2s ease-in-out infinite; }
+    .connect-status.init { color: #3b82f6; }
+    @keyframes pulse-status { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    .connect-row.busy { border-color: rgba(59, 130, 246, 0.35); }
+    .connect-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .launcher-select {
+      background: #1a1a1a; color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 10px; font-size: 12px; max-width: 220px;
+    }
+    .path-pill { font-size: 12px; color: var(--muted); margin-top: 8px; word-break: break-all; }
+    .path-pill code { color: #d1d5db; }
+    .path-pill.invalid code { color: #f87171; }
+    .path-settings-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      flex-wrap: wrap; margin-top: 8px; padding: 10px 12px;
+      background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px;
+    }
+    .path-settings-row.invalid { border-color: rgba(239,68,68,0.45); }
+    .path-settings-text { font-size: 12px; color: var(--muted); min-width: 0; flex: 1; }
+    .path-settings-text strong { color: var(--text); font-weight: 600; }
+    .path-settings-hint { margin-top: 4px; font-size: 11px; }
+    .path-settings-hint.warn { color: #f87171; }
+    .path-settings-hint.ok { color: #22c55e; }
+    .btn-path { padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+    .settings-detected { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; max-height: 200px; overflow: auto; }
+    .settings-option {
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: #1a1a1a;
+    }
+    .settings-option:hover { border-color: rgba(255,255,255,0.25); }
+    .settings-option input { margin-top: 3px; }
+    .settings-option code { font-size: 11px; word-break: break-all; color: #d1d5db; }
+    .settings-input {
+      width: 100%; box-sizing: border-box; margin-top: 8px;
+      background: #0f0f0f; color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; font-family: monospace; font-size: 12px;
+    }
+
     /* Services */
     .services-list { display: flex; flex-direction: column; gap: 12px; }
     .service-card { background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
@@ -887,6 +1501,22 @@ INDEX_HTML = """
     .service-btn.stop:hover { background: rgba(239,68,68,0.15); }
     .service-btn.restart { border-color: #f59e0b; color: #f59e0b; }
     .service-btn.restart:hover { background: rgba(245,158,11,0.15); }
+    .service-btn.busy { opacity: 0.55; pointer-events: none; cursor: wait; }
+
+    /* Toast */
+    .toast-host {
+      position: fixed; right: 20px; bottom: 20px; z-index: 2000;
+      display: flex; flex-direction: column; gap: 10px; max-width: min(420px, calc(100vw - 40px));
+    }
+    .toast {
+      padding: 12px 16px; border-radius: 10px; font-size: 13px; line-height: 1.45;
+      border: 1px solid var(--border); background: #1f1f1f; box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+      animation: toast-in 0.25s ease;
+    }
+    .toast.ok { border-color: rgba(34,197,94,0.45); }
+    .toast.err { border-color: rgba(239,68,68,0.45); }
+    .toast.info { border-color: rgba(59,130,246,0.45); }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     
     /* Network */
     .network-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -942,12 +1572,34 @@ INDEX_HTML = """
 </head>
 <body>
   <div class="wrap">
-    <h1 class="title">Dashboard</h1>
-    <p class="subtitle">Мониторинг системы и управление сервисами</p>
+    <h1 class="title" id="hub-title">Smyshnikov ComfyUI Hub</h1>
+    <p class="subtitle" id="hub-subtitle">Панель управления — пресеты, модели, ComfyUI</p>
     
     <div class="pills" id="info-pills">
-      <div class="pill">RunPod ID: <strong id="pod-id">-</strong></div>
+      <div class="pill"><span id="host-label">ПК</span>: <strong id="pod-id">-</strong></div>
       <div class="pill">Uptime: <strong id="uptime">-</strong></div>
+    </div>
+
+    <div class="card card-full services-hero">
+      <div class="services-hero-head">
+        <h2>HTTP сервисы</h2>
+        <div class="services-hero-actions">
+          <button type="button" class="btn-hub btn-hub-danger" id="stop-all-btn" onclick="stopAllServices()">■ Остановить все</button>
+          <button type="button" class="btn-hub" id="start-all-btn" onclick="startAllServices()">▶ Запустить все</button>
+        </div>
+      </div>
+      <p class="path-pill" id="comfyui-path-line"></p>
+      <div id="path-settings-row" class="path-settings-row hidden">
+        <div class="path-settings-text">
+          <div><strong>ComfyUI</strong></div>
+          <div id="path-settings-display"><code>-</code></div>
+          <div class="path-settings-hint" id="path-settings-hint"></div>
+        </div>
+        <button type="button" class="service-btn btn-path" onclick="openPathSettings()">Изменить путь</button>
+      </div>
+      <div class="connect-list" id="services-list">
+        <div class="loading">Загрузка сервисов...</div>
+      </div>
     </div>
     
     <div class="grid">
@@ -1014,7 +1666,7 @@ INDEX_HTML = """
       </div>
       
       <!-- Shutdown Scheduler -->
-      <div class="card" style="padding:0; border:none; background:transparent;">
+      <div class="card hidden" id="shutdown-card" style="padding:0; border:none; background:transparent;">
         <div class="shutdown-widget" id="shutdown-widget">
           <div class="shutdown-header">
             <div>
@@ -1083,18 +1735,38 @@ INDEX_HTML = """
           <div class="no-downloads">Нет активных загрузок</div>
         </div>
       </div>
-      
-      <!-- Services -->
-      <div class="card card-full">
-        <h3>Сервисы</h3>
-        <div class="services-list" id="services-list">
-          <div class="loading">Загрузка сервисов...</div>
-        </div>
-      </div>
     </div>
   </div>
   
   <!-- Log Modal -->
+  <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
+  <div class="modal-overlay hidden" id="path-modal" onclick="closePathModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Путь к ComfyUI</h3>
+        <button class="modal-close" onclick="closePathModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 8px;font-size:13px;color:var(--muted)">
+          Укажите папку <code>ComfyUI</code> (с <code>models/</code>) или корень portable-сборки
+          (<code>ComfyUI_windows_portable</code>).
+        </p>
+        <div id="path-detected-list" class="settings-detected"></div>
+        <label style="font-size:12px;color:var(--muted)">Или введите вручную:</label>
+        <input type="text" class="settings-input" id="path-manual-input" placeholder="C:\ComfyUI\ComfyUI_windows_portable\ComfyUI">
+        <p style="margin:12px 0 0;font-size:11px;color:var(--muted)">
+          Файл настроек: <code id="path-config-file">desktop\config.json</code>.
+          То же самое: <code>desktop\configure.bat</code>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="service-btn" onclick="closePathModal()">Отмена</button>
+        <button class="service-btn start" id="path-save-btn" onclick="saveComfyPath()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay hidden" id="log-modal" onclick="closeLogModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -1318,52 +1990,348 @@ INDEX_HTML = """
       }
     }
     
-    // Load services
+    // Hub info (desktop vs cloud)
+    async function loadHubInfo() {
+      try {
+        const info = await fetch('/api/hub/info').then(r => r.json());
+        document.getElementById('hub-title').textContent = info.title || 'Smyshnikov ComfyUI Hub';
+        document.getElementById('hub-subtitle').textContent = info.subtitle || '';
+        document.getElementById('host-label').textContent = info.host_label || 'Host';
+
+        const pathLine = document.getElementById('comfyui-path-line');
+        const pathRow = document.getElementById('path-settings-row');
+        const pathDisplay = document.getElementById('path-settings-display');
+        const pathHint = document.getElementById('path-settings-hint');
+
+        if (info.show_path_settings) {
+          pathLine.classList.add('hidden');
+          pathRow.classList.remove('hidden');
+          pathRow.classList.toggle('invalid', info.comfyui_path_valid === false);
+          pathDisplay.innerHTML = '<code>' + (info.comfyui_path || 'не указан') + '</code>';
+          if (info.comfyui_path_valid) {
+            pathHint.className = 'path-settings-hint ok';
+            pathHint.textContent = 'Путь найден, models/ на месте';
+          } else {
+            pathHint.className = 'path-settings-hint warn';
+            pathHint.textContent = info.comfyui_path_message || 'Проверьте путь — нажмите «Изменить путь»';
+          }
+          if (info.config_path) {
+            const cfgEl = document.getElementById('path-config-file');
+            if (cfgEl) cfgEl.textContent = info.config_path;
+          }
+        } else if (info.comfyui_path) {
+          pathRow.classList.add('hidden');
+          pathLine.classList.remove('hidden');
+          pathLine.innerHTML = 'ComfyUI: <code>' + info.comfyui_path + '</code>';
+        }
+
+        if (info.show_shutdown) {
+          document.getElementById('shutdown-card').classList.remove('hidden');
+        }
+      } catch (e) {
+        console.error('Hub info error:', e);
+      }
+    }
+
+    async function openPathSettings() {
+      document.getElementById('path-modal').classList.remove('hidden');
+      const list = document.getElementById('path-detected-list');
+      const input = document.getElementById('path-manual-input');
+      list.innerHTML = '<div class="loading">Поиск установок...</div>';
+      try {
+        const data = await fetch('/api/settings/comfyui').then(r => r.json());
+        input.value = data.current_normalized || data.current || '';
+        if (!data.detected || !data.detected.length) {
+          list.innerHTML = '<div class="path-settings-hint warn">Автопоиск ничего не нашёл — введите путь вручную.</div>';
+          return;
+        }
+        const selected = data.current_normalized || data.current;
+        list.innerHTML = data.detected.map((item, idx) => `
+          <label class="settings-option">
+            <input type="radio" name="comfy-path" value="${item.path.replace(/"/g, '&quot;')}"
+              ${item.path === selected ? 'checked' : ''}
+              onchange="document.getElementById('path-manual-input').value=this.value">
+            <code>${item.label}</code>
+          </label>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = '<div class="path-settings-hint warn">Ошибка загрузки: ' + e.message + '</div>';
+      }
+    }
+
+    function closePathModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('path-modal').classList.add('hidden');
+    }
+
+    async function saveComfyPath() {
+      const btn = document.getElementById('path-save-btn');
+      const path = document.getElementById('path-manual-input').value.trim();
+      if (!path) {
+        showToast('Укажите путь к ComfyUI', 'err');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Сохранение...';
+      try {
+        const res = await fetch('/api/settings/comfyui', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'ok');
+          comfyLauncherData = null;
+          closePathModal();
+          loadHubInfo();
+          bumpServicesPoll();
+        } else {
+          showToast(data.message || 'Ошибка', 'err');
+        }
+      } catch (e) {
+        showToast('Ошибка: ' + e.message, 'err');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Сохранить';
+    }
+
+    let comfyLauncherData = null;
+
+    async function loadComfyLauncherData() {
+      if (comfyLauncherData) return comfyLauncherData;
+      try {
+        const res = await fetch('/api/comfyui/launchers');
+        comfyLauncherData = await res.json();
+      } catch (e) {
+        comfyLauncherData = { profiles: [], selected: 'standard' };
+      }
+      return comfyLauncherData;
+    }
+
+    async function saveComfyLauncher(value) {
+      try {
+        await fetch('/api/comfyui/launcher', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ launcher: value }),
+        });
+        comfyLauncherData = null;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function comfyLauncherSelect(selected, profiles) {
+      if (!profiles || profiles.length <= 1) return '';
+      const opts = profiles.map(p =>
+        `<option value="${p.id}" ${p.id === selected ? 'selected' : ''}>${p.label}</option>`
+      ).join('');
+      return `<select class="launcher-select" title="Профиль запуска ComfyUI" onchange="saveComfyLauncher(this.value)">${opts}</select>`;
+    }
+
+    const servicePending = {};
+    let servicesFastPollTimer = null;
+
+    function showToast(message, kind = 'info') {
+      const host = document.getElementById('toast-host');
+      if (!host) return;
+      const el = document.createElement('div');
+      el.className = `toast ${kind}`;
+      el.textContent = message;
+      host.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.3s';
+        setTimeout(() => el.remove(), 320);
+      }, 5000);
+    }
+
+    function bumpServicesPoll() {
+      loadServices();
+      if (servicesFastPollTimer) clearInterval(servicesFastPollTimer);
+      let ticks = 0;
+      servicesFastPollTimer = setInterval(() => {
+        loadServices();
+        ticks += 1;
+        if (ticks >= 45) {
+          clearInterval(servicesFastPollTimer);
+          servicesFastPollTimer = null;
+        }
+      }, 2000);
+    }
+
+    function serviceStatusLabel(svc) {
+      const pending = servicePending[svc.name];
+      if (pending === 'starting') return { cls: 'starting', text: '◐ Запускается…' };
+      if (pending === 'stopping') return { cls: 'stopping', text: '◐ Останавливается…' };
+      if (pending === 'restarting') return { cls: 'starting', text: '◐ Перезапуск…' };
+      const state = svc.state || (svc.running ? 'running' : 'stopped');
+      if (state === 'running') return { cls: 'running', text: '● Работает' };
+      if (state === 'starting') return { cls: 'starting', text: '◐ Запускается…' };
+      return { cls: 'stopped', text: '○ Остановлен' };
+    }
+
+    function serviceIsActive(svc) {
+      const pending = servicePending[svc.name];
+      if (pending === 'starting' || pending === 'restarting') return true;
+      const state = svc.state || (svc.running ? 'running' : 'stopped');
+      return state === 'running' || state === 'starting';
+    }
+
+    // Load services (RunPod Connect style)
     async function loadServices() {
       try {
-        const res = await fetch('/api/services');
-        const services = await res.json();
-        
+        const [services, launcherInfo] = await Promise.all([
+          fetch('/api/services').then(r => r.json()),
+          loadComfyLauncherData(),
+        ]);
+        const icons = {
+          comfyui: '🎨',
+          preset_downloader: '📦',
+          civitai_downloader: '🧩',
+          outputs_browser: '🖼️',
+          custom_nodes_installer: '🔌',
+          jupyter: '📓',
+        };
+        const desc = {
+          comfyui: 'Генерация изображений и видео',
+          preset_downloader: 'Каталог Wan / Qwen / Flux пресетов',
+          civitai_downloader: 'Скачивание LoRA с CivitAI',
+          outputs_browser: 'Галерея результатов ComfyUI',
+          custom_nodes_installer: 'Git clone наборов нод + перезапуск ComfyUI',
+          jupyter: 'JupyterLab (облако)',
+        };
+
         const list = document.getElementById('services-list');
-        list.innerHTML = services.map(svc => `
-          <div class="service-card">
-            <div class="service-header">
-              <div class="service-info">
-                <div class="service-dot ${svc.running ? 'running' : 'stopped'}"></div>
-                <span class="service-name">${svc.display}</span>
-                <span class="service-port">:${svc.port}</span>
-              </div>
-              <a href="${svc.url}" target="_blank" class="service-btn" ${!svc.running ? 'style="pointer-events:none;opacity:0.5"' : ''}>Открыть</a>
+        list.innerHTML = services.map(svc => {
+          const status = serviceStatusLabel(svc);
+          const active = serviceIsActive(svc);
+          const pending = servicePending[svc.name];
+          const rowBusy = !!pending || status.cls === 'starting';
+          const icon = icons[svc.name] || '🔗';
+          const subtitle = desc[svc.name] || '';
+          const openDisabled = !svc.running ? 'style="pointer-events:none;opacity:0.45"' : '';
+          const busyCls = rowBusy ? 'busy' : '';
+          const btnBusy = pending ? 'busy' : '';
+          const managedBtns = svc.managed ? `
+            ${svc.name === 'comfyui' ? comfyLauncherSelect(launcherInfo.selected, launcherInfo.profiles) : ''}
+            ${!active ? `<button class="service-btn start ${btnBusy}" onclick="serviceAction('${svc.name}', 'start')">Запустить</button>` : ''}
+            ${active ? `<button class="service-btn stop ${btnBusy}" onclick="serviceAction('${svc.name}', 'stop')">Стоп</button>` : ''}
+            ${active ? `<button class="service-btn restart ${btnBusy}" onclick="serviceAction('${svc.name}', 'restart')">↻</button>` : ''}
+          ` : '';
+          return `
+          <div class="connect-row ${busyCls}" data-service="${svc.name}">
+            <span class="connect-icon">${icon}</span>
+            <span class="connect-port">${svc.port}</span>
+            <div class="connect-meta">
+              <div class="connect-name">${svc.display}</div>
+              <div class="connect-desc">${subtitle}</div>
             </div>
-            <div class="service-actions">
-              ${svc.managed ? `
-                ${!svc.running ? `<button class="service-btn start" onclick="serviceAction('${svc.name}', 'start')">Запустить</button>` : ''}
-                ${svc.running ? `<button class="service-btn stop" onclick="serviceAction('${svc.name}', 'stop')">Остановить</button>` : ''}
-                ${svc.running ? `<button class="service-btn restart" onclick="serviceAction('${svc.name}', 'restart')">Перезапустить</button>` : ''}
-              ` : ''}
+            <span class="connect-status ${status.cls}">${status.text}</span>
+            <div class="connect-actions">
+              <a href="${svc.url}" target="_blank" class="service-btn" ${openDisabled}>Открыть ↗</a>
+              ${managedBtns}
               <button class="service-btn" onclick="showLog('${svc.name}', '${svc.display}')">Логи</button>
             </div>
-          </div>
-        `).join('');
-        
+          </div>`;
+        }).join('');
+
+        for (const svc of services) {
+          const pending = servicePending[svc.name];
+          if (!pending) continue;
+          const state = svc.state || (svc.running ? 'running' : 'stopped');
+          if (pending === 'starting' && state === 'running') delete servicePending[svc.name];
+          if (pending === 'stopping' && state === 'stopped') delete servicePending[svc.name];
+          if (pending === 'restarting' && state === 'running') delete servicePending[svc.name];
+        }
       } catch (e) {
         console.error('Services error:', e);
       }
     }
+
+    async function startAllServices() {
+      const btn = document.getElementById('start-all-btn');
+      btn.disabled = true;
+      btn.textContent = 'Запуск...';
+      showToast('Запускаем все сервисы…', 'info');
+      try {
+        const res = await fetch('/api/services/start-all', { method: 'POST' });
+        const data = await res.json();
+        if (data.started && data.started.length) {
+          showToast('Запущено: ' + data.started.join(', '), 'ok');
+        }
+        if (data.skipped && data.skipped.length) {
+          showToast('Уже работали: ' + data.skipped.join(', '), 'info');
+        }
+        if (data.errors && data.errors.length) {
+          showToast(data.errors.join('; '), 'err');
+        }
+        bumpServicesPoll();
+      } catch (e) {
+        showToast('Ошибка: ' + e.message, 'err');
+      }
+      btn.disabled = false;
+      btn.textContent = '▶ Запустить все';
+    }
+
+    async function stopAllServices() {
+      const btn = document.getElementById('stop-all-btn');
+      btn.disabled = true;
+      btn.textContent = 'Остановка...';
+      showToast('Останавливаем все сервисы…', 'info');
+      try {
+        const res = await fetch('/api/services/stop-all', { method: 'POST' });
+        const data = await res.json();
+        if (data.stopped && data.stopped.length) {
+          showToast('Остановлено: ' + data.stopped.join(', '), 'ok');
+        }
+        if (data.skipped && data.skipped.length) {
+          showToast('Уже были остановлены: ' + data.skipped.join(', '), 'info');
+        }
+        if (data.errors && data.errors.length) {
+          showToast(data.errors.join('; '), 'err');
+        }
+        bumpServicesPoll();
+      } catch (e) {
+        showToast('Ошибка: ' + e.message, 'err');
+      }
+      btn.disabled = false;
+      btn.textContent = '■ Остановить все';
+    }
     
     // Service actions
     async function serviceAction(name, action) {
+      const pendingKey = action === 'restart' ? 'restarting' : (action === 'start' ? 'starting' : 'stopping');
+      servicePending[name] = pendingKey;
+      loadServices();
+
+      const actionLabels = { start: 'Запуск', stop: 'Остановка', restart: 'Перезапуск' };
+      showToast(`${actionLabels[action] || action}: ${name}…`, 'info');
+
       try {
-        const res = await fetch(`/api/services/${name}/${action}`, { method: 'POST' });
+        let url = `/api/services/${name}/${action}`;
+        if (name === 'comfyui' && action === 'start') {
+          const sel = document.querySelector('.launcher-select');
+          if (sel && sel.value) {
+            url += `?launcher=${encodeURIComponent(sel.value)}`;
+          }
+        }
+        const res = await fetch(url, { method: 'POST' });
         const result = await res.json();
         
         if (result.success) {
-          loadServices();
+          showToast(result.message || 'Готово', 'ok');
+          bumpServicesPoll();
         } else {
-          alert(result.message);
+          delete servicePending[name];
+          loadServices();
+          showToast(result.message || 'Ошибка', 'err');
         }
       } catch (e) {
-        alert('Ошибка: ' + e.message);
+        delete servicePending[name];
+        loadServices();
+        showToast('Ошибка: ' + e.message, 'err');
       }
     }
     
@@ -1491,6 +2459,7 @@ INDEX_HTML = """
     }
     
     // Initialize
+    loadHubInfo();
     loadTelemetry();
     loadServices();
     loadShutdownStatus();
@@ -1499,7 +2468,7 @@ INDEX_HTML = """
     
     // Auto-refresh
     setInterval(loadTelemetry, 5000);
-    setInterval(loadServices, 10000);
+    setInterval(loadServices, 5000);
     setInterval(loadDownloads, 3000);  // Downloads refresh more frequently
   </script>
 </body>

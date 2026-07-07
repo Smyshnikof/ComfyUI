@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "id": "QWEN_SUITE",
+  "name": "Qwen Suite",
+  "description": "Qwen Image/Edit/VL ноды",
+  "category": "Qwen",
+  "repos": [
+    {
+      "url": "https://github.com/1038lab/ComfyUI-QwenVL",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/IuvenisSapiens/ComfyUI_Qwen3-VL-Instruct",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/lrzjason/Comfyui-QwenEditUtils",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    },
+    {
+      "url": "https://github.com/luguoli/ComfyUI-Qwen-Image-Integrated-KSampler",
+      "branch": null,
+      "recursive": true,
+      "folder": null
+    }
+  ]
+}

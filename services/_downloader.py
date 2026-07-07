@@ -13,7 +13,7 @@ import requests
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 DEFAULT_HEADERS = {"User-Agent": DEFAULT_USER_AGENT}
 
-WORKSPACE_ROOT = os.environ.get("RP_WORKSPACE", "/workspace")
+from services._config import WORKSPACE_ROOT
 MIN_FREE_GB = 15
 DISK_USAGE_THRESHOLD = 0.95
 
@@ -23,7 +23,7 @@ def _bytes_to_gb(num_bytes: int) -> float:
 
 
 def get_workspace_free_bytes() -> int:
-    for path in (WORKSPACE_ROOT, "/opt/workspace-internal", "/"):
+    for path in (str(WORKSPACE_ROOT), "/opt/workspace-internal", "/"):
         try:
             if os.path.isdir(path):
                 return shutil.disk_usage(path).free

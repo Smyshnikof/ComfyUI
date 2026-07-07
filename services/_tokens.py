@@ -1,21 +1,23 @@
-"""Persistent API tokens on /workspace (survives pod restarts)."""
+"""Persistent API tokens (survives pod restarts / desktop sessions)."""
 from __future__ import annotations
 
 import json
 import os
 import threading
 
-TOKENS_PATH = "/workspace/.downloader_tokens.json"
+from services._config import TOKENS_PATH
+
 _lock = threading.Lock()
+_TOKENS_PATH = str(TOKENS_PATH)
 
 
 def load_tokens() -> dict:
     with _lock:
-        if not os.path.isfile(TOKENS_PATH):
+        if not os.path.isfile(_TOKENS_PATH):
             return {}
         try:
-            with open(TOKENS_PATH, encoding="utf-8") as f:
-                data = json.load(f)
+            with open(_TOKENS_PATH, encoding="utf-8") as handle:
+                data = json.load(handle)
             return data if isinstance(data, dict) else {}
         except (OSError, json.JSONDecodeError):
             return {}
@@ -27,23 +29,23 @@ def save_token(service: str, token: str) -> None:
         return
     with _lock:
         data = {}
-        if os.path.isfile(TOKENS_PATH):
+        if os.path.isfile(_TOKENS_PATH):
             try:
-                with open(TOKENS_PATH, encoding="utf-8") as f:
-                    loaded = json.load(f)
+                with open(_TOKENS_PATH, encoding="utf-8") as handle:
+                    loaded = json.load(handle)
                 if isinstance(loaded, dict):
                     data = loaded
             except (OSError, json.JSONDecodeError):
                 data = {}
         data[service] = value
-        os.makedirs(os.path.dirname(TOKENS_PATH) or ".", exist_ok=True)
-        tmp_path = TOKENS_PATH + ".tmp"
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-            f.write("\n")
-        os.replace(tmp_path, TOKENS_PATH)
+        os.makedirs(os.path.dirname(_TOKENS_PATH) or ".", exist_ok=True)
+        tmp_path = _TOKENS_PATH + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp_path, _TOKENS_PATH)
         try:
-            os.chmod(TOKENS_PATH, 0o600)
+            os.chmod(_TOKENS_PATH, 0o600)
         except OSError:
             pass
 

@@ -178,6 +178,7 @@ if [ -d /services ]; then
     nohup uvicorn services.preset_downloader:app --host 0.0.0.0 --port 8081 &> ${VAST_WORKSPACE}/logs/preset_downloader.log &
     nohup uvicorn services.civitai_downloader:app --host 0.0.0.0 --port 8082 &> ${VAST_WORKSPACE}/logs/civitai_downloader.log &
     OUTPUT_ROOT="${VAST_WORKSPACE}/ComfyUI/output" nohup uvicorn services.outputs_browser:app --host 0.0.0.0 --port 8083 &> ${VAST_WORKSPACE}/logs/outputs_browser.log &
+    nohup uvicorn services.custom_nodes_installer:app --host 0.0.0.0 --port 8085 &> ${VAST_WORKSPACE}/logs/custom_nodes_installer.log &
     nohup uvicorn services.dashboard:app --host 0.0.0.0 --port 8084 &> ${VAST_WORKSPACE}/logs/dashboard.log &
 fi
 

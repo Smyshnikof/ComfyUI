@@ -1,4 +1,4 @@
-"""Load preset manifests (builtin + community) into PRESETS / PRESET_FILES / PRESET_CATEGORIES."""
+"""Load custom node preset manifests (builtin + community)."""
 from __future__ import annotations
 
 import glob
@@ -11,42 +11,26 @@ import binascii
 from typing import Any
 from urllib.parse import urlparse
 
-from services._config import COMMUNITY_CATEGORIES_FILE, COMMUNITY_DIR, REPO_ROOT
+from services._config import NODE_PRESETS_CATEGORIES_FILE, NODE_PRESETS_COMMUNITY_DIR, REPO_ROOT
 
-BUILTIN_DIR = os.path.join(REPO_ROOT, "presets", "manifest")
-CATEGORIES_FILE = os.path.join(REPO_ROOT, "presets", "categories.json")
-COMMUNITY_DIR = str(COMMUNITY_DIR)
-COMMUNITY_CATEGORIES_FILE = str(COMMUNITY_CATEGORIES_FILE)
-_DEFAULT_CAT_ICON = "📦"
+BUILTIN_DIR = os.path.join(REPO_ROOT, "node_presets", "manifest")
+CATEGORIES_FILE = os.path.join(REPO_ROOT, "node_presets", "categories.json")
+COMMUNITY_DIR = str(NODE_PRESETS_COMMUNITY_DIR)
+COMMUNITY_CATEGORIES_FILE = str(NODE_PRESETS_CATEGORIES_FILE)
+_DEFAULT_CAT_ICON = "🔌"
 _DEFAULT_CAT_COLOR = "#9ca3af"
 
-ALLOWED_MODEL_FOLDERS = frozenset({
-    "diffusion_models", "loras", "vae", "text_encoders", "upscale_models",
-    "latent_upscale_models", "clip_vision", "audio_encoders", "checkpoints",
-    "clip", "configs", "controlnet", "diffusers", "embeddings", "gligen",
-    "hypernetworks", "ipadapter", "model_patches", "onnx", "photomaker",
-    "sams", "style_models", "unet", "vae_approx", "vibevoice", "detection",
-})
-
-ALLOWED_URL_HOSTS = frozenset({
-    "huggingface.co",
-    "civitai.com",
-    "github.com",
-    "raw.githubusercontent.com",
-    "gist.githubusercontent.com",
-})
-
+ALLOWED_REPO_HOSTS = frozenset({"github.com"})
 ALLOWED_IMPORT_HOSTS = frozenset({
     "raw.githubusercontent.com",
     "gist.githubusercontent.com",
-    "huggingface.co",
     "github.com",
 })
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
-SHARE_REF_PREFIX = "CUIP1:ref:"
-SHARE_Z_PREFIX = "CUIP1:z:"
+SHARE_REF_PREFIX = "CUNP1:ref:"
+SHARE_Z_PREFIX = "CUNP1:z:"
 MAX_SHARE_CODE_CHARS = 2500
 
 _TRANSLIT = {
@@ -58,12 +42,30 @@ _TRANSLIT = {
 }
 
 
+def repo_folder_name(url: str, folder: str | None = None) -> str:
+    if folder:
+        return folder.strip().rstrip("/\\")
+    path = urlparse(url).path.rstrip("/")
+    name = path.split("/")[-1] if path else "repo"
+    if name.endswith(".git"):
+        name = name[:-4]
+    return name or "repo"
+
+
+def repo_entry(url: str, *, branch: str | None = None, recursive: bool = True, folder: str | None = None) -> dict:
+    return {
+        "url": url.strip(),
+        "branch": branch,
+        "recursive": recursive,
+        "folder": folder,
+    }
+
+
 def is_builtin_preset_id(pid: str) -> bool:
     return pid in _collect_ids(sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json"))))
 
 
 def encode_preset_share_code(obj: dict) -> str | None:
-    """Short ref for built-in presets; gzip+base64 for community. None if too large."""
     pid = obj.get("id", "")
     if isinstance(pid, str) and is_builtin_preset_id(pid):
         return f"{SHARE_REF_PREFIX}{pid}"
@@ -76,11 +78,6 @@ def encode_preset_share_code(obj: dict) -> str | None:
 
 
 def decode_preset_share_code(code: str) -> tuple[str, Any]:
-    """
-    Returns (kind, payload).
-    kind='ref' → payload is preset id str.
-    kind='preset' → payload is manifest dict.
-    """
     code = code.strip()
     if not code:
         raise ValueError("empty")
@@ -106,11 +103,10 @@ def slug_id(name: str) -> str:
     s = (name or "").lower()
     s = "".join(_TRANSLIT.get(ch, ch) for ch in s)
     s = re.sub(r"[^A-Za-z0-9_-]", "_", s).strip("_")[:48]
-    return s or "preset"
+    return s or "nodes"
 
 
 def unique_community_id(base: str) -> str:
-    """base, base-2, base-3… without conflicting with builtin or existing community."""
     builtin = _collect_ids(sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json"))))
     community = _collect_ids(sorted(glob.glob(os.path.join(COMMUNITY_DIR, "*.json"))))
     taken = builtin | community
@@ -128,7 +124,6 @@ def _load_json(path: str) -> Any:
 
 
 def load_categories() -> dict:
-    """Built-in categories plus community (community never overrides built-in)."""
     cats = _load_json(CATEGORIES_FILE) if os.path.isfile(CATEGORIES_FILE) else {}
     if os.path.isfile(COMMUNITY_CATEGORIES_FILE):
         try:
@@ -145,7 +140,6 @@ def ensure_community_category(
     icon: str | None = None,
     color: str | None = None,
 ) -> str:
-    """Return category id; create in community store if new."""
     name = (name or "").strip()
     if not name:
         return name
@@ -191,17 +185,27 @@ def _ensure_category_from_import(obj: dict) -> dict:
     return obj
 
 
-def _files_to_tuples(files: list[dict]) -> list[tuple[str, str, str | None]]:
-    out: list[tuple[str, str, str | None]] = []
-    for fl in files or []:
-        out.append((fl["url"], fl["folder"], fl.get("filename")))
+def _repos_to_tuples(repos: list[dict]) -> list[tuple[str, str | None, bool, str | None]]:
+    out: list[tuple[str, str | None, bool, str | None]] = []
+    for repo in repos or []:
+        out.append((
+            repo["url"],
+            repo.get("branch"),
+            bool(repo.get("recursive", True)),
+            repo.get("folder"),
+        ))
     return out
 
 
-def _tuples_to_files(entries: list[tuple[str, str, str | None]]) -> list[dict]:
+def _tuples_to_repos(entries: list[tuple[str, str | None, bool, str | None]]) -> list[dict]:
     return [
-        {"url": url, "folder": folder, "filename": custom}
-        for url, folder, custom in entries
+        {
+            "url": url,
+            "branch": branch,
+            "recursive": recursive,
+            "folder": folder,
+        }
+        for url, branch, recursive, folder in entries
     ]
 
 
@@ -211,7 +215,25 @@ def _url_host_ok(url: str) -> bool:
     host = urlparse(url).netloc.lower()
     if host.startswith("www."):
         host = host[4:]
-    return host in ALLOWED_URL_HOSTS
+    return host in ALLOWED_REPO_HOSTS
+
+
+def _check_repo_list(repos: list, ctx: str) -> tuple[bool, str]:
+    if not isinstance(repos, list) or not repos:
+        return False, f"{ctx}: repos must be a non-empty list"
+    for repo in repos:
+        if not isinstance(repo, dict):
+            return False, f"{ctx}: bad repo entry"
+        url = repo.get("url")
+        if not isinstance(url, str) or not _url_host_ok(url):
+            return False, f"{ctx}: invalid url {url!r}"
+        folder = repo.get("folder")
+        if folder is not None and (not isinstance(folder, str) or ".." in folder or "/" in folder or "\\" in folder):
+            return False, f"{ctx}: invalid folder {folder!r}"
+        branch = repo.get("branch")
+        if branch is not None and not isinstance(branch, str):
+            return False, f"{ctx}: invalid branch"
+    return True, ""
 
 
 def validate_preset(
@@ -219,7 +241,7 @@ def validate_preset(
     categories: dict,
     seen: set[str],
     *,
-    strict_files: bool = True,
+    strict_repos: bool = True,
 ) -> tuple[bool, str]:
     if obj.get("schema") != 1:
         return False, "schema must be 1"
@@ -233,29 +255,20 @@ def validate_preset(
     category = obj.get("category")
     if not category or category not in categories:
         return False, f"unknown category: {category!r}"
-    has_files = bool(obj.get("files"))
+    has_repos = bool(obj.get("repos"))
     has_variants = bool(obj.get("variant_groups"))
-    if has_files and has_variants:
-        return False, "cannot have both files and variant_groups"
-    if not has_files and not has_variants:
-        return False, "need files or variant_groups"
+    if has_repos and has_variants:
+        return False, "cannot have both repos and variant_groups"
+    if not has_repos and not has_variants:
+        return False, "need repos or variant_groups"
 
-    def _check_file_list(files: list, ctx: str) -> tuple[bool, str]:
-        if not isinstance(files, list) or (strict_files and not files):
-            return False, f"{ctx}: files must be a non-empty list"
-        for fl in files:
-            if not isinstance(fl, dict):
-                return False, f"{ctx}: bad file entry"
-            folder = fl.get("folder")
-            url = fl.get("url")
-            if folder not in ALLOWED_MODEL_FOLDERS:
-                return False, f"{ctx}: invalid folder {folder!r}"
-            if not isinstance(url, str) or not _url_host_ok(url):
-                return False, f"{ctx}: invalid url {url!r}"
-        return True, ""
+    check_nodes = obj.get("check_nodes")
+    if check_nodes is not None:
+        if not isinstance(check_nodes, list) or not all(isinstance(n, str) for n in check_nodes):
+            return False, "check_nodes must be a list of strings"
 
-    if has_files:
-        ok, err = _check_file_list(obj["files"], pid)
+    if has_repos:
+        ok, err = _check_repo_list(obj["repos"], pid)
         if not ok:
             return False, err
     else:
@@ -273,7 +286,7 @@ def validate_preset(
                     return False, f"duplicate variant id: {vid}"
                 if not v.get("name"):
                     return False, f"variant {vid} missing name"
-                ok, err = _check_file_list(v.get("files", []), vid)
+                ok, err = _check_repo_list(v.get("repos", []), vid)
                 if not ok:
                     return False, err
     return True, ""
@@ -300,16 +313,16 @@ def _collect_ids(paths: list[str]) -> set[str]:
 def _ingest_preset(
     obj: dict,
     presets: dict,
-    files: dict,
+    repos: dict,
     seen: set[str],
 ) -> None:
     pid = obj["id"]
     seen.add(pid)
     meta: dict[str, Any] = {
-        k: obj[k] for k in ("name", "description", "category", "size", "time") if k in obj
+        k: obj[k] for k in ("name", "description", "category") if k in obj
     }
-    if obj.get("video_guide"):
-        meta["video_guide"] = obj["video_guide"]
+    if obj.get("check_nodes"):
+        meta["check_nodes"] = list(obj["check_nodes"])
     if obj.get("source"):
         meta["source"] = obj["source"]
 
@@ -322,20 +335,21 @@ def _ingest_preset(
             for v in grp["variants"]:
                 vid = v["id"]
                 seen.add(vid)
-                vg[group_name][vid] = {k: v[k] for k in ("name", "size", "time") if k in v}
-                files[vid] = _files_to_tuples(v.get("files", []))
+                vg[group_name][vid] = {k: v[k] for k in ("name",) if k in v}
+                if v.get("check_nodes"):
+                    vg[group_name][vid]["check_nodes"] = list(v["check_nodes"])
+                repos[vid] = _repos_to_tuples(v.get("repos", []))
         meta["variant_groups"] = vg
     else:
-        files[pid] = _files_to_tuples(obj.get("files", []))
+        repos[pid] = _repos_to_tuples(obj.get("repos", []))
     presets[pid] = meta
 
 
 def load_presets(*, log_skips: bool = True) -> tuple[dict, dict, dict]:
-    """Returns (PRESETS, PRESET_FILES, PRESET_CATEGORIES) in legacy format."""
+    """Returns (PRESETS, PRESET_REPOS, PRESET_CATEGORIES)."""
     categories = load_categories()
-
     presets: dict = {}
-    files: dict = {}
+    repos: dict = {}
     seen: set[str] = set()
 
     builtin_paths = sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json")))
@@ -348,14 +362,14 @@ def load_presets(*, log_skips: bool = True) -> tuple[dict, dict, dict]:
             ok, err = validate_preset(obj, categories, seen)
             if not ok:
                 if log_skips:
-                    print(f"[presets] skip {basename}: {err}")
+                    print(f"[node_presets] skip {basename}: {err}")
                 continue
-            _ingest_preset(obj, presets, files, seen)
+            _ingest_preset(obj, presets, repos, seen)
         except Exception as exc:
             if log_skips:
-                print(f"[presets] bad json {basename}: {exc}")
+                print(f"[node_presets] bad json {basename}: {exc}")
 
-    return presets, files, categories
+    return presets, repos, categories
 
 
 def _safe_preset_id(pid: str) -> str | None:
@@ -380,13 +394,13 @@ def is_community_preset_id(pid: str) -> bool:
     return bool(path and os.path.isfile(path))
 
 
-def _count_preset_files(obj: dict) -> int:
-    if obj.get("files"):
-        return len(obj["files"])
+def _count_preset_repos(obj: dict) -> int:
+    if obj.get("repos"):
+        return len(obj["repos"])
     total = 0
     for grp in obj.get("variant_groups") or []:
         for v in grp.get("variants") or []:
-            total += len(v.get("files") or [])
+            total += len(v.get("repos") or [])
     return total
 
 
@@ -406,7 +420,7 @@ def list_community_presets() -> list[dict]:
             "name": obj.get("name", pid),
             "category": obj.get("category", ""),
             "description": obj.get("description", ""),
-            "file_count": _count_preset_files(obj),
+            "repo_count": _count_preset_repos(obj),
             "has_variants": bool(obj.get("variant_groups")),
         })
     return items
@@ -436,7 +450,6 @@ def delete_community_preset(pid: str) -> tuple[bool, str]:
 
 
 def save_community_preset(obj: dict) -> tuple[bool, str]:
-    """Validate and write preset JSON to community dir. Returns (ok, id_or_error)."""
     obj = _ensure_category_from_import(obj)
     categories = load_categories()
     builtin_ids = _collect_ids(sorted(glob.glob(os.path.join(BUILTIN_DIR, "*.json"))))
@@ -463,38 +476,46 @@ def save_community_preset(obj: dict) -> tuple[bool, str]:
 def export_preset_to_json(
     preset_id: str,
     meta: dict,
-    preset_files: dict,
+    preset_repos: dict,
 ) -> dict:
-    """Convert legacy dict entry to manifest JSON object."""
     obj: dict[str, Any] = {
         "schema": 1,
         "id": preset_id,
         "name": meta["name"],
         "description": meta.get("description", ""),
         "category": meta["category"],
-        "size": meta.get("size", ""),
-        "time": meta.get("time", ""),
     }
     cats = load_categories()
     cat = meta["category"]
     if cat in cats:
         obj["category_meta"] = cats[cat]
-    if meta.get("video_guide"):
-        obj["video_guide"] = meta["video_guide"]
+    if meta.get("check_nodes"):
+        obj["check_nodes"] = meta["check_nodes"]
     if meta.get("has_variants") and meta.get("variant_groups"):
         groups = []
         for group_name, variants in meta["variant_groups"].items():
             items = []
             for vid, vmeta in variants.items():
-                items.append({
+                item: dict[str, Any] = {
                     "id": vid,
                     "name": vmeta["name"],
-                    "size": vmeta.get("size", ""),
-                    "time": vmeta.get("time", ""),
-                    "files": _tuples_to_files(preset_files.get(vid, [])),
-                })
+                    "repos": _tuples_to_repos(preset_repos.get(vid, [])),
+                }
+                if vmeta.get("check_nodes"):
+                    item["check_nodes"] = vmeta["check_nodes"]
+                items.append(item)
             groups.append({"group": group_name, "variants": items})
         obj["variant_groups"] = groups
     else:
-        obj["files"] = _tuples_to_files(preset_files.get(preset_id, []))
+        obj["repos"] = _tuples_to_repos(preset_repos.get(preset_id, []))
     return obj
+
+
+def urls_from_txt(path: str) -> list[str]:
+    urls: list[str] = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                urls.append(line)
+    return urls
