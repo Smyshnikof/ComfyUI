@@ -11,10 +11,24 @@ import binascii
 from typing import Any
 from urllib.parse import urlparse
 
+from pathlib import Path
+
 from services._config import NODE_PRESETS_CATEGORIES_FILE, NODE_PRESETS_COMMUNITY_DIR, REPO_ROOT
 
-BUILTIN_DIR = os.path.join(REPO_ROOT, "node_presets", "manifest")
-CATEGORIES_FILE = os.path.join(REPO_ROOT, "node_presets", "categories.json")
+_SERVICES_DIR = Path(__file__).resolve().parent
+
+
+def _resolve_node_presets_root() -> Path:
+    """Docker: /node_presets; fallback: services/node_presets (partial image updates)."""
+    for root in (Path(REPO_ROOT) / "node_presets", _SERVICES_DIR / "node_presets"):
+        if (root / "manifest").is_dir():
+            return root
+    return Path(REPO_ROOT) / "node_presets"
+
+
+_PRESETS_ROOT = _resolve_node_presets_root()
+BUILTIN_DIR = str(_PRESETS_ROOT / "manifest")
+CATEGORIES_FILE = str(_PRESETS_ROOT / "categories.json")
 COMMUNITY_DIR = str(NODE_PRESETS_COMMUNITY_DIR)
 COMMUNITY_CATEGORIES_FILE = str(NODE_PRESETS_CATEGORIES_FILE)
 _DEFAULT_CAT_ICON = "🔌"

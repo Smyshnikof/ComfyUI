@@ -40,6 +40,13 @@ else
     echo "Skip: /venv does not exist."
 fi
 
+# Старые образы без COPY node_presets — fallback из /services/node_presets
+if [ ! -d /node_presets/manifest ] && [ -d /services/node_presets/manifest ]; then
+    echo "**** Backfill /node_presets from /services/node_presets ****"
+    ln -sfn /services/node_presets /node_presets
+fi
+mkdir -p /workspace/node_presets/community
+
 # Fix for preset_downloader (port 8081) after Python updates - upgrade huggingface_hub and deps
 if [ -f /workspace/venv/bin/activate ]; then
     echo "**** Upgrading huggingface_hub, click, typer (fix for preset downloader compatibility) ****"

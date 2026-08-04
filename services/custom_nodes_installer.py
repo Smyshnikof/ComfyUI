@@ -763,6 +763,7 @@ INDEX_HTML = """
     <h1 class="title">🔌 Custom Nodes</h1>
     <p class="subtitle">Git clone наборов нод · <span class="mono">{{ custom_nodes_root }}</span></p>
     <div id="git-warning" class="banner banner-warn" hidden>⚠️ Git не найден в PATH — установите <a href="https://git-scm.com/download/win" target="_blank">Git</a></div>
+    <div id="presets-empty-warning" class="banner banner-warn" hidden>⚠️ Встроенные наборы не загрузились (presets: 0). Пересоберите Docker-образ с <span class="mono">COPY node_presets</span> или импортируйте набор через «Свои наборы».</div>
 
     <div class="manager-compact" id="manager-config-card" title="">
       <span class="manager-title">🛡️ ComfyUI-Manager</span>

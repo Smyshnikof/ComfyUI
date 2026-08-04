@@ -109,29 +109,50 @@ function showProgress(visible) {
   document.getElementById('preset-progress').classList.toggle('hidden', !visible);
 }
 
+function finishPollTask(data) {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  const msg = data?.message || 'Готово';
+  const single = document.getElementById('single-result');
+  if (single) single.textContent = msg;
+  setTimeout(() => showProgress(false), 4000);
+  refreshInstalled();
+  currentTaskId = null;
+}
+
 function pollTask(taskId) {
   currentTaskId = taskId;
   if (pollTimer) clearInterval(pollTimer);
+  let pollErrors = 0;
   showProgress(true);
   pollTimer = setInterval(async () => {
     try {
       const resp = await fetch(`/status/${taskId}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      pollErrors = 0;
       const data = await resp.json();
       const fill = document.getElementById('progress-fill');
       const text = document.getElementById('progress-text');
+      const msg = data.message || '...';
       if (fill) fill.style.width = `${data.progress || 0}%`;
-      if (text) text.textContent = data.message || '...';
-      if (data.status === 'completed' || data.status === 'error') {
-        clearInterval(pollTimer);
-        pollTimer = null;
-        setTimeout(() => showProgress(false), 4000);
-        refreshInstalled();
-        if (data.status === 'error') {
-          alert(data.message || 'Ошибка установки');
-        }
+      if (text) text.textContent = msg;
+      const single = document.getElementById('single-result');
+      if (single) single.textContent = msg;
+      if (data.status === 'completed') {
+        finishPollTask(data);
+      } else if (data.status === 'error' || data.status === 'not_found') {
+        finishPollTask(data);
+        alert(msg || (data.status === 'not_found' ? 'Задача не найдена (перезапуск сервиса?)' : 'Ошибка установки'));
       }
     } catch (e) {
+      pollErrors += 1;
       console.error(e);
+      if (pollErrors >= 12) {
+        finishPollTask({ message: `Потеряна связь с сервером: ${e.message}` });
+        alert('Не удалось получить статус установки. Проверьте /workspace/logs/custom_nodes_installer.log');
+      }
     }
   }, 500);
 }
@@ -374,6 +395,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const h = await fetch('/health').then(r => r.json());
     if (!h.git) document.getElementById('git-warning').hidden = false;
+    const emptyBanner = document.getElementById('presets-empty-warning');
+    if (emptyBanner && (h.presets === 0 || h.presets === '0')) {
+      emptyBanner.hidden = false;
+    }
   } catch (e) {}
   refreshInstalled();
   loadManagerConfig();

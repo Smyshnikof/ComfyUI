@@ -120,12 +120,6 @@
       "folder": null
     },
     {
-      "url": "https://github.com/PGCRT/CRT-Nodes.git",
-      "branch": null,
-      "recursive": true,
-      "folder": null
-    },
-    {
       "url": "https://github.com/gseth/ControlAltAI-Nodes.git",
       "branch": null,
       "recursive": true,

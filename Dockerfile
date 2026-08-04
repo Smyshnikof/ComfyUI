@@ -143,7 +143,7 @@ RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
 # Install code-server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
 
-EXPOSE 22 3000 8081 8082 8083 8888
+EXPOSE 22 3000 8081 8082 8083 8084 8085 8888
 
 # NGINX Proxy
 COPY proxy/nginx.conf /etc/nginx/nginx.conf
@@ -158,6 +158,10 @@ COPY README.md /usr/share/nginx/html/README.md
 
 # Presets (workflows etc.)
 COPY presets /presets
+
+# Custom node preset bundles (ESSENTIALS, WAN_VIDEO, …) for port 8085
+COPY node_presets /node_presets
+COPY node_presets /services/node_presets
 
 # Aux web services
 COPY services /services

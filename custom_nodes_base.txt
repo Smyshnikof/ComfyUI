@@ -17,7 +17,6 @@ https://github.com/rgthree/rgthree-comfy.git
 https://github.com/alexopus/ComfyUI-Image-Saver.git
 https://github.com/jupo-ai/comfy-ex-tagcomplete.git
 https://github.com/chibiace/ComfyUI-Chibi-Nodes.git
-https://github.com/PGCRT/CRT-Nodes.git
 https://github.com/gseth/ControlAltAI-Nodes.git
 https://github.com/chflame163/ComfyUI_LayerStyle
 https://github.com/M1kep/ComfyLiterals

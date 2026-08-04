@@ -190,7 +190,6 @@ bash /download_presets.sh PRESET1,PRESET2,...
 * ComfyUI-wanBlockswap (опционально)
 * ComfyUI-Chibi-Nodes
 * comfyui-dream-video-batches
-* CRT-Nodes
 * ControlAltAI-Nodes
 * comfyui_controlnet_aux
 * ComfyUI-Florence2
