@@ -15,6 +15,10 @@
 | **RTX 4070** | `base` | `cu124` | ✅ Стабильно |
 | **RTX 3090** | `base` | `cu124` | ✅ Совместимо |
 | **RTX 3080** | `base` | `cu124` | ✅ Совместимо |
+| **RunPod CUDA 13.0** | `base` | `cu130` | ✅ Новые поды |
+| **RunPod CUDA 13.1** | `base` | `cu131` | ✅ Новые поды |
+| **RunPod CUDA 13.2** | `base` | `cu132` | ✅ Новые поды |
+| **RunPod CUDA 13.3** | `base` | `cu133` | ✅ Новые поды |
 
 > ✅ Типы образов: `full` (все ноды), `base` (стабильные ноды), `minimal` (без кастомных нод).  
 > В примерах ниже используется `base`.
@@ -42,6 +46,12 @@ smyshnikof/comfyui:base-torch2.8.0-cu124
 
 # Для старых драйверов (525 и ниже)
 smyshnikof/comfyui:base-torch2.8.0-cu121
+
+# RunPod с CUDA 13.0 / 13.1 / 13.2 / 13.3
+smyshnikof/comfyui:base-torch2.8.0-cu130
+smyshnikof/comfyui:base-torch2.8.0-cu131
+smyshnikof/comfyui:base-torch2.8.0-cu132
+smyshnikof/comfyui:base-torch2.8.0-cu133
 ```
 
 ### 2. Запустите POD

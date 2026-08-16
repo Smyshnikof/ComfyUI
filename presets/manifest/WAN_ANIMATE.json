@@ -4,13 +4,46 @@
   "name": "Wan Animate",
   "description": "Анимация изображений",
   "category": "Wan",
-  "size": "~30-40GB",
+  "size": "~24-45GB",
   "time": "10-18 мин",
   "video_guide": "https://youtu.be/fUNbH3o_cE0?si=VTa-ljuPPaAngf3L",
   "variant_groups": [
     {
       "group": "Базовая версия",
       "variants": [
+        {
+          "id": "WAN_ANIMATE_2",
+          "name": "Animate 2 (int8_convrot)",
+          "size": "~24GB",
+          "time": "10-15 мин",
+          "files": [
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/diffusion_models/wan_animate_2_int8_convrot.safetensors",
+              "folder": "diffusion_models",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+              "folder": "text_encoders",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/clip_vision/clip_vision_h.safetensors",
+              "folder": "clip_vision",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/vae/Wan2_1_VAE_bf16.safetensors",
+              "folder": "vae",
+              "filename": null
+            },
+            {
+              "url": "https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/loras/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+              "folder": "loras",
+              "filename": null
+            }
+          ]
+        },
         {
           "id": "WAN_ANIMATE",
           "name": "Классический",

@@ -43,5 +43,10 @@
     "name": "Audio",
     "icon": "🎵",
     "color": "#06b6d4"
+  },
+  "MiniMax": {
+    "name": "MiniMax",
+    "icon": "🎞️",
+    "color": "#f97316"
   }
 }

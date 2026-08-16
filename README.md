@@ -40,7 +40,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
   * `full`: ComfyUI + Manager + все кастомные ноды + веб-загрузчик пресетов
   * `base`: ComfyUI + Manager + стабильные кастомные ноды + веб-загрузчик пресетов
   * `minimal`: ComfyUI + Manager без кастомных нод
-* **(B)**: версия CUDA → `cu124`, `cu126`, `cu128`, `cu129`, `cu130`
+* **(B)**: версия CUDA → `cu124`, `cu126`, `cu128`, `cu129`, `cu130`, `cu131`, `cu132`, `cu133`
 
 ---
 
@@ -53,16 +53,25 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | `smyshnikof/comfyui:full-torch2.8.0-cu128`   | ✅ Все        | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:full-torch2.8.0-cu129`   | ✅ Все        | ✅ Да  | 12.9 |
 | `smyshnikof/comfyui:full-torch2.8.0-cu130`   | ✅ Все        | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu131`   | ✅ Все        | ✅ Да  | 13.1 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu132`   | ✅ Все        | ✅ Да  | 13.2 |
+| `smyshnikof/comfyui:full-torch2.8.0-cu133`   | ✅ Все        | ✅ Да  | 13.3 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu124`   | ✅ Стабильные | ✅ Да  | 12.4 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu126`   | ✅ Стабильные | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu128`   | ✅ Стабильные | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu129`   | ✅ Стабильные | ✅ Да  | 12.9 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu130`   | ✅ Стабильные | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu131`   | ✅ Стабильные | ✅ Да  | 13.1 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu132`   | ✅ Стабильные | ✅ Да  | 13.2 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu133`   | ✅ Стабильные | ✅ Да  | 13.3 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu124`| ❌ Нет        | ✅ Да  | 12.4 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu129`| ❌ Нет        | ✅ Да  | 12.9 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu130`| ❌ Нет        | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu131`| ❌ Нет        | ✅ Да  | 13.1 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu132`| ❌ Нет        | ✅ Да  | 13.2 |
+| `smyshnikof/comfyui:minimal-torch2.8.0-cu133`| ❌ Нет        | ✅ Да  | 13.3 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
 
@@ -84,7 +93,10 @@ smyshnikof/comfyui:(A)-torch2.8.0-(B)
 | **RTX 5090** | `smyshnikof/comfyui:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
 | **RTX 5080** | `smyshnikof/comfyui:base-torch2.8.0-cu128` | Требует CUDA 12.8+ для SageAttention2 |
 | **Новые GPU с CUDA 12.9** | `smyshnikof/comfyui:base-torch2.8.0-cu129` | Для новых видеокарт с CUDA 12.9 |
-| **RunPod с CUDA 13.0** | `smyshnikof/comfyui:base-torch2.8.0-cu130` | Для новых подов RunPod с CUDA 13.0 |
+| **RunPod с CUDA 13.0** | `smyshnikof/comfyui:base-torch2.8.0-cu130` | Для подов RunPod с CUDA 13.0 |
+| **RunPod с CUDA 13.1** | `smyshnikof/comfyui:base-torch2.8.0-cu131` | Для подов RunPod с CUDA 13.1 |
+| **RunPod с CUDA 13.2** | `smyshnikof/comfyui:base-torch2.8.0-cu132` | Для подов RunPod с CUDA 13.2 |
+| **RunPod с CUDA 13.3** | `smyshnikof/comfyui:base-torch2.8.0-cu133` | Для подов RunPod с CUDA 13.3 |
 | **RTX 4090** | `smyshnikof/comfyui:base-torch2.8.0-cu126` | Оптимальная производительность |
 | **RTX 4080** | `smyshnikof/comfyui:base-torch2.8.0-cu126` | Отличная совместимость |
 | **RTX 4070** | `smyshnikof/comfyui:base-torch2.8.0-cu124` | Стабильная работа |
@@ -161,7 +173,7 @@ bash /download_presets.sh PRESET1,PRESET2,...
 * **ОС**: Ubuntu 24.04 (22.02 для CUDA 12.4)
 * **Python**: 3.13
 * **Фреймворк**: [ComfyUI](https://github.com/comfyanonymous/ComfyUI) + [ComfyUI Manager](https://github.com/Comfy-Org/ComfyUI-Manager) + [JupyterLab](https://jupyter.org/)
-* **Библиотеки**: PyTorch 2.8.0 (2.9.0 для cu130), CUDA (12.4–13.0), Triton, [hf\_hub](https://huggingface.co/docs/huggingface_hub), [nvtop](https://github.com/Syllo/nvtop)
+* **Библиотеки**: PyTorch 2.8.0 (2.9.0 для CUDA 13.x), CUDA (12.4–13.3), Triton, [hf\_hub](https://huggingface.co/docs/huggingface_hub), [nvtop](https://github.com/Syllo/nvtop)
 
 #### Кастомные ноды (в образах **base/full**)
 

@@ -24,7 +24,7 @@ smyshnikof/comfyui:(A)-torch2.8.0-cu128
   * `base`: ComfyUI + Manager + стабильные кастомные ноды + веб-загрузчик пресетов
   * `minimal`: ComfyUI + Manager без кастомных нод
 * **torch2.8.0**: PyTorch версия
-* **cu128**: CUDA версия (cu124, cu126, cu128, cu129, cu130)
+* **cu128**: CUDA версия (cu124, cu126, cu128, cu129, cu130, cu131, cu132, cu133)
 
 ---
 
@@ -42,6 +42,9 @@ smyshnikof/comfyui:(A)-torch2.8.0-cu128
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu126`| ❌ Нет        | ✅ Да  | 12.6 |
 | `smyshnikof/comfyui:minimal-torch2.8.0-cu128`| ❌ Нет        | ✅ Да  | 12.8 |
 | `smyshnikof/comfyui:base-torch2.8.0-cu130`   | ✅ Стабильные | ✅ Да  | 13.0 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu131`   | ✅ Стабильные | ✅ Да  | 13.1 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu132`   | ✅ Стабильные | ✅ Да  | 13.2 |
+| `smyshnikof/comfyui:base-torch2.8.0-cu133`   | ✅ Стабильные | ✅ Да  | 13.3 |
 
 > 👉 Для переключения: **Edit Pod/Template** → установите `Container Image`.
 
@@ -79,8 +82,11 @@ smyshnikof/comfyui:base-torch2.8.0-cu126
 # RTX 4070/3090/3080
 smyshnikof/comfyui:base-torch2.8.0-cu124
 
-# RunPod с CUDA 13.0 (новые поды)
+# RunPod с CUDA 13.0 / 13.1 / 13.2 / 13.3
 smyshnikof/comfyui:base-torch2.8.0-cu130
+smyshnikof/comfyui:base-torch2.8.0-cu131
+smyshnikof/comfyui:base-torch2.8.0-cu132
+smyshnikof/comfyui:base-torch2.8.0-cu133
 ```
 
 ### 2. Запустите POD
@@ -145,7 +151,7 @@ bash /download_presets.sh WAN_T2V,WAN_T2I,WAN_I2V,WAN_ANIMATE
 * **ОС**: Ubuntu 24.04 (22.02 для CUDA 12.4)
 * **Python**: 3.13
 * **Фреймворк**: [ComfyUI](https://github.com/comfyanonymous/ComfyUI) + [ComfyUI Manager](https://github.com/Comfy-Org/ComfyUI-Manager) + [JupyterLab](https://jupyter.org/)
-* **Библиотеки**: PyTorch 2.8.0, CUDA (12.4–12.8), Triton, [hf\_hub](https://huggingface.co/docs/huggingface_hub), [nvtop](https://github.com/Syllo/nvtop)
+* **Библиотеки**: PyTorch 2.8.0 (2.9.0 для CUDA 13.x), CUDA (12.4–13.3), Triton, [hf\_hub](https://huggingface.co/docs/huggingface_hub), [nvtop](https://github.com/Syllo/nvtop)
 
 #### Кастомные ноды (в образе **base**)
 

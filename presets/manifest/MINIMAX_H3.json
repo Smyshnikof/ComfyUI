@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "MINIMAX_H3",
+  "name": "MiniMax H3",
+  "description": "Видео с аудио из текста и картинки (T2V / I2V), pruned int8_convrot",
+  "category": "MiniMax",
+  "size": "~40GB",
+  "time": "15-25 мин",
+  "files": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "folder": "diffusion_models",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "folder": "text_encoders",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+      "folder": "vae",
+      "filename": null
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+      "folder": "vae",
+      "filename": null
+    }
+  ]
+}

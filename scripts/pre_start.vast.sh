@@ -63,8 +63,8 @@ if [ -f "${VAST_WORKSPACE}/venv/bin/activate" ] && [ -f /comfy_pytorch_pin.txt ]
                 "torch==${TV}+${CV}" "torchvision==${TVIS}+${CV}" "torchaudio==${TV}+${CV}" \
                 --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true
         else
-            [ "$TV" = "2.9.0" ] && TVIS=0.24.0 || TVIS=0.23.0
-            if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then
+            case "$TV" in 2.13.0) TVIS=0.28.0 ;; 2.9.0) TVIS=0.24.0 ;; *) TVIS=0.23.0 ;; esac
+            if echo "$CV" | grep -qE '^cu(126|128|129|130|132)$'; then
                 pip install --no-cache-dir \
                     "torch==${TV}+${CV}" "torchvision==${TVIS}+${CV}" "torchaudio==${TV}+${CV}" \
                     --extra-index-url "https://download.pytorch.org/whl/${CV}" 2>/dev/null || true

@@ -9,7 +9,10 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG PYTHON_VERSION
 ARG TORCH_VERSION
 ARG CUDA_VERSION
+ARG PYTORCH_CUDA_VERSION=""
 ARG SKIP_CUSTOM_NODES
+
+ENV CUDA_VERSION=${CUDA_VERSION}
 # ARG SKIP_PRESET_DOWNLOAD - removed, presets now via web interface
 
 # Set basic environment variables
@@ -70,11 +73,12 @@ ENV PATH="/workspace/venv/bin:/venv/bin:$PATH"
 
 # Install essential Python packages and dependencies
 # Явные wheel'ы torch==X.Y.Z+cu*** с download.pytorch.org; иначе pip берёт torchaudio с pypi → ABI: undefined symbol torch_library_impl
-# comfy_pytorch_pin.txt: torch_ver, cuda_tag, torchvision_ver или третья строка «legacy» (cu124/cu125 + py3.13)
-RUN TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
-    if [ "$TV" = "2.9.0" ]; then TVIS="0.24.0"; else TVIS="0.23.0"; fi && \
-    if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then \
-        PIN_THIRD="$TVIS" && TORCH_PKGS="torch==${TV}+${CV} torchvision==${TVIS}+${CV} torchaudio==${TV}+${CV}"; \
+# comfy_pytorch_pin.txt: torch_ver, pytorch_cuda_tag, torchvision_ver или третья строка «legacy» (cu124/cu125 + py3.13)
+# PYTORCH_CUDA_VERSION — индекс колёс, если он не совпадает с CUDA образа (cu131/cu133, нет torchaudio+cu132)
+RUN TV="${TORCH_VERSION}" PCV="${PYTORCH_CUDA_VERSION:-$CUDA_VERSION}" && \
+    case "$TV" in 2.13.0) TVIS="0.28.0" ;; 2.9.0) TVIS="0.24.0" ;; *) TVIS="0.23.0" ;; esac && \
+    if echo "$PCV" | grep -qE '^cu(126|128|129|130|132)$'; then \
+        PIN_THIRD="$TVIS" && TORCH_PKGS="torch==${TV}+${PCV} torchvision==${TVIS}+${PCV} torchaudio==${TV}+${PCV}"; \
     else \
         PIN_THIRD="legacy" && TORCH_PKGS="torch==${TV} torchvision torchaudio"; \
     fi && \
@@ -84,21 +88,21 @@ RUN TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
     huggingface_hub hf_transfer \
     numpy scipy matplotlib pandas scikit-learn seaborn requests tqdm pillow pyyaml \
     triton fastapi uvicorn aiofiles aiohttp python-multipart \
-    ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${CV}" && \
-    printf '%s\n%s\n%s\n' "$TV" "$CV" "$PIN_THIRD" > /comfy_pytorch_pin.txt
+    ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${PCV}" && \
+    printf '%s\n%s\n%s\n' "$TV" "$PCV" "$PIN_THIRD" > /comfy_pytorch_pin.txt
 
 # Install ComfyUI and ComfyUI Manager (ветка по умолчанию репозитория — актуальный main/master)
 RUN git clone https://github.com/comfy-org/ComfyUI.git && \
     cd ComfyUI && \
     pip install --no-cache-dir -r requirements.txt && \
-    TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
-    if [ "$TV" = "2.9.0" ]; then TVIS="0.24.0"; else TVIS="0.23.0"; fi && \
-    if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then \
-        TORCH_PKGS="torch==${TV}+${CV} torchvision==${TVIS}+${CV} torchaudio==${TV}+${CV}"; \
+    TV="${TORCH_VERSION}" PCV="${PYTORCH_CUDA_VERSION:-$CUDA_VERSION}" && \
+    case "$TV" in 2.13.0) TVIS="0.28.0" ;; 2.9.0) TVIS="0.24.0" ;; *) TVIS="0.23.0" ;; esac && \
+    if echo "$PCV" | grep -qE '^cu(126|128|129|130|132)$'; then \
+        TORCH_PKGS="torch==${TV}+${PCV} torchvision==${TVIS}+${PCV} torchaudio==${TV}+${PCV}"; \
     else \
         TORCH_PKGS="torch==${TV} torchvision torchaudio"; \
     fi && \
-    pip install --no-cache-dir ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${CV}" && \
+    pip install --no-cache-dir ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${PCV}" && \
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git custom_nodes/ComfyUI-Manager && \
     cd custom_nodes/ComfyUI-Manager && \
     pip install --no-cache-dir -r requirements.txt
@@ -114,22 +118,26 @@ RUN if [ -z "$SKIP_CUSTOM_NODES" ]; then \
             echo "Cloning $repo..." && \
             git clone --recursive "$repo" || echo "Warning: Failed to clone $repo, continuing..."; \
         done < "/${CUSTOM_NODES_FILE}" && \
-        if [ "$CUDA_VERSION" = "cu130" ] || [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
+        if echo "$CUDA_VERSION" | grep -qE '^cu(128|129|13[0-3])$'; then \
             pip install --no-cache-dir "Pillow>=12.0.0" && \
-            pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)" && \
+            if echo "$CUDA_VERSION" | grep -qE '^cu13'; then \
+                pip install --no-cache-dir "cupy-cuda13x" || pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy installation skipped (may not be available)"; \
+            else \
+                pip install --no-cache-dir "cupy-cuda12x" || echo "Note: cupy-cuda12x installation skipped (may not be available)"; \
+            fi && \
             find /ComfyUI/custom_nodes -name "requirements.txt" -exec sed -i 's/Pillow~=10\.3\.0/Pillow>=12.0.0/g; s/Pillow==10\.3\.0/Pillow>=12.0.0/g' {} \; ; \
         fi && \
         find /ComfyUI/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; && \
         find /ComfyUI/custom_nodes -name "install.py" -exec python {} \; && \
-        TV="${TORCH_VERSION}" CV="${CUDA_VERSION}" && \
-        if [ "$TV" = "2.9.0" ]; then TVIS="0.24.0"; else TVIS="0.23.0"; fi && \
-        if echo "$CV" | grep -qE '^cu(126|128|129|130)$'; then \
-            TORCH_PKGS="torch==${TV}+${CV} torchvision==${TVIS}+${CV} torchaudio==${TV}+${CV}"; \
+        TV="${TORCH_VERSION}" PCV="${PYTORCH_CUDA_VERSION:-$CUDA_VERSION}" && \
+        case "$TV" in 2.13.0) TVIS="0.28.0" ;; 2.9.0) TVIS="0.24.0" ;; *) TVIS="0.23.0" ;; esac && \
+        if echo "$PCV" | grep -qE '^cu(126|128|129|130|132)$'; then \
+            TORCH_PKGS="torch==${TV}+${PCV} torchvision==${TVIS}+${PCV} torchaudio==${TV}+${PCV}"; \
         else \
             TORCH_PKGS="torch==${TV} torchvision torchaudio"; \
         fi && \
-        pip install --no-cache-dir ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${CV}" && \
-        if [ "$CUDA_VERSION" = "cu130" ] || [ "$CUDA_VERSION" = "cu129" ] || [ "$CUDA_VERSION" = "cu128" ]; then \
+        pip install --no-cache-dir ${TORCH_PKGS} --extra-index-url "https://download.pytorch.org/whl/${PCV}" && \
+        if echo "$CUDA_VERSION" | grep -qE '^cu(128|129|13[0-3])$'; then \
             pip cache purge && \
             rm -rf /tmp/pip-* /tmp/build /root/.cache/pip ; \
         fi ; \

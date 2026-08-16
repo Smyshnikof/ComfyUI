@@ -76,6 +76,38 @@ target "_cu130" {
     }
 }
 
+# PyTorch не публикует cu131/cu133; у cu132 нет стабильного torchaudio.
+# Базовый nvidia/cuda совпадает с выбором CUDA на RunPod, колёса — cu130.
+target "_cu131" {
+    inherits = ["_common"]
+    args = {
+        BASE_IMAGE             = "nvidia/cuda:13.1.2-devel-ubuntu24.04"
+        CUDA_VERSION           = "cu131"
+        PYTORCH_CUDA_VERSION   = "cu130"
+        TORCH_VERSION          = "2.9.0"
+    }
+}
+
+target "_cu132" {
+    inherits = ["_common"]
+    args = {
+        BASE_IMAGE             = "nvidia/cuda:13.2.1-devel-ubuntu24.04"
+        CUDA_VERSION           = "cu132"
+        PYTORCH_CUDA_VERSION   = "cu130"
+        TORCH_VERSION          = "2.9.0"
+    }
+}
+
+target "_cu133" {
+    inherits = ["_common"]
+    args = {
+        BASE_IMAGE             = "nvidia/cuda:13.3.1-devel-ubuntu24.04"
+        CUDA_VERSION           = "cu133"
+        PYTORCH_CUDA_VERSION   = "cu130"
+        TORCH_VERSION          = "2.9.0"
+    }
+}
+
 target "_no_custom_nodes" {
     args = {
         SKIP_CUSTOM_NODES = "1"
@@ -119,6 +151,21 @@ target "full-13-0" {
     tags = tag("full", "cu130")
 }
 
+target "full-13-1" {
+    inherits = ["_cu131"]
+    tags = tag("full", "cu131")
+}
+
+target "full-13-2" {
+    inherits = ["_cu132"]
+    tags = tag("full", "cu132")
+}
+
+target "full-13-3" {
+    inherits = ["_cu133"]
+    tags = tag("full", "cu133")
+}
+
 # Base targets (stable custom nodes)
 target "base-12-4" {
     inherits = ["_cu124", "_base_nodes"]
@@ -150,6 +197,21 @@ target "base-13-0" {
     tags = tag("base", "cu130")
 }
 
+target "base-13-1" {
+    inherits = ["_cu131", "_base_nodes"]
+    tags = tag("base", "cu131")
+}
+
+target "base-13-2" {
+    inherits = ["_cu132", "_base_nodes"]
+    tags = tag("base", "cu132")
+}
+
+target "base-13-3" {
+    inherits = ["_cu133", "_base_nodes"]
+    tags = tag("base", "cu133")
+}
+
 # Minimal targets without custom nodes
 target "minimal-12-4" {
     inherits = ["_cu124", "_no_custom_nodes"]
@@ -179,6 +241,21 @@ target "minimal-12-9" {
 target "minimal-13-0" {
     inherits = ["_cu130", "_no_custom_nodes"]
     tags = tag("minimal", "cu130")
+}
+
+target "minimal-13-1" {
+    inherits = ["_cu131", "_no_custom_nodes"]
+    tags = tag("minimal", "cu131")
+}
+
+target "minimal-13-2" {
+    inherits = ["_cu132", "_no_custom_nodes"]
+    tags = tag("minimal", "cu132")
+}
+
+target "minimal-13-3" {
+    inherits = ["_cu133", "_no_custom_nodes"]
+    tags = tag("minimal", "cu133")
 }
 
 # slim targets removed - only full/base/minimal

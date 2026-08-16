@@ -38,7 +38,7 @@ flowchart TB
 | Шаг | Действие |
 |-----|----------|
 | nvidia-smi | Версия драйвера, модель GPU |
-| Матрица | Переиспользовать логику из Docker: cu124–cu130 |
+| Матрица | Переиспользовать логику из Docker: cu124–cu133 |
 | Fallback | CPU-only режим (предупреждение) |
 
 Источник правды: [`Dockerfile`](Dockerfile), `comfy_pytorch_pin.txt`, [`README_RUNPOD.md`](README_RUNPOD.md) (таблица GPU → CUDA).
